@@ -1,0 +1,245 @@
+---
+title: Error Handling
+description: Understanding API errors and how to handle them
+---
+
+The DHMAD API uses standard HTTP status codes and returns detailed error messages to help you debug issues.
+
+## Error Response Format
+
+All error responses follow this format:
+
+```json
+{
+  "error": "Error Type",
+  "message": "Human-readable error description",
+  "details": {
+    "field": "Additional error details (optional)"
+  }
+}
+```
+
+## HTTP Status Codes
+
+<CardGroup cols={2}>
+  <Card title="200 OK" icon="check">
+    Request succeeded
+  </Card>
+  <Card title="201 Created" icon="plus">
+    Resource created successfully
+  </Card>
+  <Card title="400 Bad Request" icon="exclamation-triangle">
+    Invalid request parameters
+  </Card>
+  <Card title="401 Unauthorized" icon="lock">
+    Missing or invalid API key
+  </Card>
+  <Card title="403 Forbidden" icon="ban">
+    API key lacks required permissions
+  </Card>
+  <Card title="404 Not Found" icon="magnifying-glass">
+    Resource not found
+  </Card>
+  <Card title="429 Too Many Requests" icon="clock">
+    Rate limit exceeded
+  </Card>
+  <Card title="500 Internal Server Error" icon="server">
+    Server error occurred
+  </Card>
+</CardGroup>
+
+## Common Errors
+
+### 401 Unauthorized
+
+**Missing API Key**
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Missing API key. Please include X-API-Key header."
+}
+```
+
+**Invalid API Key**
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid or expired API key"
+}
+```
+
+**Solution**: Check that your API key is correct and active in the dashboard.
+
+### 400 Bad Request
+
+**Invalid Parameters**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Invalid request parameters",
+  "details": {
+    "amount": "Amount must be a positive number"
+  }
+}
+```
+
+**Solution**: Review the API documentation and ensure all required fields are provided with valid values.
+
+### 403 Forbidden
+
+**Account Not Associated**
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Developer account must be associated with a user account to use this endpoint"
+}
+```
+
+**Solution**: Associate your developer account with a user account in the dashboard.
+
+### 404 Not Found
+
+**Resource Not Found**
+
+```json
+{
+  "error": "Not Found",
+  "message": "Escrow not found"
+}
+```
+
+**Solution**: Verify the resource ID is correct and that you have access to it.
+
+### 429 Too Many Requests
+
+**Rate Limit Exceeded**
+
+```json
+{
+  "error": "Too Many Requests",
+  "message": "Rate limit exceeded. Please try again later.",
+  "retryAfter": 3600
+}
+```
+
+**Solution**: Wait for the rate limit to reset or contact support for higher limits.
+
+## Error Handling Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check Status Codes" icon="list-check">
+    Always check the HTTP status code before processing responses
+  </Card>
+  <Card title="Read Error Messages" icon="message">
+    Error messages provide specific information about what went wrong
+  </Card>
+  <Card title="Handle Retries" icon="refresh">
+    Implement exponential backoff for 429 and 500 errors
+  </Card>
+  <Card title="Log Errors" icon="file-lines">
+    Log error responses for debugging and monitoring
+  </Card>
+</CardGroup>
+
+## Example Error Handling
+
+<CodeGroup>
+```javascript JavaScript
+async function createEscrow(data) {
+  try {
+    const response = await fetch('https://api.dhmad.tn/api/v1/escrows', {
+      method: 'POST',
+      headers: {
+        'X-API-Key': API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      
+      switch (response.status) {
+        case 401:
+          console.error('Authentication failed:', error.message);
+          // Handle invalid API key
+          break;
+        case 400:
+          console.error('Invalid request:', error.message);
+          // Handle validation errors
+          break;
+        case 429:
+          console.error('Rate limit exceeded:', error.message);
+          // Implement retry logic
+          break;
+        default:
+          console.error('Unexpected error:', error.message);
+      }
+      
+      throw new Error(error.message);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Request failed:', error);
+    throw error;
+  }
+}
+```
+
+```python Python
+import requests
+import time
+
+def create_escrow(data, retries=3):
+    for attempt in range(retries):
+        try:
+            response = requests.post(
+                'https://api.dhmad.tn/api/v1/escrows',
+                json=data,
+                headers={
+                    'X-API-Key': API_KEY,
+                    'Content-Type': 'application/json'
+                }
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 429:
+                # Rate limited - wait and retry
+                wait_time = 2 ** attempt
+                time.sleep(wait_time)
+                continue
+            else:
+                error = response.json()
+                raise Exception(f"{error['error']}: {error['message']}")
+                
+        except requests.exceptions.RequestException as e:
+            if attempt == retries - 1:
+                raise
+            time.sleep(2 ** attempt)
+    
+    raise Exception("Max retries exceeded")
+```
+</CodeGroup>
+
+## Getting Help
+
+If you encounter an error you can't resolve:
+
+1. Check the [API Reference](/docs/api-reference/overview) for endpoint details
+2. Review the error message for specific guidance
+3. Contact support@dhmad.tn with:
+   - Error message
+   - Request details (without sensitive data)
+   - API key ID (not the key itself)
+
+---
+
+<Note>
+  Never log or expose your API keys in error messages or logs. Always redact sensitive information.
+</Note>

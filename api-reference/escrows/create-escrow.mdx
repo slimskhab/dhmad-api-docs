@@ -1,0 +1,218 @@
+---
+title: Create Escrow
+description: Create a new escrow transaction
+---
+
+<Endpoint method="POST" path="/api/v1/escrows" />
+
+Create a new escrow transaction. The seller must have email and phone verification completed. A contract will be automatically created with the provided terms.
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.dhmad.tn/api/v1/escrows \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "contractTerms": "The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.",
+    "buyerEmail": "buyer@example.com",
+    "estimatedDeliveryDays": 7
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.dhmad.tn/api/v1/escrows', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    title: 'Web Development Service',
+    amount: 1000.00,
+    contractTerms: 'The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.',
+    buyerEmail: 'buyer@example.com',
+    estimatedDeliveryDays: 7
+  })
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+}
+
+data = {
+    'title': 'Web Development Service',
+    'amount': 1000.00,
+    'contractTerms': 'The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.',
+    'buyerEmail': 'buyer@example.com',
+    'estimatedDeliveryDays': 7
+}
+
+response = requests.post(
+    'https://api.dhmad.tn/api/v1/escrows',
+    json=data,
+    headers=headers
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Escrow created successfully",
+  "escrow": {
+    "id": "507f1f77bcf86cd799439011",
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "escrowFee": 50.00,
+    "status": "pending",
+    "seller": "507f1f77bcf86cd799439013",
+    "buyer": null,
+    "buyerEmail": "buyer@example.com",
+    "estimatedDeliveryDays": 7,
+    "createdAt": "2024-01-15T10:00:00Z"
+  },
+  "url": "https://dhmad.tn/dashboard/escrow/507f1f77bcf86cd799439011",
+  "trackingId": "507f1f77bcf86cd799439011"
+}
+```
+</ResponseExample>
+
+## Request Body
+
+<ParamField body="title" type="string" required>
+  Title of the escrow transaction
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Transaction amount in TND (must be greater than 0)
+</ParamField>
+
+<ParamField body="buyerEmail" type="string" required>
+  Email address of the buyer. If the buyer has an account, they'll receive a notification. If not, they'll receive an invitation email with a registration link.
+</ParamField>
+
+<ParamField body="estimatedDeliveryDays" type="number" required>
+  Estimated delivery days (must be at least 1)
+</ParamField>
+
+<ParamField body="contractTerms" type="string" required>
+  Contract terms describing the transaction agreement. A contract will be automatically created with these terms.
+</ParamField>
+
+## Response Fields
+
+<ParamField response="message" type="string">
+  Success message
+</ParamField>
+
+<ParamField response="escrow.id" type="string">
+  Unique identifier for the escrow
+</ParamField>
+
+<ParamField response="escrow.title" type="string">
+  Escrow title
+</ParamField>
+
+<ParamField response="escrow.amount" type="number">
+  Transaction amount in TND
+</ParamField>
+
+<ParamField response="escrow.escrowFee" type="number">
+  Escrow fee calculated automatically
+</ParamField>
+
+<ParamField response="escrow.status" type="string">
+  Current escrow status (pending, paid, delivered, completed, cancelled)
+</ParamField>
+
+<ParamField response="escrow.seller" type="string">
+  Seller user ID (the associated user account)
+</ParamField>
+
+<ParamField response="escrow.buyer" type="string|null">
+  Buyer user ID if the buyer already has an account, otherwise `null`
+</ParamField>
+
+<ParamField response="escrow.buyerEmail" type="string">
+  Buyer email address
+</ParamField>
+
+<ParamField response="url" type="string">
+  Direct URL to view the escrow on the frontend dashboard
+</ParamField>
+
+<ParamField response="trackingId" type="string">
+  Escrow ID for tracking purposes. Use this ID to query the escrow status via the API
+</ParamField>
+
+## Error Responses
+
+### 400 Bad Request
+
+**Missing Required Fields**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Title is required"
+}
+```
+
+**Invalid Amount**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Amount is required and must be a positive number"
+}
+```
+
+**Invalid Email**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Invalid email address"
+}
+```
+
+**Email/Phone Not Verified**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Email verification required before creating escrows"
+}
+```
+
+### 403 Forbidden
+
+**No User Account Association**
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Developer account must be associated with a user account to create escrows. Please associate your account in the developer dashboard."
+}
+```
+
+---
+
+<Warning>
+  Your developer account must be associated with a user account to create escrows. The associated user account must have email and phone verification completed.
+</Warning>
+
+<Info>
+  When creating an escrow, if the buyer email corresponds to an existing user, they will receive a notification. If the buyer email doesn't correspond to an existing user, they will receive an invitation email with a registration link.
+</Info>

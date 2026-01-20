@@ -1,0 +1,129 @@
+---
+title: Rate Limits
+description: Understand API rate limits and how to handle them
+---
+
+The DHMAD API uses rate limiting to ensure fair usage and system stability.
+
+## Default Limits
+
+- **Default**: 100 requests per minute per API key
+- **Custom limits**: You can set a custom rate limit when creating or updating an API key in the dashboard
+- **Window**: Sliding window (per minute)
+
+## Rate Limit Headers
+
+All API responses include rate limit headers:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 2024-01-15T12:00:00Z
+```
+
+## Handling Rate Limits
+
+When you exceed the rate limit, you'll receive:
+
+**Status Code**: `429 Too Many Requests`
+
+**Response**:
+```json
+{
+  "error": "Too Many Requests",
+  "message": "Rate limit exceeded. Please try again later."
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Monitor Headers" icon="chart-line">
+    Track remaining requests using response headers
+  </Card>
+  <Card title="Implement Backoff" icon="refresh">
+    Use exponential backoff when rate limited
+  </Card>
+  <Card title="Cache Responses" icon="database">
+    Cache responses to reduce API calls
+  </Card>
+  <Card title="Batch Requests" icon="layer-group">
+    Combine multiple operations when possible
+  </Card>
+</CardGroup>
+
+## Exponential Backoff Example
+
+<CodeGroup>
+```javascript JavaScript
+async function makeRequestWithRetry(url, options, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (response.status === 429) {
+        const resetHeader = response.headers.get('X-RateLimit-Reset');
+        const resetTime = resetHeader ? new Date(resetHeader).getTime() : Date.now() + 60000;
+        const waitTime = Math.min(resetTime - Date.now(), 60000 * Math.pow(2, i));
+        
+        if (waitTime > 0) {
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+    }
+  }
+}
+```
+
+```python Python
+import requests
+import time
+from datetime import datetime
+
+def make_request_with_retry(url, headers, retries=3):
+    for i in range(retries):
+        try:
+            response = requests.get(url, headers=headers)
+            
+            if response.status_code == 429:
+                reset_header = response.headers.get('X-RateLimit-Reset')
+                if reset_header:
+                    reset_time = datetime.fromisoformat(reset_header.replace('Z', '+00:00'))
+                    wait_time = min(
+                        (reset_time.timestamp() - time.time()) * 1000,
+                        60000 * (2 ** i)
+                    )
+                    if wait_time > 0:
+                        time.sleep(wait_time / 1000)
+                else:
+                    time.sleep(60 * (2 ** i))
+                continue
+            
+            return response
+        except requests.exceptions.RequestException as e:
+            if i == retries - 1:
+                raise
+            time.sleep(2 ** i)
+    
+    raise Exception("Max retries exceeded")
+```
+</CodeGroup>
+
+## Requesting Higher Limits
+
+For higher rate limits, contact support@dhmad.tn with:
+- Your use case
+- Expected request volume
+- API key ID
+
+---
+
+<Info>
+  Rate limits are per API key. You can set a custom rate limit when creating or updating an API key in the dashboard.
+</Info>

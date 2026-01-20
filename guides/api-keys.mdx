@@ -1,0 +1,145 @@
+---
+title: API Keys Management
+description: Learn how to manage your API keys effectively
+---
+
+API keys are the primary method of authenticating with the DHMAD API. This guide covers best practices for managing your keys.
+
+## Creating API Keys
+
+1. Log into the [Developer Dashboard](https://developer.dhmad.tn/dashboard)
+2. Navigate to the "API Keys" section
+3. Click "Create API Key"
+4. Provide:
+   - **Key Name**: Descriptive name (e.g., "Production App", "Staging Environment")
+   - **App Name**: Optional application name
+   - **Website**: Optional website URL
+   - **Description**: Optional description of the key's purpose
+5. Copy your key immediately - it won't be shown again!
+
+<Warning>
+  API keys are only displayed once when created. Make sure to copy and store them securely.
+</Warning>
+
+## Key Management
+
+### Viewing Keys
+
+In the dashboard, you can see:
+- Key name and description
+- Creation date
+- Last used date
+- Active/Inactive status
+
+### Regenerating Keys
+
+To regenerate a key:
+
+1. Find the key in your dashboard
+2. Click the regenerate icon
+3. Confirm the action
+4. Copy the new key immediately
+
+<Warning>
+  Regenerating a key immediately invalidates the old key. Update your application with the new key before regenerating.
+</Warning>
+
+### Deactivating Keys
+
+To temporarily disable a key:
+
+1. Find the key in your dashboard
+2. Toggle the active status
+3. The key will be disabled but not deleted
+
+### Deleting Keys
+
+To permanently delete a key:
+
+1. Find the key in your dashboard
+2. Click the delete icon
+3. Confirm the deletion
+
+<Warning>
+  Deleting a key is permanent and cannot be undone. Make sure you have a backup key before deleting.
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Separate Keys" icon="key">
+    Use different keys for development, staging, and production
+  </Card>
+  <Card title="Name Clearly" icon="tag">
+    Use descriptive names to identify key purposes
+  </Card>
+  <Card title="Rotate Regularly" icon="refresh">
+    Regenerate keys periodically for security
+  </Card>
+  <Card title="Monitor Usage" icon="chart-line">
+    Regularly check key usage for suspicious activity
+  </Card>
+  <Card title="Store Securely" icon="lock">
+    Never commit keys to version control
+  </Card>
+  <Card title="Limit Access" icon="user-shield">
+    Only share keys with trusted team members
+  </Card>
+</CardGroup>
+
+## Environment Variables
+
+Store API keys as environment variables:
+
+```bash
+# .env file
+DHMAD_API_KEY=sk_live_abc123...
+```
+
+Access in your code:
+
+<CodeGroup>
+```javascript JavaScript
+const API_KEY = process.env.DHMAD_API_KEY;
+```
+
+```python Python
+import os
+
+API_KEY = os.getenv('DHMAD_API_KEY')
+```
+
+```bash Shell
+export DHMAD_API_KEY=sk_live_abc123...
+```
+</CodeGroup>
+
+## Security Checklist
+
+- [ ] Keys stored in environment variables
+- [ ] Keys not committed to version control
+- [ ] `.env` files in `.gitignore`
+- [ ] Different keys for each environment
+- [ ] Keys rotated periodically
+- [ ] Access limited to necessary team members
+- [ ] Monitoring enabled for key usage
+
+## Troubleshooting
+
+### "Invalid API Key" Error
+
+- Verify the key is copied correctly (no extra spaces)
+- Check the key is active in the dashboard
+- Ensure you're using the correct key for your environment
+
+### Key Not Working
+
+- Verify the key hasn't been regenerated
+- Check the key hasn't been deleted
+- Ensure your developer account is associated with a user account
+
+---
+
+<Note>
+  If a key is compromised, regenerate it immediately and update all applications using it.
+</Note>

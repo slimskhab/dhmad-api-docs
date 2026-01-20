@@ -1,0 +1,175 @@
+---
+title: Get Escrow
+description: Get detailed information about a specific escrow
+---
+
+<Endpoint method="GET" path="/api/v1/escrows/:id" />
+
+Get detailed information about a specific escrow. Only accessible if you are the seller or buyer of the escrow.
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011 \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+}
+
+response = requests.get(
+    'https://api.dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011',
+    headers=headers
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "escrow": {
+    "id": "507f1f77bcf86cd799439011",
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "escrowFee": 50.00,
+    "status": "paid",
+    "seller": {
+      "_id": "507f1f77bcf86cd799439013",
+      "username": "seller_user",
+      "email": "seller@example.com",
+      "firstName": "John",
+      "lastName": "Doe"
+    },
+    "buyer": {
+      "_id": "507f1f77bcf86cd799439014",
+      "username": "buyer_user",
+      "email": "buyer@example.com",
+      "firstName": "Jane",
+      "lastName": "Smith"
+    },
+    "estimatedDeliveryDays": 7,
+    "paidAt": "2024-01-16T09:00:00Z",
+    "deliveredAt": null,
+    "completedAt": null,
+    "cancelledAt": null,
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-16T09:00:00Z"
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The escrow ID
+</ParamField>
+
+## Response Fields
+
+<ParamField response="escrow.id" type="string">
+  Unique identifier for the escrow
+</ParamField>
+
+<ParamField response="escrow.title" type="string">
+  Escrow title
+</ParamField>
+
+<ParamField response="escrow.amount" type="number">
+  Transaction amount in TND
+</ParamField>
+
+<ParamField response="escrow.escrowFee" type="number">
+  Escrow fee
+</ParamField>
+
+<ParamField response="escrow.status" type="string">
+  Current escrow status (pending, paid, delivered, completed, cancelled)
+</ParamField>
+
+<ParamField response="escrow.seller" type="object">
+  Seller user object with _id, username, email, firstName, lastName
+</ParamField>
+
+<ParamField response="escrow.buyer" type="object|null">
+  Buyer user object if buyer exists, otherwise `null`
+</ParamField>
+
+<ParamField response="escrow.estimatedDeliveryDays" type="number">
+  Estimated delivery days
+</ParamField>
+
+<ParamField response="escrow.paidAt" type="string|null">
+  ISO 8601 timestamp when payment was made, or `null` if not paid
+</ParamField>
+
+<ParamField response="escrow.deliveredAt" type="string|null">
+  ISO 8601 timestamp when service was delivered, or `null` if not delivered
+</ParamField>
+
+<ParamField response="escrow.completedAt" type="string|null">
+  ISO 8601 timestamp when escrow was completed, or `null` if not completed
+</ParamField>
+
+<ParamField response="escrow.cancelledAt" type="string|null">
+  ISO 8601 timestamp when escrow was cancelled, or `null` if not cancelled
+</ParamField>
+
+<ParamField response="escrow.createdAt" type="string">
+  ISO 8601 timestamp when escrow was created
+</ParamField>
+
+<ParamField response="escrow.updatedAt" type="string">
+  ISO 8601 timestamp when escrow was last updated
+</ParamField>
+
+## Error Responses
+
+### 400 Bad Request
+
+**Invalid Escrow ID**
+
+```json
+{
+  "error": "Invalid escrow ID"
+}
+```
+
+### 404 Not Found
+
+**Escrow Not Found**
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+This error occurs if:
+- The escrow ID doesn't exist
+- You are not the seller or buyer of the escrow
+
+---
+
+<Info>
+  You can only access escrows where your associated user account is the seller or buyer. If you try to access an escrow you're not involved in, you'll receive a 404 error.
+</Info>

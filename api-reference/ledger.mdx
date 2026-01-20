@@ -1,0 +1,86 @@
+---
+title: Balance API
+description: Get account balance information
+---
+
+The Balance API provides access to your account balance information.
+
+<Warning>
+  Your developer account must be associated with a user account to access balance information. You can associate your account in the [developer dashboard](https://developer.dhmad.tn/dashboard).
+</Warning>
+
+## Get Balance
+
+Get your account balance breakdown (available, pending, and escrow balances).
+
+<Endpoint method="GET" path="/api/v1/balance" />
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.dhmad.tn/api/v1/balance \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.dhmad.tn/api/v1/balance', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+}
+
+response = requests.get(
+    'https://api.dhmad.tn/api/v1/balance',
+    headers=headers
+)
+
+data = response.json()
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "balance": {
+    "available": 1500.50,
+    "pending": 200.00,
+    "escrow": 500.25
+  }
+}
+```
+
+### Balance Types
+
+<CardGroup cols={3}>
+  <Card title="Available Balance" icon="wallet">
+    Funds available for immediate use (withdrawals, new escrows, etc.)
+  </Card>
+  <Card title="Pending Balance" icon="clock">
+    Funds pending processing (top-ups, payouts in progress)
+  </Card>
+  <Card title="Escrow Balance" icon="lock">
+    Funds held in active escrow transactions
+  </Card>
+</CardGroup>
+
+---
+
+<Info>
+  The balance returned is for the user account associated with your developer account. Make sure your developer account is properly associated before using this endpoint.
+</Info>

@@ -1,0 +1,290 @@
+---
+title: Webhooks API
+description: Manage webhooks for real-time event notifications
+---
+
+The Webhooks API allows you to create and manage webhooks that receive real-time notifications when escrow status changes.
+
+<Warning>
+  You can create a maximum of 2 webhooks per developer account. Choose your endpoints carefully.
+</Warning>
+
+## Create Webhook
+
+Create a new webhook endpoint to receive event notifications.
+
+<Endpoint method="POST" path="/api/developer/webhooks" />
+
+### Request Body
+
+<ParamField body="url" type="string" required>
+  Webhook URL (must be HTTPS in production)
+</ParamField>
+
+<ParamField body="events" type="array">
+  Array of event types to subscribe to. Default: `["escrow.status.updated"]`
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.dhmad.tn/api/developer/webhooks \
+  -H "Authorization: Bearer your_developer_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/webhooks/dhmad",
+    "events": ["escrow.status.updated"]
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.dhmad.tn/api/developer/webhooks', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_developer_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    url: 'https://example.com/webhooks/dhmad',
+    events: ['escrow.status.updated']
+  })
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer your_developer_token',
+    'Content-Type': 'application/json'
+}
+
+data = {
+    'url': 'https://example.com/webhooks/dhmad',
+    'events': ['escrow.status.updated']
+}
+
+response = requests.post(
+    'https://api.dhmad.tn/api/developer/webhooks',
+    json=data,
+    headers=headers
+)
+
+data = response.json()
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "message": "Webhook created successfully",
+  "webhook": {
+    "id": "507f1f77bcf86cd799439011",
+    "url": "https://example.com/webhooks/dhmad",
+    "events": ["escrow.status.updated"],
+    "isActive": true,
+    "createdAt": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+## List Webhooks
+
+Get all webhooks for your developer account.
+
+<Endpoint method="GET" path="/api/developer/webhooks" />
+
+### Example Request
+
+```bash
+curl -X GET https://api.dhmad.tn/api/developer/webhooks \
+  -H "Authorization: Bearer your_developer_token"
+```
+
+### Example Response
+
+```json
+{
+  "webhooks": [
+    {
+      "id": "507f1f77bcf86cd799439011",
+      "url": "https://example.com/webhooks/dhmad",
+      "events": ["escrow.status.updated"],
+      "isActive": true,
+      "lastTriggeredAt": "2024-01-15T10:30:00Z",
+      "lastResponseStatus": 200,
+      "failureCount": 0,
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+## Get Webhook
+
+Get details of a specific webhook.
+
+<Endpoint method="GET" path="/api/developer/webhooks/:id" />
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X GET https://api.dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
+  -H "Authorization: Bearer your_developer_token"
+```
+
+## Update Webhook
+
+Update a webhook's URL, events, or active status.
+
+<Endpoint method="PUT" path="/api/developer/webhooks/:id" />
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="url" type="string">
+  New webhook URL (optional)
+</ParamField>
+
+<ParamField body="events" type="array">
+  New array of event types (optional)
+</ParamField>
+
+<ParamField body="isActive" type="boolean">
+  Whether the webhook is active (optional)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X PUT https://api.dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
+  -H "Authorization: Bearer your_developer_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "isActive": false
+  }'
+```
+
+## Delete Webhook
+
+Delete a webhook permanently.
+
+<Endpoint method="DELETE" path="/api/developer/webhooks/:id" />
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
+  -H "Authorization: Bearer your_developer_token"
+```
+
+### Example Response
+
+```json
+{
+  "message": "Webhook deleted successfully"
+}
+```
+
+## Response Fields
+
+<ParamField response="webhook.id" type="string">
+  Unique identifier for the webhook
+</ParamField>
+
+<ParamField response="webhook.url" type="string">
+  Webhook endpoint URL
+</ParamField>
+
+<ParamField response="webhook.events" type="array">
+  Array of subscribed event types
+</ParamField>
+
+<ParamField response="webhook.isActive" type="boolean">
+  Whether the webhook is currently active
+</ParamField>
+
+<ParamField response="webhook.lastTriggeredAt" type="string">
+  ISO 8601 timestamp of the last webhook delivery
+</ParamField>
+
+<ParamField response="webhook.lastResponseStatus" type="number">
+  HTTP status code from the last webhook delivery attempt
+</ParamField>
+
+<ParamField response="webhook.failureCount" type="number">
+  Number of consecutive delivery failures
+</ParamField>
+
+## Error Responses
+
+### 400 Bad Request
+
+**Webhook Limit Reached**
+
+```json
+{
+  "error": "Maximum 2 webhooks allowed per developer"
+}
+```
+
+**Invalid URL**
+
+```json
+{
+  "error": "Invalid URL format"
+}
+```
+
+**HTTPS Required (Production)**
+
+```json
+{
+  "error": "Only HTTPS URLs are allowed in production"
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid or missing developer token"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": "Webhook not found"
+}
+```
+
+---
+
+<Info>
+  For detailed information about webhook events, payloads, and signature verification, see the [Webhooks Guide](/docs/guides/webhooks).
+</Info>

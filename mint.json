@@ -1,0 +1,92 @@
+{
+  "name": "DHMAD API Documentation",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "favicon.svg",
+  "colors": {
+    "primary": "#2563EB",
+    "light": "#3B82F6",
+    "dark": "#1E40AF",
+    "anchors": {
+      "from": "#2563EB",
+      "to": "#3B82F6"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://developer.dhmad.tn/dashboard"
+    },
+    {
+      "name": "Support",
+      "url": "mailto:support@dhmad.tn"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "https://developer.dhmad.tn/apply"
+  },
+  "anchors": [
+    {
+      "name": "Documentation",
+      "icon": "book-open-cover",
+      "url": "https://developer.dhmad.tn/docs"
+    },
+    {
+      "name": "API Reference",
+      "icon": "code",
+      "url": "https://developer.dhmad.tn/docs/api-reference"
+    },
+    {
+      "name": "Guides",
+      "icon": "book",
+      "url": "https://developer.dhmad.tn/docs/guides"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "getting-started",
+        "authentication",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/overview",
+        "api-reference/escrows",
+        "api-reference/payments",
+        "api-reference/ledger",
+        "api-reference/errors"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/oauth-setup",
+        "guides/api-keys",
+        "guides/webhooks",
+        "guides/rate-limits",
+        "guides/best-practices"
+      ]
+    },
+    {
+      "group": "Developer Portal",
+      "pages": [
+        "developer-portal/overview",
+        "developer-portal/account-setup",
+        "developer-portal/associating-accounts"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/dhmad",
+    "github": "https://github.com/dhmad",
+    "linkedin": "https://www.linkedin.com/company/dhmad"
+  }
+}

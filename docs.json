@@ -1,0 +1,114 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "DHMAD API Documentation",
+  "colors": {
+    "primary": "#2563EB",
+    "light": "#3B82F6",
+    "dark": "#1E40AF"
+  },
+  "favicon": "favicon.svg",
+  "navigation": {
+    "anchors": [
+      {
+        "anchor": "Documentation",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "getting-started",
+              "authentication",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "api-reference/overview",
+              {
+                "group": "Escrows",
+                "pages": [
+                  "api-reference/escrows/overview",
+                  "api-reference/escrows/create-escrow",
+                  "api-reference/escrows/list-escrows",
+                  "api-reference/escrows/get-escrow"
+                ]
+              },
+              "api-reference/payments",
+              "api-reference/ledger",
+              "api-reference/webhooks",
+              "api-reference/errors"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/oauth-setup",
+              "guides/api-keys",
+              "guides/webhooks",
+              "guides/rate-limits",
+              "guides/best-practices"
+            ]
+          },
+          {
+            "group": "Developer Portal",
+            "pages": [
+              "developer-portal/overview",
+              "developer-portal/account-setup",
+              "developer-portal/associating-accounts"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Documentation",
+          "href": "https://developer.dhmad.tn/docs",
+          "icon": "book-open-cover"
+        },
+        {
+          "anchor": "API Reference",
+          "href": "https://developer.dhmad.tn/docs/api-reference",
+          "icon": "code"
+        },
+        {
+          "anchor": "Guides",
+          "href": "https://developer.dhmad.tn/docs/guides",
+          "icon": "book"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Dashboard",
+        "href": "https://developer.dhmad.tn/dashboard"
+      },
+      {
+        "label": "Support",
+        "href": "mailto:support@dhmad.tn"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "https://developer.dhmad.tn/apply"
+    }
+  },
+  "footer": {
+    "socials": {
+      "twitter": "https://twitter.com/dhmad",
+      "github": "https://github.com/dhmad",
+      "linkedin": "https://www.linkedin.com/company/dhmad"
+    }
+  }
+}

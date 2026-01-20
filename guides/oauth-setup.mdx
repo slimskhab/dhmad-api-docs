@@ -1,0 +1,222 @@
+---
+title: OAuth Setup
+description: Configure OAuth 2.0 for SSO integration
+---
+
+DHMAD supports OAuth 2.0 for Single Sign-On (SSO) integration, allowing users to authenticate with their DHMAD accounts in your application.
+
+## Overview
+
+OAuth 2.0 allows your application to:
+- Authenticate users with their DHMAD accounts
+- Access user information (with permission)
+- Provide seamless SSO experience
+
+## Getting Your OAuth Credentials
+
+1. Log into the [Developer Dashboard](https://developer.dhmad.tn/dashboard)
+2. Navigate to the "OAuth Client Credentials" section
+3. Copy your **Client ID** and **Client Secret**
+
+<Warning>
+  Keep your Client Secret secure! Never expose it in client-side code or commit it to version control.
+</Warning>
+
+## Configuring Redirect URIs
+
+You can configure redirect URIs in two ways:
+
+### Full URL
+Specify the exact callback URL:
+```
+https://example.com/callback
+```
+
+### Domain-Only
+Allow any path under your domain:
+```
+https://example.com
+```
+
+This allows:
+- `https://example.com/callback`
+- `https://example.com/auth/callback`
+- Any other path under `example.com`
+
+## OAuth Flow
+
+The OAuth 2.0 authorization code flow with PKCE:
+
+1. **Authorization Request** - Redirect user to authorization endpoint
+2. **User Authentication** - User logs in with DHMAD account
+3. **Authorization Code** - User is redirected back with code
+4. **Token Exchange** - Exchange code for access token
+5. **User Info** - Use access token to get user information
+
+## Implementation Example
+
+<CodeGroup>
+```javascript JavaScript
+// Step 1: Generate PKCE challenge
+import crypto from 'crypto';
+
+function generatePKCE() {
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto
+    .createHash('sha256')
+    .update(codeVerifier)
+    .digest('base64url');
+  
+  return { codeVerifier, codeChallenge };
+}
+
+// Step 2: Redirect to authorization
+const { codeVerifier, codeChallenge } = generatePKCE();
+sessionStorage.setItem('code_verifier', codeVerifier);
+
+const params = new URLSearchParams({
+  client_id: CLIENT_ID,
+  redirect_uri: REDIRECT_URI,
+  response_type: 'code',
+  scope: 'openid profile email',
+  code_challenge: codeChallenge,
+  code_challenge_method: 'S256',
+  state: generateState()
+});
+
+window.location.href = `https://api.dhmad.tn/api/oauth/authorize?${params}`;
+
+// Step 3: Handle callback
+const urlParams = new URLSearchParams(window.location.search);
+const code = urlParams.get('code');
+const state = urlParams.get('state');
+
+// Step 4: Exchange code for token
+const tokenResponse = await fetch('https://api.dhmad.tn/api/oauth/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: REDIRECT_URI,
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    code_verifier: sessionStorage.getItem('code_verifier')
+  })
+});
+
+const tokens = await tokenResponse.json();
+
+// Step 5: Get user info
+const userResponse = await fetch('https://api.dhmad.tn/api/oauth/userinfo', {
+  headers: {
+    'Authorization': `Bearer ${tokens.access_token}`
+  }
+});
+
+const user = await userResponse.json();
+```
+
+```python Python
+import secrets
+import hashlib
+import base64
+import requests
+
+# Step 1: Generate PKCE
+def generate_pkce():
+    code_verifier = base64.urlsafe_b64encode(
+        secrets.token_bytes(32)
+    ).decode('utf-8').rstrip('=')
+    
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode()).digest()
+    ).decode('utf-8').rstrip('=')
+    
+    return code_verifier, code_challenge
+
+# Step 2: Authorization URL
+code_verifier, code_challenge = generate_pkce()
+session['code_verifier'] = code_verifier
+
+auth_url = 'https://api.dhmad.tn/api/oauth/authorize'
+params = {
+    'client_id': CLIENT_ID,
+    'redirect_uri': REDIRECT_URI,
+    'response_type': 'code',
+    'scope': 'openid profile email',
+    'code_challenge': code_challenge,
+    'code_challenge_method': 'S256',
+    'state': secrets.token_urlsafe(16)
+}
+
+# Redirect user to: f"{auth_url}?{urlencode(params)}"
+
+# Step 3: Handle callback and exchange code
+code = request.args.get('code')
+token_response = requests.post(
+    'https://api.dhmad.tn/api/oauth/token',
+    json={
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': REDIRECT_URI,
+        'client_id': CLIENT_ID,
+        'client_secret': CLIENT_SECRET,
+        'code_verifier': session['code_verifier']
+    }
+)
+
+tokens = token_response.json()
+
+# Step 4: Get user info
+user_response = requests.get(
+    'https://api.dhmad.tn/api/oauth/userinfo',
+    headers={'Authorization': f"Bearer {tokens['access_token']}"}
+)
+
+user = user_response.json()
+```
+</CodeGroup>
+
+## Scopes
+
+Available OAuth scopes:
+
+- `openid` - OpenID Connect (required for ID token)
+- `profile` - User profile information
+- `email` - User email address
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use PKCE" icon="shield-check">
+    Always use PKCE (Proof Key for Code Exchange) for security
+  </Card>
+  <Card title="HTTPS Only" icon="lock">
+    Always use HTTPS for redirect URIs in production
+  </Card>
+  <Card title="Validate State" icon="check">
+    Always validate the state parameter to prevent CSRF attacks
+  </Card>
+  <Card title="Secure Storage" icon="key">
+    Store tokens securely, never in localStorage for sensitive apps
+  </Card>
+</CardGroup>
+
+## Discovery Endpoint
+
+Get OAuth configuration:
+
+```bash
+curl https://api.dhmad.tn/.well-known/openid-configuration
+```
+
+## Support
+
+For OAuth integration help, contact support@dhmad.tn
+
+---
+
+<Info>
+  OAuth credentials are automatically generated when you first access your developer dashboard. You can regenerate your client secret at any time.
+</Info>

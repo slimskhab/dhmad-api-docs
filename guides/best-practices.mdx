@@ -1,0 +1,166 @@
+---
+title: Best Practices
+description: Production-ready tips for using the DHMAD API
+---
+
+Follow these best practices to build reliable, secure integrations with the DHMAD API.
+
+## Security
+
+<CardGroup cols={2}>
+  <Card title="Protect API Keys" icon="lock">
+    Never commit API keys to version control. Use environment variables or secret management.
+  </Card>
+  <Card title="Use HTTPS" icon="shield-check">
+    Always use HTTPS for all API requests in production.
+  </Card>
+  <Card title="Validate Input" icon="check">
+    Validate all user input before sending to the API.
+  </Card>
+  <Card title="Verify Webhooks" icon="key">
+    Always verify webhook signatures before processing.
+  </Card>
+</CardGroup>
+
+## Error Handling
+
+### Implement Retry Logic
+
+```javascript
+async function apiCallWithRetry(fn, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error.status === 429 || error.status >= 500) {
+        await sleep(Math.pow(2, i) * 1000);
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+```
+
+### Log Errors
+
+Always log errors for debugging:
+
+```javascript
+try {
+  await createEscrow(data);
+} catch (error) {
+  logger.error('Failed to create escrow', {
+    error: error.message,
+    data: sanitizeData(data) // Remove sensitive info
+  });
+  throw error;
+}
+```
+
+## Performance
+
+<CardGroup cols={2}>
+  <Card title="Cache Responses" icon="database">
+    Cache frequently accessed data to reduce API calls
+  </Card>
+  <Card title="Batch Operations" icon="layer-group">
+    Combine multiple operations when possible
+  </Card>
+  <Card title="Async Processing" icon="bolt">
+    Process webhooks asynchronously for quick responses
+  </Card>
+  <Card title="Monitor Usage" icon="chart-line">
+    Track API usage to optimize requests
+  </Card>
+</CardGroup>
+
+## Code Organization
+
+### Separate Configuration
+
+```javascript
+// config.js
+export const API_CONFIG = {
+  baseURL: process.env.DHMAD_API_URL || 'https://api.dhmad.tn/api/v1',
+  apiKey: process.env.DHMAD_API_KEY,
+  timeout: 30000
+};
+```
+
+### Create API Client
+
+```javascript
+// apiClient.js
+class DHMADClient {
+  constructor(config) {
+    this.baseURL = config.baseURL;
+    this.apiKey = config.apiKey;
+  }
+  
+  async request(endpoint, options = {}) {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      ...options,
+      headers: {
+        'X-API-Key': this.apiKey,
+        'Content-Type': 'application/json',
+        ...options.headers
+      }
+    });
+    
+    if (!response.ok) {
+      throw new APIError(response);
+    }
+    
+    return response.json();
+  }
+}
+```
+
+## Testing
+
+### Use Test Environment
+
+- Use separate API keys for testing
+- Test all error scenarios
+- Verify webhook handling
+- Test rate limit handling
+
+### Mock API Responses
+
+```javascript
+// In tests
+jest.mock('./apiClient', () => ({
+  createEscrow: jest.fn().mockResolvedValue({
+    escrow: { id: 'test_123', status: 'pending' }
+  })
+}));
+```
+
+## Monitoring
+
+### Track Key Metrics
+
+- API request success rate
+- Response times
+- Error rates by type
+- Rate limit usage
+
+### Set Up Alerts
+
+- Alert on high error rates
+- Alert on rate limit approaching
+- Alert on failed webhooks
+
+## Documentation
+
+- Document your integration
+- Keep API keys documented (securely)
+- Maintain changelog for API updates
+- Document error handling strategies
+
+---
+
+<Note>
+  Following these best practices will help you build a reliable, maintainable integration with the DHMAD API.
+</Note>

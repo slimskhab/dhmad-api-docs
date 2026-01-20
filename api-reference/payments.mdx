@@ -1,0 +1,133 @@
+---
+title: Account Information
+description: Get API key and account information
+---
+
+The Account Information API allows you to retrieve information about your API key and associated developer account.
+
+## Get API Key Information
+
+Get information about the current API key and associated developer account.
+
+<Endpoint method="GET" path="/api/v1/me" />
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.dhmad.tn/api/v1/me \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.dhmad.tn/api/v1/me', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+}
+
+response = requests.get(
+    'https://api.dhmad.tn/api/v1/me',
+    headers=headers
+)
+
+data = response.json()
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "apiKey": {
+    "id": "507f1f77bcf86cd799439011",
+    "name": "Production API Key",
+    "keyPrefix": "sk_live_abc123",
+    "isActive": true,
+    "lastUsedAt": "2024-01-15T10:30:00Z",
+    "expiresAt": null,
+    "rateLimit": 100,
+    "metadata": {
+      "appName": "My Application",
+      "website": "https://example.com"
+    },
+    "createdAt": "2024-01-01T00:00:00Z"
+  },
+  "developer": {
+    "id": "507f1f77bcf86cd799439012",
+    "username": "dev_user",
+    "email": "dev@example.com",
+    "companyName": "Example Corp"
+  }
+}
+```
+
+### Response Fields
+
+<ParamField response="apiKey.id" type="string">
+  Unique identifier for the API key
+</ParamField>
+
+<ParamField response="apiKey.name" type="string">
+  Name of the API key (as set when created)
+</ParamField>
+
+<ParamField response="apiKey.keyPrefix" type="string">
+  First few characters of the API key (for identification)
+</ParamField>
+
+<ParamField response="apiKey.isActive" type="boolean">
+  Whether the API key is currently active
+</ParamField>
+
+<ParamField response="apiKey.lastUsedAt" type="string">
+  ISO 8601 timestamp of when the API key was last used
+</ParamField>
+
+<ParamField response="apiKey.expiresAt" type="string|null">
+  ISO 8601 timestamp when the API key expires, or `null` if it doesn't expire
+</ParamField>
+
+<ParamField response="apiKey.rateLimit" type="number">
+  Rate limit (requests per minute) for this API key
+</ParamField>
+
+<ParamField response="apiKey.metadata" type="object">
+  Additional metadata associated with the API key
+</ParamField>
+
+<ParamField response="developer.id" type="string">
+  Unique identifier for the developer account
+</ParamField>
+
+<ParamField response="developer.username" type="string">
+  Developer account username
+</ParamField>
+
+<ParamField response="developer.email" type="string">
+  Developer account email
+</ParamField>
+
+<ParamField response="developer.companyName" type="string">
+  Company name associated with the developer account
+</ParamField>
+
+---
+
+<Info>
+  Use this endpoint to verify your API key is working correctly and to get information about your developer account.
+</Info>

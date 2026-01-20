@@ -1,0 +1,104 @@
+---
+title: Associating Accounts
+description: Link your developer account to a user account
+---
+
+To use the DHMAD API, you must associate your developer account with a DHMAD user account. This allows the API to create escrows and manage transactions on behalf of the user.
+
+## Why Associate Accounts?
+
+The API requires a user account association because:
+
+- Escrows are created for specific users
+- Transactions are linked to user accounts
+- Balance operations require a user account
+- All API operations are performed on behalf of the associated user
+
+## How to Associate
+
+### Step 1: Access the Dashboard
+
+1. Log into the [Developer Dashboard](https://developer.dhmad.tn/dashboard)
+2. Look for the "User Account Required" alert if no account is associated
+
+### Step 2: Enter User Email
+
+1. Click "Associate User Account"
+2. Enter the email address of your DHMAD user account
+3. Click "Send Verification Email"
+
+<Info>
+  The email must belong to an existing DHMAD user account. If you don't have one, create it at [dhmad.tn/register](https://dhmad.tn/register)
+</Info>
+
+### Step 3: Verify Email
+
+1. Check the email inbox for the verification email
+2. Click the verification link
+3. The accounts will be automatically associated
+
+<Warning>
+  Verification links expire after 24 hours. If your link expires, request a new association from the dashboard.
+</Warning>
+
+## Verifying Association
+
+Once associated, you'll see:
+
+- A green "User Account Associated" card in the dashboard
+- The user's email and username displayed
+- Ability to use all API endpoints
+
+## Removing Association
+
+To remove an association:
+
+1. Go to the dashboard
+2. Click "Remove Association" on the association card
+3. Confirm the removal
+
+<Warning>
+  Removing the association will prevent you from using the API until you associate a new account.
+</Warning>
+
+## Troubleshooting
+
+### "No user account found with this email"
+
+- Verify the email address is correct
+- Ensure the user account exists at dhmad.tn
+- Check for typos in the email
+
+### "Already associated with another developer"
+
+- Each user account can only be associated with one developer account
+- Contact support if you need to transfer an association
+
+### "Verification link expired"
+
+- Request a new association from the dashboard
+- Check your email spam folder
+- Ensure the link hasn't been used already
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Production Account" icon="server">
+    Associate with your production user account for live API usage
+  </Card>
+  <Card title="Keep Association Active" icon="link">
+    Don't remove associations unless necessary
+  </Card>
+  <Card title="Verify Before Use" icon="check">
+    Always verify association before making API calls
+  </Card>
+  <Card title="Contact Support" icon="headset">
+    Reach out if you need help with associations
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+  You can only have one active association at a time. To change associations, remove the current one and create a new one.
+</Note>

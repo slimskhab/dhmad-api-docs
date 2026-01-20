@@ -1,0 +1,269 @@
+---
+title: Quickstart
+description: Build your first integration in minutes
+---
+
+This quickstart guide will walk you through creating your first escrow transaction using the DHMAD API.
+
+## Prerequisites
+
+- A DHMAD developer account with an approved application
+- An API key (see [Getting Started](/docs/getting-started))
+- Your developer account associated with a user account
+- The associated user account must have email and phone verification completed
+- Basic knowledge of REST APIs
+
+## Step 1: Check Your Balance
+
+First, let's verify your account and check your balance:
+
+```bash
+curl -X GET https://api.dhmad.tn/api/v1/balance \
+  -H "Authorization: Bearer your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+<Accordion title="Response">
+```json
+{
+  "balance": {
+    "available": 1000.00,
+    "pending": 0,
+    "escrow": 0
+  }
+}
+```
+</Accordion>
+
+## Step 2: Create an Escrow
+
+Now let's create an escrow transaction. This represents a secure transaction between a buyer and seller:
+
+```bash
+curl -X POST https://api.dhmad.tn/api/v1/escrows \
+  -H "Authorization: Bearer your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "contractTerms": "The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.",
+    "buyerEmail": "buyer@example.com",
+    "estimatedDeliveryDays": 7
+  }'
+```
+
+<Accordion title="Response">
+```json
+{
+  "message": "Escrow created successfully",
+  "escrow": {
+    "id": "507f1f77bcf86cd799439011",
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "escrowFee": 50.00,
+    "status": "pending",
+    "seller": "507f1f77bcf86cd799439013",
+    "buyer": null,
+    "buyerEmail": "buyer@example.com",
+    "estimatedDeliveryDays": 7,
+    "createdAt": "2024-01-15T10:00:00Z"
+  },
+  "url": "https://dhmad.tn/dashboard/escrow/507f1f77bcf86cd799439011",
+  "trackingId": "507f1f77bcf86cd799439011"
+}
+```
+</Accordion>
+
+<Info>
+  If the buyer email corresponds to an existing user, they will receive a notification. If not, they will receive an invitation email with a registration link.
+</Info>
+
+## Step 3: Get Escrow Details
+
+Retrieve the details of the escrow you just created:
+
+```bash
+curl -X GET https://api.dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011 \
+  -H "Authorization: Bearer your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+<Accordion title="Response">
+```json
+{
+  "escrow": {
+    "id": "507f1f77bcf86cd799439011",
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "escrowFee": 50.00,
+    "status": "pending",
+    "seller": {
+      "_id": "507f1f77bcf86cd799439013",
+      "username": "seller_user",
+      "email": "seller@example.com",
+      "firstName": "John",
+      "lastName": "Doe"
+    },
+    "buyer": null,
+    "estimatedDeliveryDays": 7,
+    "paidAt": null,
+    "deliveredAt": null,
+    "completedAt": null,
+    "cancelledAt": null,
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-15T10:00:00Z"
+  }
+}
+```
+</Accordion>
+
+## Step 4: List Your Escrows
+
+Get a list of all your escrows with optional filters:
+
+```bash
+curl -X GET "https://api.dhmad.tn/api/v1/escrows?status=pending&role=seller&page=1&limit=20" \
+  -H "Authorization: Bearer your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+## Complete Example
+
+Here's a complete JavaScript example:
+
+<CodeGroup>
+```javascript Node.js
+const axios = require('axios');
+
+const API_KEY = 'your_api_key_here';
+const API_BASE = 'https://api.dhmad.tn/api/v1';
+
+async function createEscrow() {
+  try {
+    // Check balance
+    const balanceResponse = await axios.get(
+      `${API_BASE}/balance`,
+      {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    console.log('Balance:', balanceResponse.data.balance);
+
+    // Create escrow
+    const escrowResponse = await axios.post(
+      `${API_BASE}/escrows`,
+      {
+        title: 'Web Development Service',
+        amount: 1000.00,
+        contractTerms: 'The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.',
+        buyerEmail: 'buyer@example.com',
+        estimatedDeliveryDays: 7
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const escrow = escrowResponse.data.escrow;
+    console.log('Escrow created:', escrow.id);
+    console.log('View escrow:', escrowResponse.data.url);
+    console.log('Tracking ID:', escrowResponse.data.trackingId);
+
+    // Get escrow details
+    const detailsResponse = await axios.get(
+      `${API_BASE}/escrows/${escrow.id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('Escrow details:', detailsResponse.data.escrow);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+}
+
+createEscrow();
+```
+
+```python Python
+import requests
+
+API_KEY = 'your_api_key_here'
+API_BASE = 'https://api.dhmad.tn/api/v1'
+
+headers = {
+    'Authorization': f'Bearer {API_KEY}',
+    'Content-Type': 'application/json'
+}
+
+# Check balance
+balance_response = requests.get(
+    f'{API_BASE}/balance',
+    headers=headers
+)
+print('Balance:', balance_response.json()['balance'])
+
+# Create escrow
+escrow_data = {
+    'title': 'Web Development Service',
+    'amount': 1000.00,
+    'contractTerms': 'The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.',
+    'buyerEmail': 'buyer@example.com',
+    'estimatedDeliveryDays': 7
+}
+
+response = requests.post(
+    f'{API_BASE}/escrows',
+    json=escrow_data,
+    headers=headers
+)
+
+data = response.json()
+escrow = data['escrow']
+print(f"Escrow created: {escrow['id']}")
+print(f"View escrow: {data['url']}")
+print(f"Tracking ID: {data['trackingId']}")
+
+# Get escrow details
+details_response = requests.get(
+    f"{API_BASE}/escrows/{escrow['id']}",
+    headers=headers
+)
+
+print('Escrow details:', details_response.json()['escrow'])
+```
+</CodeGroup>
+
+## Step 5: Set Up Webhooks (Optional)
+
+To receive real-time notifications when escrow status changes, set up a webhook:
+
+1. Go to the [Developer Dashboard](https://developer.dhmad.tn/dashboard)
+2. Navigate to the "Webhooks" section
+3. Create a webhook with your endpoint URL
+4. Verify webhook signatures in your handler
+
+See the [Webhooks Guide](/docs/guides/webhooks) for detailed setup instructions.
+
+## Next Steps
+
+- **[API Reference](/docs/api-reference/overview)** - Explore all available endpoints
+- **[Webhooks Guide](/docs/guides/webhooks)** - Set up real-time notifications
+- **[Error Handling](/docs/api-reference/errors)** - Learn about error responses
+- **[Best Practices](/docs/guides/best-practices)** - Production-ready tips
+
+---
+
+<Note>
+  All amounts are in TND (Tunisian Dinar). The escrow fee is automatically calculated based on the transaction amount.
+</Note>

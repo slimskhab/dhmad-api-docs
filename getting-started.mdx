@@ -1,0 +1,104 @@
+---
+title: Getting Started
+description: Step-by-step guide to start using the DHMAD API
+---
+
+This guide will walk you through setting up your developer account and making your first API call.
+
+## Step 1: Create a Developer Account
+
+1. Visit the [Developer Portal](https://developer.dhmad.tn/apply)
+2. Fill out the application form with:
+   - Company information
+   - Contact details
+   - Project description
+   - Expected transaction volume
+3. Submit your application
+
+<Warning>
+  Applications are reviewed by our team. You'll receive an email once your application is approved.
+</Warning>
+
+## Step 2: Set Up Your Account
+
+Once approved, you'll receive an email with a setup link:
+
+1. Click the setup link in your email
+2. Create your developer account password
+3. Choose a username
+4. Complete your account setup
+
+## Step 3: Associate User Account
+
+To use the API, you need to associate your developer account with a user account:
+
+1. Log into the [Developer Dashboard](https://developer.dhmad.tn/dashboard)
+2. Click "Associate User Account"
+3. Enter the email address of your DHMAD user account
+4. Check your email and click the verification link
+5. Your accounts are now associated
+
+<Warning>
+  The user account must have email and phone verification completed before you can create escrows via the API.
+</Warning>
+
+<Info>
+  The user account is used for creating escrows and managing transactions. Make sure you have a DHMAD user account before associating.
+</Info>
+
+## Step 4: Generate API Keys
+
+1. Navigate to the [API Keys section](https://developer.dhmad.tn/dashboard) in your dashboard
+2. Click "Create API Key"
+3. Give your key a descriptive name (e.g., "Production App")
+4. Copy your API key immediately - it won't be shown again!
+
+<Warning>
+  Keep your API keys secure! Never commit them to version control or share them publicly. Treat them like passwords.
+</Warning>
+
+## Step 5: Make Your First Request
+
+Now you're ready to make your first API call. Let's get your account balance:
+
+```bash
+curl -X GET https://api.dhmad.tn/api/v1/balance \
+  -H "Authorization: Bearer your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+<Accordion title="Response Example">
+```json
+{
+  "balance": {
+    "available": 0,
+    "pending": 0,
+    "escrow": 0
+  }
+}
+```
+</Accordion>
+
+## Step 6: Set Up Webhooks (Optional)
+
+To receive real-time notifications when escrow status changes:
+
+1. Create a webhook endpoint in your application
+2. Add the webhook URL in the [Developer Dashboard](https://developer.dhmad.tn/dashboard)
+3. Verify webhook signatures for security
+
+See the [Webhooks Guide](/docs/guides/webhooks) for complete setup instructions.
+
+## Next Steps
+
+- **[Authentication Guide](/docs/authentication)** - Learn about API authentication
+- **[Quickstart Tutorial](/docs/quickstart)** - Build a complete example
+- **[API Reference](/docs/api-reference/overview)** - Explore all available endpoints
+- **[Webhooks Guide](/docs/guides/webhooks)** - Set up real-time notifications
+- **[Best Practices](/docs/guides/best-practices)** - Learn how to use the API effectively
+
+---
+
+<Note>
+  You can authenticate using either `Authorization: Bearer` header or `X-API-Key` header. Both methods are supported.
+</Note>

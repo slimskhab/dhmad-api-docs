@@ -1,0 +1,546 @@
+---
+title: Webhooks
+description: Set up real-time notifications for escrow events
+---
+
+Webhooks allow you to receive real-time notifications when events occur in your escrow transactions. This guide explains how to set up and use webhooks.
+
+## Overview
+
+Webhooks are HTTP callbacks that notify your application when escrow status changes. Instead of polling the API, you can receive instant notifications when:
+
+- Escrow status changes (pending → paid → delivered → completed)
+- Escrows are cancelled
+- Any status update occurs
+
+## Setting Up Webhooks
+
+### Step 1: Create Webhook Endpoint
+
+Create an HTTP endpoint in your application that can receive POST requests:
+
+<CodeGroup>
+```javascript Express.js
+const express = require('express');
+const crypto = require('crypto');
+const app = express();
+
+app.use(express.json());
+
+app.post('/webhooks/dhmad', async (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const event = req.headers['x-webhook-event'];
+  const payload = JSON.stringify(req.body);
+  
+  // Verify webhook signature (see verification section)
+  // Process the event
+  // Return 200 OK quickly
+  
+  res.status(200).send('OK');
+});
+
+app.listen(3000);
+```
+
+```python Flask
+from flask import Flask, request, jsonify
+import hmac
+import hashlib
+
+app = Flask(__name__)
+
+@app.route('/webhooks/dhmad', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-Webhook-Signature')
+    event = request.headers.get('X-Webhook-Event')
+    payload = request.get_json()
+    
+    # Verify webhook signature (see verification section)
+    # Process the event
+    # Return 200 OK quickly
+    
+    return jsonify({'status': 'ok'}), 200
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+
+```php Laravel
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+
+class WebhookController extends Controller
+{
+    public function handle(Request $request)
+    {
+        $signature = $request->header('X-Webhook-Signature');
+        $event = $request->header('X-Webhook-Event');
+        $payload = $request->all();
+        
+        // Verify webhook signature (see verification section)
+        // Process the event
+        // Return 200 OK quickly
+        
+        return response()->json(['status' => 'ok'], 200);
+    }
+}
+```
+</CodeGroup>
+
+### Step 2: Configure Webhook in Dashboard
+
+1. Log into the [Developer Dashboard](https://developer.dhmad.tn/dashboard)
+2. Navigate to the "Webhooks" section
+3. Click "Create Webhook"
+4. Enter your webhook URL (must be HTTPS in production)
+5. The webhook will automatically subscribe to `escrow.status.updated` events
+
+<Warning>
+  You can create a maximum of 2 webhooks per developer account. Choose your endpoints carefully.
+</Warning>
+
+<Info>
+  In development mode, HTTP URLs are allowed. In production, only HTTPS URLs are accepted.
+</Info>
+
+## Webhook Events
+
+Currently, the following event is available:
+
+<CardGroup cols={1}>
+  <Card title="escrow.status.updated" icon="refresh">
+    Triggered when an escrow status changes (pending → paid → delivered → completed → cancelled)
+  </Card>
+</CardGroup>
+
+## Event Payload
+
+All webhook events follow this structure:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "type": "escrow.status.updated",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Web Development Service",
+      "amount": 1000.00,
+      "escrowFee": 50.00,
+      "status": "paid",
+      "oldStatus": "pending",
+      "seller": {
+        "_id": "507f1f77bcf86cd799439013",
+        "username": "seller_user",
+        "email": "seller@example.com",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      "buyer": {
+        "_id": "507f1f77bcf86cd799439014",
+        "username": "buyer_user",
+        "email": "buyer@example.com",
+        "firstName": "Jane",
+        "lastName": "Smith"
+      },
+      "estimatedDeliveryDays": 7,
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+### Payload Fields
+
+<ParamField response="id" type="string">
+  Unique identifier for this webhook event
+</ParamField>
+
+<ParamField response="type" type="string">
+  Event type (e.g., "escrow.status.updated")
+</ParamField>
+
+<ParamField response="timestamp" type="string">
+  ISO 8601 timestamp when the event occurred
+</ParamField>
+
+<ParamField response="data.escrow.id" type="string">
+  Escrow ID
+</ParamField>
+
+<ParamField response="data.escrow.status" type="string">
+  New escrow status (pending, paid, delivered, completed, cancelled)
+</ParamField>
+
+<ParamField response="data.escrow.oldStatus" type="string">
+  Previous escrow status
+</ParamField>
+
+## Webhook Headers
+
+Each webhook request includes the following headers:
+
+<ParamField response="X-Webhook-Signature" type="string">
+  HMAC SHA256 signature of the payload. Use this to verify the webhook is from DHMAD.
+</ParamField>
+
+<ParamField response="X-Webhook-Event" type="string">
+  The event type (e.g., "escrow.status.updated")
+</ParamField>
+
+<ParamField response="Content-Type" type="string">
+  Always "application/json"
+</ParamField>
+
+## Verifying Webhook Signatures
+
+Always verify webhook signatures to ensure requests are from DHMAD and haven't been tampered with.
+
+### Getting Your Webhook Secret
+
+The webhook secret is generated automatically when you create a webhook. You can retrieve it from the webhook details in your dashboard (it's only shown once when created).
+
+<Warning>
+  Store your webhook secret securely. Never commit it to version control or expose it publicly.
+</Warning>
+
+### Signature Verification Examples
+
+<CodeGroup>
+```javascript Node.js
+const crypto = require('crypto');
+
+function verifyWebhookSignature(payload, signature, secret) {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// In your webhook handler
+app.post('/webhooks/dhmad', express.json(), (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const secret = process.env.DHMAD_WEBHOOK_SECRET;
+  
+  if (!verifyWebhookSignature(req.body, signature, secret)) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Process webhook
+  console.log('Webhook verified:', req.body);
+  res.status(200).send('OK');
+});
+```
+
+```python Python
+import hmac
+import hashlib
+import json
+
+def verify_webhook_signature(payload, signature, secret):
+    expected_signature = hmac.new(
+        secret.encode('utf-8'),
+        json.dumps(payload, separators=(',', ':')).encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected_signature)
+
+# In your webhook handler
+@app.route('/webhooks/dhmad', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-Webhook-Signature')
+    secret = os.getenv('DHMAD_WEBHOOK_SECRET')
+    payload = request.get_json()
+    
+    if not verify_webhook_signature(payload, signature, secret):
+        return jsonify({'error': 'Invalid signature'}), 401
+    
+    # Process webhook
+    print('Webhook verified:', payload)
+    return jsonify({'status': 'ok'}), 200
+```
+
+```php PHP
+<?php
+
+function verifyWebhookSignature($payload, $signature, $secret) {
+    $expectedSignature = hash_hmac('sha256', json_encode($payload), $secret);
+    return hash_equals($expectedSignature, $signature);
+}
+
+// In your webhook handler
+public function handle(Request $request) {
+    $signature = $request->header('X-Webhook-Signature');
+    $secret = env('DHMAD_WEBHOOK_SECRET');
+    $payload = $request->all();
+    
+    if (!verifyWebhookSignature($payload, $signature, $secret)) {
+        return response()->json(['error' => 'Invalid signature'], 401);
+    }
+    
+    // Process webhook
+    Log::info('Webhook verified:', $payload);
+    return response()->json(['status' => 'ok'], 200);
+}
+```
+</CodeGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Verify Signatures" icon="shield-check">
+    Always verify webhook signatures before processing. This ensures the request is from DHMAD and hasn't been tampered with.
+  </Card>
+  <Card title="Respond Quickly" icon="bolt">
+    Return 200 OK within 5 seconds. Process the webhook asynchronously if needed.
+  </Card>
+  <Card title="Idempotency" icon="refresh">
+    Handle duplicate events gracefully. Use the event `id` to track processed events.
+  </Card>
+  <Card title="Error Handling" icon="exclamation-triangle">
+    Log errors and implement retry logic for failed processing. Don't fail the webhook response.
+  </Card>
+  <Card title="HTTPS Only" icon="lock">
+    Use HTTPS endpoints in production. HTTP is only allowed in development.
+  </Card>
+  <Card title="Monitor Failures" icon="chart-line">
+    Track webhook delivery failures in your dashboard and set up alerts.
+  </Card>
+</CardGroup>
+
+## Webhook Delivery
+
+### Retry Logic
+
+If your endpoint doesn't return a 200 OK status within 10 seconds, DHMAD will retry the webhook:
+
+- **Retries**: Up to 3 attempts
+- **Backoff**: Exponential backoff (1s, 2s, 4s)
+- **Client Errors (4xx)**: Not retried (fix your endpoint)
+- **Server Errors (5xx)**: Retried
+
+### Delivery Status
+
+You can monitor webhook delivery status in your dashboard:
+
+- **Last Triggered**: Timestamp of last webhook delivery
+- **Last Response Status**: HTTP status code from your endpoint
+- **Failure Count**: Number of consecutive failures
+
+<Warning>
+  If a webhook fails repeatedly, consider checking your endpoint and fixing any issues. High failure counts may indicate problems with your webhook handler.
+</Warning>
+
+## Example: Complete Webhook Handler
+
+Here's a complete example of a webhook handler with signature verification and async processing:
+
+<CodeGroup>
+```javascript Node.js
+const express = require('express');
+const crypto = require('crypto');
+const { Queue } = require('bullmq');
+
+const app = express();
+app.use(express.json());
+
+const webhookQueue = new Queue('webhooks', {
+  connection: { host: 'localhost', port: 6379 }
+});
+
+function verifyWebhookSignature(payload, signature, secret) {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+app.post('/webhooks/dhmad', async (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const event = req.headers['x-webhook-event'];
+  const secret = process.env.DHMAD_WEBHOOK_SECRET;
+  
+  // Verify signature
+  if (!verifyWebhookSignature(req.body, signature, secret)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+  
+  // Return 200 OK immediately
+  res.status(200).json({ received: true });
+  
+  // Process webhook asynchronously
+  await webhookQueue.add('process-webhook', {
+    event,
+    payload: req.body,
+    receivedAt: new Date().toISOString()
+  });
+});
+
+// Worker to process webhooks
+const worker = new Worker('webhooks', async (job) => {
+  const { event, payload } = job.data;
+  
+  if (event === 'escrow.status.updated') {
+    const { escrow } = payload.data;
+    console.log(`Escrow ${escrow.id} status changed: ${escrow.oldStatus} → ${escrow.status}`);
+    
+    // Update your database
+    // Send notifications
+    // Trigger other actions
+  }
+});
+
+app.listen(3000, () => {
+  console.log('Webhook server listening on port 3000');
+});
+```
+
+```python Python
+from flask import Flask, request, jsonify
+import hmac
+import hashlib
+import json
+import os
+from celery import Celery
+
+app = Flask(__name__)
+celery = Celery('webhooks', broker='redis://localhost:6379/0')
+
+def verify_webhook_signature(payload, signature, secret):
+    expected_signature = hmac.new(
+        secret.encode('utf-8'),
+        json.dumps(payload, separators=(',', ':')).encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected_signature)
+
+@app.route('/webhooks/dhmad', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-Webhook-Signature')
+    event = request.headers.get('X-Webhook-Event')
+    secret = os.getenv('DHMAD_WEBHOOK_SECRET')
+    payload = request.get_json()
+    
+    # Verify signature
+    if not verify_webhook_signature(payload, signature, secret):
+        return jsonify({'error': 'Invalid signature'}), 401
+    
+    # Return 200 OK immediately
+    response = jsonify({'received': True})
+    
+    # Process webhook asynchronously
+    process_webhook.delay(event, payload)
+    
+    return response, 200
+
+@celery.task
+def process_webhook(event, payload):
+    if event == 'escrow.status.updated':
+        escrow = payload['data']['escrow']
+        print(f"Escrow {escrow['id']} status changed: {escrow['oldStatus']} → {escrow['status']}")
+        
+        # Update your database
+        # Send notifications
+        # Trigger other actions
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+</CodeGroup>
+
+## Testing Webhooks
+
+### Using ngrok (Local Development)
+
+To test webhooks locally, use ngrok to expose your local server:
+
+```bash
+# Install ngrok
+npm install -g ngrok
+
+# Start your webhook server
+node server.js
+
+# In another terminal, expose it
+ngrok http 3000
+
+# Use the ngrok URL in your webhook configuration
+# Example: https://abc123.ngrok.io/webhooks/dhmad
+```
+
+### Testing Checklist
+
+- [ ] Webhook endpoint returns 200 OK
+- [ ] Signature verification works correctly
+- [ ] Event processing handles all status transitions
+- [ ] Duplicate events are handled idempotently
+- [ ] Errors are logged but don't fail the response
+- [ ] Webhook works in production (HTTPS)
+
+## Troubleshooting
+
+### Webhook Not Receiving Events
+
+1. **Check Webhook Status**: Ensure the webhook is active in your dashboard
+2. **Verify URL**: Make sure the URL is correct and accessible
+3. **Check HTTPS**: In production, ensure your endpoint uses HTTPS
+4. **Review Logs**: Check your server logs for incoming requests
+5. **Test Endpoint**: Manually POST to your endpoint to verify it works
+
+### Invalid Signature Errors
+
+1. **Verify Secret**: Ensure you're using the correct webhook secret
+2. **Check Payload Format**: Make sure you're stringifying the payload correctly
+3. **Header Name**: Verify you're reading `X-Webhook-Signature` (case-sensitive)
+
+### High Failure Count
+
+1. **Response Time**: Ensure your endpoint responds within 10 seconds
+2. **Status Code**: Return 200 OK for successful processing
+3. **Error Handling**: Don't throw errors that cause 500 responses
+4. **Network Issues**: Check for firewall or network problems
+
+## Webhook Management
+
+### Viewing Webhooks
+
+In your dashboard, you can:
+- View all your webhooks
+- See delivery status and failure counts
+- Check last triggered timestamp
+- View last response status
+
+### Updating Webhooks
+
+You can update webhook URLs and toggle active/inactive status from the dashboard.
+
+### Deleting Webhooks
+
+Delete webhooks you no longer need. Remember, you can only have 2 webhooks maximum.
+
+---
+
+<Info>
+  Webhooks are only delivered for escrows where your associated user account is the seller or buyer. Make sure your developer account is properly associated with a user account.
+</Info>
+
+<Warning>
+  Never expose your webhook secret. Treat it like a password and store it securely using environment variables or secret management services.
+</Warning>

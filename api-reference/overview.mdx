@@ -1,0 +1,148 @@
+---
+title: API Overview
+description: Overview of the DHMAD API endpoints
+---
+
+The DHMAD API is a RESTful API that provides secure escrow services. All endpoints use JSON for request and response bodies.
+
+## Base URL
+
+All API requests should be made to:
+
+```
+https://api.dhmad.tn/api/v1
+```
+
+## Authentication
+
+All requests require authentication using an API key. You can use either:
+
+- **Bearer Token**: `Authorization: Bearer sk_live_your_api_key_here`
+- **X-API-Key Header**: `X-API-Key: sk_live_your_api_key_here`
+
+See the [Authentication guide](/docs/authentication) for more details.
+
+<Warning>
+  Before using the API, you must associate your developer account with a user account. This is required for all API operations (creating escrows, checking balance, etc.). You can associate your account in the [developer dashboard](https://developer.dhmad.tn/dashboard).
+</Warning>
+
+## Available Endpoints
+
+### Account & Authentication
+
+- `GET /me` - Get API key information
+- `GET /balance` - Get user balance
+
+### Escrows
+
+- **[Overview](/docs/api-reference/escrows/overview)** - Introduction to escrows and statuses
+- `POST /escrows` - [Create a new escrow](/docs/api-reference/escrows/create-escrow)
+- `GET /escrows` - [List escrows](/docs/api-reference/escrows/list-escrows) (with pagination and filters)
+- `GET /escrows/:id` - [Get escrow details](/docs/api-reference/escrows/get-escrow)
+
+### Webhooks
+
+- `GET /developer/webhooks` - List all webhooks
+- `POST /developer/webhooks` - Create a new webhook
+- `GET /developer/webhooks/:id` - Get webhook details
+- `PUT /developer/webhooks/:id` - Update a webhook
+- `DELETE /developer/webhooks/:id` - Delete a webhook
+
+## Response Format
+
+All successful responses follow this format:
+
+```json
+{
+  "data": { ... }
+}
+```
+
+Or for specific endpoints:
+
+```json
+{
+  "message": "Success message",
+  "escrow": { ... },
+  "url": "...",
+  "trackingId": "..."
+}
+```
+
+Error responses:
+
+```json
+{
+  "error": "Error type",
+  "message": "Human-readable error description"
+}
+```
+
+## Status Codes
+
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `429` - Too Many Requests
+- `500` - Internal Server Error
+
+## Rate Limiting
+
+- **Default**: 100 requests per minute per API key
+- **Header**: Rate limit information is included in response headers
+- **Exceeding**: Returns `429 Too Many Requests`
+
+<Info>
+  Rate limits are per API key. You can set a custom rate limit when creating or updating an API key in the dashboard.
+</Info>
+
+## Pagination
+
+List endpoints support pagination:
+
+```
+GET /escrows?page=1&limit=20
+```
+
+Response includes pagination metadata:
+
+```json
+{
+  "escrows": [ ... ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "pages": 5
+  }
+}
+```
+
+## Escrow Statuses
+
+<CardGroup cols={2}>
+  <Card title="pending" icon="clock">
+    Escrow created, waiting for payment
+  </Card>
+  <Card title="paid" icon="check">
+    Payment received, waiting for delivery
+  </Card>
+  <Card title="delivered" icon="truck">
+    Service delivered, waiting for completion
+  </Card>
+  <Card title="completed" icon="circle-check">
+    Transaction completed successfully
+  </Card>
+  <Card title="cancelled" icon="x">
+    Escrow was cancelled
+  </Card>
+</CardGroup>
+
+---
+
+<Info>
+  All timestamps are in ISO 8601 format (UTC). Example: `2024-01-15T10:30:00Z`
+</Info>

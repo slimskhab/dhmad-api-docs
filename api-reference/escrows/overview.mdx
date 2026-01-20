@@ -1,0 +1,77 @@
+---
+title: Escrows Overview
+description: Introduction to the Escrows API
+---
+
+The Escrows API allows you to create and manage secure escrow transactions between buyers and sellers.
+
+## Overview
+
+Escrows are secure transactions where funds are held until both parties agree that the transaction is complete. The API provides endpoints to:
+
+- Create new escrow transactions
+- List and filter your escrows
+- Get detailed information about specific escrows
+- Receive real-time notifications via webhooks
+
+<Warning>
+  Your developer account must be associated with a user account to create escrows. The associated user account must have email and phone verification completed.
+</Warning>
+
+## Escrow Statuses
+
+Escrows progress through the following statuses:
+
+<CardGroup cols={2}>
+  <Card title="pending" icon="clock">
+    Escrow created, waiting for payment. The buyer needs to accept and pay.
+  </Card>
+  <Card title="paid" icon="check">
+    Payment received and locked in escrow. Waiting for seller to deliver.
+  </Card>
+  <Card title="delivered" icon="truck">
+    Service/product delivered. Waiting for buyer to confirm completion.
+  </Card>
+  <Card title="completed" icon="circle-check">
+    Transaction completed successfully. Funds released to seller.
+  </Card>
+  <Card title="cancelled" icon="x">
+    Escrow was cancelled. Funds returned to buyer if payment was made.
+  </Card>
+</CardGroup>
+
+## Buyer Handling
+
+When creating an escrow, you provide the buyer's email address. The system handles two scenarios:
+
+### Existing User
+
+If the buyer email corresponds to an existing user account:
+- The escrow is linked to their account
+- They receive an in-app notification
+- They receive an email notification
+- They can view and interact with the escrow immediately
+
+### New User
+
+If the buyer email doesn't correspond to an existing user:
+- An invitation email is sent with a registration link
+- The escrow is created with the email stored
+- Once they register using the link, the escrow is automatically linked to their account
+- The registration link includes a secure token for verification
+
+## Contract Creation
+
+When you create an escrow via the API, a contract is automatically created with the terms you provide. Both parties must sign the contract before the buyer can pay.
+
+## Related Endpoints
+
+- **[Create Escrow](/docs/api-reference/escrows/create-escrow)** - Create a new escrow transaction
+- **[List Escrows](/docs/api-reference/escrows/list-escrows)** - Get a paginated list of escrows
+- **[Get Escrow](/docs/api-reference/escrows/get-escrow)** - Get detailed information about a specific escrow
+
+---
+
+<Info>
+  All escrow amounts are in TND (Tunisian Dinar). The escrow fee is automatically calculated based on the transaction amount.
+</Info>
