@@ -9,9 +9,8 @@ The DHMAD API is a RESTful API that provides secure escrow services. All endpoin
 
 All API requests should be made to:
 
-```
-https://api.dhmad.tn/api/v1
-```
+- **Production**: `https://api.dhmad.tn/api/v1`
+- **Sandbox** (for testing): `https://sandbox.dhmad.tn/api/v1` — use `sk_sandbox_` keys; see [Sandbox](/docs/guides/sandbox)
 
 ## Authentication
 
@@ -25,6 +24,20 @@ See the [Authentication guide](/docs/authentication) for more details.
 <Warning>
   Before using the API, you must associate your developer account with a user account. This is required for all API operations (creating escrows, checking balance, etc.). You can associate your account in the [developer dashboard](https://developer.dhmad.tn/dashboard).
 </Warning>
+
+## Interactive API Explorer
+
+We provide an **interactive API Explorer** (Swagger UI) in the [Developer Portal](https://developer.dhmad.tn/dashboard/api-explorer) where you can:
+
+- Browse all available endpoints
+- View request/response schemas
+- Test API calls directly from your browser
+- See example requests and responses
+- Authenticate with your API key
+
+<Info>
+  Access the API Explorer from your [Developer Dashboard](https://developer.dhmad.tn/dashboard/api-explorer) after logging in. Click "Authorize" to add your API key and start testing endpoints.
+</Info>
 
 ## Available Endpoints
 

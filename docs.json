@@ -45,6 +45,7 @@
           {
             "group": "Guides",
             "pages": [
+              "guides/sandbox",
               "guides/oauth-setup",
               "guides/api-keys",
               "guides/webhooks",
@@ -67,17 +68,17 @@
       "anchors": [
         {
           "anchor": "Documentation",
-          "href": "https://developer.dhmad.tn/docs",
+          "href": "https://docs.dhmad.tn",
           "icon": "book-open-cover"
         },
         {
           "anchor": "API Reference",
-          "href": "https://developer.dhmad.tn/docs/api-reference",
+          "href": "https://docs.dhmad.tn/api-reference",
           "icon": "code"
         },
         {
           "anchor": "Guides",
-          "href": "https://developer.dhmad.tn/docs/guides",
+          "href": "https://docs.dhmad.tn/guides",
           "icon": "book"
         }
       ]

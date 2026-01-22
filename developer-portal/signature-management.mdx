@@ -1,0 +1,198 @@
+---
+title: Signature Management
+description: Manage your signature for auto-signing contracts
+---
+
+# Signature Management
+
+Developers can set up a signature that will be automatically used when creating escrows with the `autoSign` parameter enabled. This allows you to automatically sign contracts as the seller without manual intervention.
+
+## Setting Up Your Signature
+
+Before you can use the auto-sign feature, you need to upload your signature image to your developer account.
+
+<Endpoint method="PUT" path="/developer/signature" />
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.dhmad.tn/developer/signature \
+  -H "Authorization: Bearer your_developer_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "signatureImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.dhmad.tn/developer/signature', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer your_developer_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    signatureImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...'
+  })
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer your_developer_token',
+    'Content-Type': 'application/json'
+}
+
+data = {
+    'signatureImage': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...'
+}
+
+response = requests.put(
+    'https://api.dhmad.tn/developer/signature',
+    json=data,
+    headers=headers
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Signature updated successfully",
+  "hasSignature": true
+}
+```
+</ResponseExample>
+
+## Request Body
+
+<ParamField body="signatureImage" type="string" required>
+  Base64 encoded signature image. Must be a valid image format (PNG, JPEG, JPG, GIF, or WEBP). The image should be in the format: `data:image/[format];base64,[base64_encoded_data]`
+</ParamField>
+
+## Checking Signature Status
+
+You can check if you have a signature configured without retrieving the actual image.
+
+<Endpoint method="GET" path="/developer/signature" />
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.dhmad.tn/developer/signature \
+  -H "Authorization: Bearer your_developer_token"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.dhmad.tn/developer/signature', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_developer_token'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer your_developer_token'
+}
+
+response = requests.get(
+    'https://api.dhmad.tn/developer/signature',
+    headers=headers
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "hasSignature": true
+}
+```
+</ResponseExample>
+
+## Using Auto-Sign
+
+Once you have set up your signature, you can enable auto-signing when creating escrows via the API by setting `autoSign: true` in the request body.
+
+<Info>
+  When `autoSign` is enabled, the contract will be automatically signed by the seller (you) using your stored signature. The buyer will still need to sign the contract manually.
+</Info>
+
+<Warning>
+  If you enable `autoSign` but haven't set up a signature, the escrow creation will fail with a 400 error. Make sure to set up your signature first.
+</Warning>
+
+## Example: Creating an Escrow with Auto-Sign
+
+```javascript JavaScript
+const response = await fetch('https://api.dhmad.tn/api/v1/escrows', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    title: 'Web Development Service',
+    amount: 1000.00,
+    contractTerms: 'The seller agrees to deliver a fully functional website within 7 days.',
+    buyerEmail: 'buyer@example.com',
+    estimatedDeliveryDays: 7,
+    autoSign: true  // Enable auto-signing
+  })
+});
+
+const data = await response.json();
+// Response will include contract.sellerSigned: true
+```
+
+## Error Responses
+
+### 400 Bad Request
+
+**Invalid Signature Format**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "signatureImage must be a valid base64 encoded image (PNG, JPEG, JPG, GIF, or WEBP)"
+}
+```
+
+**Missing Signature Image**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "signatureImage is required and must be a base64 encoded string"
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+## Security Considerations
+
+<Warning>
+  Your signature image is stored securely and is only used for auto-signing contracts when explicitly enabled via the `autoSign` parameter. The signature is never exposed in API responses for security reasons.
+</Warning>
+
+<Note>
+  You can update your signature at any time by making another PUT request to `/developer/signature`. The new signature will be used for all future escrows created with `autoSign: true`.
+</Note>

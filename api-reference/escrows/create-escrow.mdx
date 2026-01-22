@@ -5,7 +5,7 @@ description: Create a new escrow transaction
 
 <Endpoint method="POST" path="/api/v1/escrows" />
 
-Create a new escrow transaction. The seller must have email and phone verification completed. A contract will be automatically created with the provided terms.
+Create a new escrow transaction. By default, the escrow is created with your associated user account as the seller. You can optionally specify a `sellerEmail` to create escrows on behalf of other users (useful for freelance platforms). If the seller already has an account, they must have email verification completed. If the seller doesn't have an account, they will be invited to register. Phone verification is only required when the buyer accepts and pays, not at escrow creation. A contract will be automatically created with the provided terms.
 
 <RequestExample>
 ```bash cURL
@@ -17,7 +17,9 @@ curl -X POST https://api.dhmad.tn/api/v1/escrows \
     "amount": 1000.00,
     "contractTerms": "The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.",
     "buyerEmail": "buyer@example.com",
-    "estimatedDeliveryDays": 7
+    "estimatedDeliveryDays": 7,
+    "autoSign": true
+  }'
   }'
 ```
 
@@ -33,7 +35,8 @@ const response = await fetch('https://api.dhmad.tn/api/v1/escrows', {
     amount: 1000.00,
     contractTerms: 'The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.',
     buyerEmail: 'buyer@example.com',
-    estimatedDeliveryDays: 7
+    estimatedDeliveryDays: 7,
+    autoSign: true
   })
 });
 
@@ -53,7 +56,8 @@ data = {
     'amount': 1000.00,
     'contractTerms': 'The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.',
     'buyerEmail': 'buyer@example.com',
-    'estimatedDeliveryDays': 7
+    'estimatedDeliveryDays': 7,
+    'autoSign': True
 }
 
 response = requests.post(
@@ -77,10 +81,17 @@ data = response.json()
     "escrowFee": 50.00,
     "status": "pending",
     "seller": "507f1f77bcf86cd799439013",
+    "sellerEmail": null,
     "buyer": null,
     "buyerEmail": "buyer@example.com",
     "estimatedDeliveryDays": 7,
     "createdAt": "2024-01-15T10:00:00Z"
+  },
+  "contract": {
+    "id": "507f1f77bcf86cd799439012",
+    "sellerSigned": true,
+    "buyerSigned": false,
+    "isFullySigned": false
   },
   "url": "https://dhmad.tn/dashboard/escrow/507f1f77bcf86cd799439011",
   "trackingId": "507f1f77bcf86cd799439011"
@@ -98,6 +109,10 @@ data = response.json()
   Transaction amount in TND (must be greater than 0)
 </ParamField>
 
+<ParamField body="sellerEmail" type="string" required={false}>
+  Email address of the seller. If provided, the escrow will be created with this user as the seller. If the seller already has an account, they must have email verification completed. If the seller doesn't have an account, they will be invited to register via email. Phone verification is only required when the buyer accepts and pays, not at escrow creation. If not provided, your associated user account will be used as the seller (must have email verification). Useful for freelance platforms where you're creating escrows on behalf of multiple sellers.
+</ParamField>
+
 <ParamField body="buyerEmail" type="string" required>
   Email address of the buyer. If the buyer has an account, they'll receive a notification. If not, they'll receive an invitation email with a registration link.
 </ParamField>
@@ -108,6 +123,10 @@ data = response.json()
 
 <ParamField body="contractTerms" type="string" required>
   Contract terms describing the transaction agreement. A contract will be automatically created with these terms.
+</ParamField>
+
+<ParamField body="autoSign" type="boolean" required={false}>
+  If `true`, the contract will be automatically signed by the seller using the signature configured in the developer dashboard. Requires a signature to be set up first. **Note:** Auto-sign is only available when `sellerEmail` is not provided (i.e., when using your associated user account as the seller). When `sellerEmail` is provided, the seller must sign the contract themselves. Defaults to `false`.
 </ParamField>
 
 ## Response Fields
@@ -137,7 +156,11 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.seller" type="string">
-  Seller user ID (the associated user account)
+  Seller user ID. If `sellerEmail` was provided, this will be the user ID of that seller. Otherwise, this will be your associated user account ID.
+</ParamField>
+
+<ParamField response="escrow.sellerEmail" type="string|null">
+  Seller email address if the seller was specified via `sellerEmail` and doesn't have an account yet, otherwise `null`
 </ParamField>
 
 <ParamField response="escrow.buyer" type="string|null">
@@ -154,6 +177,22 @@ data = response.json()
 
 <ParamField response="trackingId" type="string">
   Escrow ID for tracking purposes. Use this ID to query the escrow status via the API
+</ParamField>
+
+<ParamField response="contract.id" type="string">
+  Unique identifier for the contract
+</ParamField>
+
+<ParamField response="contract.sellerSigned" type="boolean">
+  Whether the seller has signed the contract
+</ParamField>
+
+<ParamField response="contract.buyerSigned" type="boolean">
+  Whether the buyer has signed the contract
+</ParamField>
+
+<ParamField response="contract.isFullySigned" type="boolean">
+  Whether both parties have signed the contract
 </ParamField>
 
 ## Error Responses
@@ -196,9 +235,45 @@ data = response.json()
 }
 ```
 
+**Auto-Sign Without Signature**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Auto-sign is enabled but no signature is configured. Please set up your signature in the developer dashboard first."
+}
+```
+
+**Auto-Sign With Seller Email**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Auto-sign is only available when creating escrows without a sellerEmail. When specifying a sellerEmail, the seller must sign the contract themselves."
+}
+```
+
+**Invalid Seller Email**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Invalid seller email address"
+}
+```
+
+**Seller Email Not Verified**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Seller email verification required before creating escrows"
+}
+```
+
 ### 403 Forbidden
 
-**No User Account Association**
+**No User Account Association (when sellerEmail is not provided)**
 
 ```json
 {
@@ -207,12 +282,29 @@ data = response.json()
 }
 ```
 
+**No User Account Association (when sellerEmail is provided but seller doesn't exist)**
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Developer account must be associated with a user account when creating escrows with a seller email for a non-existent user. Please associate your account in the developer dashboard."
+}
+```
+
 ---
 
 <Warning>
-  Your developer account must be associated with a user account to create escrows. The associated user account must have email and phone verification completed.
+  Your developer account must be associated with a user account **only when `sellerEmail` is not provided**. In that case, your associated user account will be used as the seller and must have email verification completed. When `sellerEmail` is provided, no associated account is required. If the seller already has an account, they must have email verification completed. If the seller doesn't have an account, they will be invited to register. Phone verification is only required when the buyer accepts and pays, not at escrow creation.
 </Warning>
 
 <Info>
   When creating an escrow, if the buyer email corresponds to an existing user, they will receive a notification. If the buyer email doesn't correspond to an existing user, they will receive an invitation email with a registration link.
 </Info>
+
+<Info>
+  **For Freelance Platforms:** Use the `sellerEmail` parameter to create escrows on behalf of different sellers. When you create an escrow with `sellerEmail`, webhooks will be triggered for your developer account (the one that created the escrow), allowing you to track all escrows created through your platform regardless of the seller.
+</Info>
+
+<Note>
+  To use the `autoSign` feature, you must first set up your signature in the developer dashboard. Use the `PUT /developer/signature` endpoint to upload your signature image (base64 encoded). Once configured, you can enable `autoSign: true` when creating escrows to automatically sign contracts as the seller.
+</Note>

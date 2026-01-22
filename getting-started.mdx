@@ -59,13 +59,34 @@ To use the API, you need to associate your developer account with a user account
 
 ## Step 5: Make Your First Request
 
-Now you're ready to make your first API call. Let's get your account balance:
+Now you're ready to make your first API call. You can test endpoints in two ways:
+
+### Option A: Use the Interactive API Explorer
+
+The easiest way to test the API is using our **Interactive API Explorer** (Swagger UI):
+
+1. Go to [API Explorer](https://developer.dhmad.tn/dashboard/api-explorer) in your dashboard
+2. Click "Authorize" at the top
+3. Enter your API key (use `Bearer {your_key}` format)
+4. Browse and test any endpoint directly from your browser
+
+<Info>
+  The API Explorer automatically includes your API key in requests and shows you the exact request/response format for each endpoint.
+</Info>
+
+### Option B: Use cURL or Your HTTP Client
+
+You can also make requests using cURL, Postman, or any HTTP client. Let's get your account balance:
 
 ```bash
 curl -X GET https://api.dhmad.tn/api/v1/balance \
   -H "Authorization: Bearer your_api_key_here" \
   -H "Content-Type: application/json"
 ```
+
+<Info>
+  **Testing first?** Use the [sandbox](/docs/guides/sandbox): replace the URL with `https://sandbox.dhmad.tn/api/v1` and use a `sk_sandbox_` API key from [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn).
+</Info>
 
 <Accordion title="Response Example">
 ```json

@@ -1,0 +1,155 @@
+---
+title: Sandbox Environment
+description: Test the DHMAD API without affecting production. Use the sandbox for development and integration testing.
+---
+
+DHMAD provides a **sandbox environment** so you can test escrow creation, payments, and the full API without touching production data or real money.
+
+## What is the Sandbox?
+
+The sandbox is a **separate deployment** of the DHMAD platform:
+
+- **Frontend**: [sandbox.dhmad.tn](https://sandbox.dhmad.tn) — same UI as production, with a clear “Sandbox environment” banner at the top
+- **API**: `https://sandbox.dhmad.tn/api` — same endpoints and behavior as production
+- **Developer portal**: [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn) — create and manage **sandbox API keys** (`sk_sandbox_...`)
+
+<CardGroup cols={2}>
+  <Card title="Production" icon="building">
+    **dhmad.tn** — Live data, real transactions. Use `sk_live_` API keys.
+  </Card>
+  <Card title="Sandbox" icon="flask">
+    **sandbox.dhmad.tn** — Test data only. Use `sk_sandbox_` API keys.
+  </Card>
+</CardGroup>
+
+## Why Use the Sandbox?
+
+- **Safe testing** — Create escrows, simulate payments, and run full flows without affecting production
+- **Integration development** — Build and debug your integration before going live
+- **No impact on production** — Sandbox uses a separate database; production data and balances are never touched
+- **Same API** — Endpoints, request/response formats, and behavior match production
+
+## API Keys: Live vs Sandbox
+
+API keys are **environment-specific**. You must use the correct key for the API you are calling.
+
+| Environment | Key prefix    | Use with API                          |
+| ----------- | ------------- | ------------------------------------- |
+| **Live**    | `sk_live_...` | `https://api.dhmad.tn/api` (production)   |
+| **Sandbox** | `sk_sandbox_...` | `https://sandbox.dhmad.tn/api` (sandbox) |
+
+<Warning>
+  **Keys and environments do not mix.**  
+  - A `sk_live_` key on the sandbox API returns `401` with a message to use a sandbox key.  
+  - A `sk_sandbox_` key on the production API returns `401` with a message to use a live key.
+</Warning>
+
+### Getting Sandbox API Keys
+
+1. Open the **sandbox** developer portal: [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn)
+2. Sign up or log in (sandbox has its own user/developer data)
+3. [Associate your developer account](/docs/developer-portal/associating-accounts) with a user account (use a test user on sandbox.dhmad.tn)
+4. Go to **API Keys** and click **Create API Key**
+5. Keys created in the sandbox developer portal are **sandbox keys** (`sk_sandbox_...`). Use them only with `https://sandbox.dhmad.tn/api`.
+
+<Info>
+  Sandbox and production have **separate accounts and data**. You need a user account and developer account on **sandbox.dhmad.tn** / **developer.sandbox.dhmad.tn** to create and use sandbox API keys.
+</Info>
+
+## Sandbox Base URL
+
+Use this base URL for all **sandbox** API requests:
+
+```
+https://sandbox.dhmad.tn/api
+```
+
+The API lives under `/api`; for the v1 API the path is `/api/v1`. For example:
+
+- Balance: `GET https://sandbox.dhmad.tn/api/v1/balance`
+- Create escrow: `POST https://sandbox.dhmad.tn/api/v1/escrows`
+- List escrows: `GET https://sandbox.dhmad.tn/api/v1/escrows`
+
+## Example: First Sandbox Request
+
+After you have a sandbox API key:
+
+```bash
+curl -X GET "https://sandbox.dhmad.tn/api/v1/balance" \
+  -H "Authorization: Bearer sk_sandbox_your_key_here" \
+  -H "Content-Type: application/json"
+```
+
+<Accordion title="Example response">
+```json
+{
+  "balance": {
+    "available": 0,
+    "pending": 0,
+    "escrow": 0
+  }
+}
+```
+</Accordion>
+
+## Data and Behaviour
+
+- **Separate database** — Escrows, users, balances, and API keys in the sandbox are **completely separate** from production. Nothing you do in the sandbox affects production.
+- **Same features** — Escrow creation, payments, contracts, webhooks, and the rest of the API behave the same. Use the sandbox to validate your integration end-to-end.
+- **Test data** — Use test users, test emails, and test payment methods. No real money or production credentials.
+
+## Sandbox Banner (Frontend)
+
+On [sandbox.dhmad.tn](https://sandbox.dhmad.tn), a sticky banner at the top of the page indicates:
+
+> **Sandbox environment — for testing only. Data and transactions are not production.**
+
+This helps avoid confusion with the live site.
+
+## Switching from Sandbox to Production
+
+When you are ready to go live:
+
+1. Get **live** API keys from the **production** developer portal: [developer.dhmad.tn](https://developer.dhmad.tn)
+2. Change your app’s API base URL from `https://sandbox.dhmad.tn/api` to `https://api.dhmad.tn/api`
+3. Replace `sk_sandbox_...` with `sk_live_...` in your config/secrets
+4. Ensure your production developer account is [associated](/docs/developer-portal/associating-accounts) with the correct production user account
+
+<Warning>
+  Double-check base URL and key prefix before switching. Using a sandbox key in production (or vice versa) will result in `401 Unauthorized`.
+</Warning>
+
+## Configuration Reference
+
+If you run your own frontend or developer portal against the sandbox:
+
+| App        | Variable                      | Sandbox value                                                                 |
+| ---------- | ----------------------------- | ----------------------------------------------------------------------------- |
+| Frontend   | `NEXT_PUBLIC_SANDBOX`         | `true` (enables sandbox banner; **all API/socket requests** use the sandbox URL; dev/start use port **3001**) |
+| Frontend   | `NEXT_PUBLIC_SANDBOX_API_URL` | `https://sandbox.dhmad.tn/api` or `http://localhost:6002/api` (optional; defaults to `http://localhost:6002/api`) |
+| Frontend   | `NEXT_PUBLIC_API_URL`         | Ignored when `NEXT_PUBLIC_SANDBOX=true`                                       |
+| Developer portal | `NEXT_PUBLIC_SANDBOX` + `NEXT_PUBLIC_SANDBOX_API_URL` | Same as frontend when running against sandbox   |
+| Backend    | `APP_ENV`                     | `sandbox` (when set, **default port is 6002** if `PORT` is unset)             |
+
+## Summary
+
+| Topic            | Sandbox                                                                 | Production                                                       |
+| ---------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Frontend**     | [sandbox.dhmad.tn](https://sandbox.dhmad.tn)                            | [dhmad.tn](https://dhmad.tn)                                     |
+| **API base**     | `https://sandbox.dhmad.tn/api`                                          | `https://api.dhmad.tn/api`                                       |
+| **Developer portal** | [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn)  | [developer.dhmad.tn](https://developer.dhmad.tn)                 |
+| **API key prefix**  | `sk_sandbox_`                                                       | `sk_live_`                                                       |
+| **Data**         | Test only; separate DB                                                  | Live data                                                        |
+
+## Next Steps
+
+- **[Getting Started](/docs/getting-started)** — Create a developer account and get API keys
+- **[Authentication](/docs/authentication)** — Understand API key usage and headers
+- **[Quickstart](/docs/quickstart)** — Build a complete integration example
+- **[Create Escrow](/docs/api-reference/escrows/create-escrow)** — Create your first escrow in the sandbox
+
+---
+
+<Note>
+  Prefer the sandbox for all development and pre-launch testing. Move to production only when your integration is validated and you are ready for real users and real transactions.
+</Note>

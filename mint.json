@@ -32,17 +32,17 @@
     {
       "name": "Documentation",
       "icon": "book-open-cover",
-      "url": "https://developer.dhmad.tn/docs"
+      "url": "https://docs.dhmad.tn"
     },
     {
       "name": "API Reference",
       "icon": "code",
-      "url": "https://developer.dhmad.tn/docs/api-reference"
+      "url": "https://docs.dhmad.tn/api-reference"
     },
     {
       "name": "Guides",
       "icon": "book",
-      "url": "https://developer.dhmad.tn/docs/guides"
+      "url": "https://docs.dhmad.tn/guides"
     }
   ],
   "navigation": [
