@@ -30,11 +30,6 @@
   },
   "anchors": [
     {
-      "name": "Documentation",
-      "icon": "book-open-cover",
-      "url": "https://docs.dhmad.tn"
-    },
-    {
       "name": "API Reference",
       "icon": "code",
       "url": "https://docs.dhmad.tn/api-reference"

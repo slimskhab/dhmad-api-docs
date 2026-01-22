@@ -67,11 +67,6 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://docs.dhmad.tn",
-          "icon": "book-open-cover"
-        },
-        {
           "anchor": "API Reference",
           "href": "https://docs.dhmad.tn/api-reference",
           "icon": "code"
