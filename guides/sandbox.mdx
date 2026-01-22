@@ -48,7 +48,7 @@ API keys are **environment-specific**. You must use the correct key for the API 
 
 1. Open the **sandbox** developer portal: [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn)
 2. Sign up or log in (sandbox has its own user/developer data)
-3. [Associate your developer account](/docs/developer-portal/associating-accounts) with a user account (use a test user on sandbox.dhmad.tn)
+3. [Associate your developer account](/developer-portal/associating-accounts) with a user account (use a test user on sandbox.dhmad.tn)
 4. Go to **API Keys** and click **Create API Key**
 5. Keys created in the sandbox developer portal are **sandbox keys** (`sk_sandbox_...`). Use them only with `https://sandbox.dhmad.tn/api`.
 
@@ -113,7 +113,7 @@ When you are ready to go live:
 1. Get **live** API keys from the **production** developer portal: [developer.dhmad.tn](https://developer.dhmad.tn)
 2. Change your app’s API base URL from `https://sandbox.dhmad.tn/api` to `https://api.dhmad.tn/api`
 3. Replace `sk_sandbox_...` with `sk_live_...` in your config/secrets
-4. Ensure your production developer account is [associated](/docs/developer-portal/associating-accounts) with the correct production user account
+4. Ensure your production developer account is [associated](/developer-portal/associating-accounts) with the correct production user account
 
 <Warning>
   Double-check base URL and key prefix before switching. Using a sandbox key in production (or vice versa) will result in `401 Unauthorized`.
@@ -143,10 +143,10 @@ If you run your own frontend or developer portal against the sandbox:
 
 ## Next Steps
 
-- **[Getting Started](/docs/getting-started)** — Create a developer account and get API keys
-- **[Authentication](/docs/authentication)** — Understand API key usage and headers
-- **[Quickstart](/docs/quickstart)** — Build a complete integration example
-- **[Create Escrow](/docs/api-reference/escrows/create-escrow)** — Create your first escrow in the sandbox
+- **[Getting Started](/getting-started)** — Create a developer account and get API keys
+- **[Authentication](/authentication)** — Understand API key usage and headers
+- **[Quickstart](/quickstart)** — Build a complete integration example
+- **[Create Escrow](/api-reference/escrows/create-escrow)** — Create your first escrow in the sandbox
 
 ---
 
