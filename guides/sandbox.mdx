@@ -11,7 +11,7 @@ The sandbox is a **separate deployment** of the DHMAD platform:
 
 - **Frontend**: [sandbox.dhmad.tn](https://sandbox.dhmad.tn) — same UI as production, with a clear “Sandbox environment” banner at the top
 - **API**: `https://sandbox.dhmad.tn/api` — same endpoints and behavior as production
-- **Developer portal**: [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn) — create and manage **sandbox API keys** (`sk_sandbox_...`)
+- **Developer portal**: [developer.dhmad.tn](https://developer.dhmad.tn) — create and manage **sandbox API keys** (`sk_sandbox_...`)
 
 <CardGroup cols={2}>
   <Card title="Production" icon="building">
@@ -46,14 +46,14 @@ API keys are **environment-specific**. You must use the correct key for the API 
 
 ### Getting Sandbox API Keys
 
-1. Open the **sandbox** developer portal: [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn)
-2. Sign up or log in (sandbox has its own user/developer data)
+1. Open the developer portal: [developer.dhmad.tn](https://developer.dhmad.tn)
+2. Sign up or log in
 3. [Associate your developer account](/developer-portal/associating-accounts) with a user account (use a test user on sandbox.dhmad.tn)
 4. Go to **API Keys** and click **Create API Key**
-5. Keys created in the sandbox developer portal are **sandbox keys** (`sk_sandbox_...`). Use them only with `https://sandbox.dhmad.tn/api`.
+5. Select **Sandbox** as the environment when creating the key. Keys created with the sandbox environment are **sandbox keys** (`sk_sandbox_...`). Use them only with `https://sandbox.dhmad.tn/api`.
 
 <Info>
-  Sandbox and production have **separate accounts and data**. You need a user account and developer account on **sandbox.dhmad.tn** / **developer.sandbox.dhmad.tn** to create and use sandbox API keys.
+  Sandbox and production have **separate accounts and data**. You need a user account on **sandbox.dhmad.tn** to test with sandbox API keys, but you create the sandbox API keys in the regular developer portal at **developer.dhmad.tn**.
 </Info>
 
 ## Sandbox Base URL
@@ -137,7 +137,7 @@ If you run your own frontend or developer portal against the sandbox:
 | ---------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | **Frontend**     | [sandbox.dhmad.tn](https://sandbox.dhmad.tn)                            | [dhmad.tn](https://dhmad.tn)                                     |
 | **API base**     | `https://sandbox.dhmad.tn/api`                                          | `https://api.dhmad.tn/api`                                       |
-| **Developer portal** | [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn)  | [developer.dhmad.tn](https://developer.dhmad.tn)                 |
+| **Developer portal** | [developer.dhmad.tn](https://developer.dhmad.tn) (create sandbox keys here)  | [developer.dhmad.tn](https://developer.dhmad.tn)                 |
 | **API key prefix**  | `sk_sandbox_`                                                       | `sk_live_`                                                       |
 | **Data**         | Test only; separate DB                                                  | Live data                                                        |
 
