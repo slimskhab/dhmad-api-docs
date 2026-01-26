@@ -84,7 +84,7 @@ const params = new URLSearchParams({
   state: generateState()
 });
 
-window.location.href = `https://api.dhmad.tn/api/oauth/authorize?${params}`;
+window.location.href = `https://dhmad.tn/api/oauth/authorize?${params}`;
 
 // Step 3: Handle callback
 const urlParams = new URLSearchParams(window.location.search);
@@ -92,7 +92,7 @@ const code = urlParams.get('code');
 const state = urlParams.get('state');
 
 // Step 4: Exchange code for token
-const tokenResponse = await fetch('https://api.dhmad.tn/api/oauth/token', {
+const tokenResponse = await fetch('https://dhmad.tn/api/oauth/token', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -108,7 +108,7 @@ const tokenResponse = await fetch('https://api.dhmad.tn/api/oauth/token', {
 const tokens = await tokenResponse.json();
 
 // Step 5: Get user info
-const userResponse = await fetch('https://api.dhmad.tn/api/oauth/userinfo', {
+const userResponse = await fetch('https://dhmad.tn/api/oauth/userinfo', {
   headers: {
     'Authorization': `Bearer ${tokens.access_token}`
   }
@@ -139,7 +139,7 @@ def generate_pkce():
 code_verifier, code_challenge = generate_pkce()
 session['code_verifier'] = code_verifier
 
-auth_url = 'https://api.dhmad.tn/api/oauth/authorize'
+auth_url = 'https://dhmad.tn/api/oauth/authorize'
 params = {
     'client_id': CLIENT_ID,
     'redirect_uri': REDIRECT_URI,
@@ -155,7 +155,7 @@ params = {
 # Step 3: Handle callback and exchange code
 code = request.args.get('code')
 token_response = requests.post(
-    'https://api.dhmad.tn/api/oauth/token',
+    'https://dhmad.tn/api/oauth/token',
     json={
         'grant_type': 'authorization_code',
         'code': code,
@@ -170,7 +170,7 @@ tokens = token_response.json()
 
 # Step 4: Get user info
 user_response = requests.get(
-    'https://api.dhmad.tn/api/oauth/userinfo',
+    'https://dhmad.tn/api/oauth/userinfo',
     headers={'Authorization': f"Bearer {tokens['access_token']}"}
 )
 
@@ -208,7 +208,7 @@ Available OAuth scopes:
 Get OAuth configuration:
 
 ```bash
-curl https://api.dhmad.tn/.well-known/openid-configuration
+curl https://dhmad.tn/.well-known/openid-configuration
 ```
 
 ## Support

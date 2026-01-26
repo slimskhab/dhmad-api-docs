@@ -151,7 +151,7 @@ All error responses follow this format:
 ```javascript JavaScript
 async function createEscrow(data) {
   try {
-    const response = await fetch('https://api.dhmad.tn/api/v1/escrows', {
+    const response = await fetch('https://dhmad.tn/api/v1/escrows', {
       method: 'POST',
       headers: {
         'X-API-Key': API_KEY,
@@ -199,7 +199,7 @@ def create_escrow(data, retries=3):
     for attempt in range(retries):
         try:
             response = requests.post(
-                'https://api.dhmad.tn/api/v1/escrows',
+                'https://dhmad.tn/api/v1/escrows',
                 json=data,
                 headers={
                     'X-API-Key': API_KEY,

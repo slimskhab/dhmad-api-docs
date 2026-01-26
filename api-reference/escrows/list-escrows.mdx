@@ -9,13 +9,13 @@ Get a paginated list of escrows for the authenticated user. You can filter by st
 
 <RequestExample>
 ```bash cURL
-curl -X GET "https://api.dhmad.tn/api/v1/escrows?status=pending&role=seller&page=1&limit=20" \
+curl -X GET "https://dhmad.tn/api/v1/escrows?status=pending&role=seller&page=1&limit=20" \
   -H "Authorization: Bearer sk_live_your_api_key_here" \
   -H "Content-Type: application/json"
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.dhmad.tn/api/v1/escrows?status=pending&role=seller&page=1&limit=20', {
+const response = await fetch('https://dhmad.tn/api/v1/escrows?status=pending&role=seller&page=1&limit=20', {
   method: 'GET',
   headers: {
     'Authorization': 'Bearer sk_live_your_api_key_here',
@@ -42,7 +42,7 @@ params = {
 }
 
 response = requests.get(
-    'https://api.dhmad.tn/api/v1/escrows',
+    'https://dhmad.tn/api/v1/escrows',
     params=params,
     headers=headers
 )

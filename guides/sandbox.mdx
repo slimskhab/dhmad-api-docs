@@ -35,7 +35,7 @@ API keys are **environment-specific**. You must use the correct key for the API 
 
 | Environment | Key prefix    | Use with API                          |
 | ----------- | ------------- | ------------------------------------- |
-| **Live**    | `sk_live_...` | `https://api.dhmad.tn/api` (production)   |
+| **Live**    | `sk_live_...` | `https://dhmad.tn/api` (production)   |
 | **Sandbox** | `sk_sandbox_...` | `https://sandbox.dhmad.tn/api` (sandbox) |
 
 <Warning>
@@ -111,7 +111,7 @@ This helps avoid confusion with the live site.
 When you are ready to go live:
 
 1. Get **live** API keys from the **production** developer portal: [developer.dhmad.tn](https://developer.dhmad.tn)
-2. Change your app’s API base URL from `https://sandbox.dhmad.tn/api` to `https://api.dhmad.tn/api`
+2. Change your app’s API base URL from `https://sandbox.dhmad.tn/api` to `https://dhmad.tn/api`
 3. Replace `sk_sandbox_...` with `sk_live_...` in your config/secrets
 4. Ensure your production developer account is [associated](/developer-portal/associating-accounts) with the correct production user account
 
@@ -136,7 +136,7 @@ If you run your own frontend or developer portal against the sandbox:
 | Topic            | Sandbox                                                                 | Production                                                       |
 | ---------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | **Frontend**     | [sandbox.dhmad.tn](https://sandbox.dhmad.tn)                            | [dhmad.tn](https://dhmad.tn)                                     |
-| **API base**     | `https://sandbox.dhmad.tn/api`                                          | `https://api.dhmad.tn/api`                                       |
+| **API base**     | `https://sandbox.dhmad.tn/api`                                          | `https://dhmad.tn/api`                                       |
 | **Developer portal** | [developer.dhmad.tn](https://developer.dhmad.tn) (create sandbox keys here)  | [developer.dhmad.tn](https://developer.dhmad.tn)                 |
 | **API key prefix**  | `sk_sandbox_`                                                       | `sk_live_`                                                       |
 | **Data**         | Test only; separate DB                                                  | Live data                                                        |

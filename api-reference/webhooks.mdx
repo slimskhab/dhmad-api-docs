@@ -29,7 +29,7 @@ Create a new webhook endpoint to receive event notifications.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.dhmad.tn/api/developer/webhooks \
+curl -X POST https://dhmad.tn/api/developer/webhooks \
   -H "Authorization: Bearer your_developer_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -39,7 +39,7 @@ curl -X POST https://api.dhmad.tn/api/developer/webhooks \
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.dhmad.tn/api/developer/webhooks', {
+const response = await fetch('https://dhmad.tn/api/developer/webhooks', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer your_developer_token',
@@ -68,7 +68,7 @@ data = {
 }
 
 response = requests.post(
-    'https://api.dhmad.tn/api/developer/webhooks',
+    'https://dhmad.tn/api/developer/webhooks',
     json=data,
     headers=headers
 )
@@ -101,7 +101,7 @@ Get all webhooks for your developer account.
 ### Example Request
 
 ```bash
-curl -X GET https://api.dhmad.tn/api/developer/webhooks \
+curl -X GET https://dhmad.tn/api/developer/webhooks \
   -H "Authorization: Bearer your_developer_token"
 ```
 
@@ -140,7 +140,7 @@ Get details of a specific webhook.
 ### Example Request
 
 ```bash
-curl -X GET https://api.dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
+curl -X GET https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
   -H "Authorization: Bearer your_developer_token"
 ```
 
@@ -173,7 +173,7 @@ Update a webhook's URL, events, or active status.
 ### Example Request
 
 ```bash
-curl -X PUT https://api.dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
+curl -X PUT https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
   -H "Authorization: Bearer your_developer_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -196,7 +196,7 @@ Delete a webhook permanently.
 ### Example Request
 
 ```bash
-curl -X DELETE https://api.dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
+curl -X DELETE https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
   -H "Authorization: Bearer your_developer_token"
 ```
 

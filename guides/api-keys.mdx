@@ -12,9 +12,7 @@ API keys are the primary method of authenticating with the DHMAD API. This guide
 3. Click "Create API Key"
 4. Provide:
    - **Key Name**: Descriptive name (e.g., "Production App", "Staging Environment")
-   - **App Name**: Optional application name
-   - **Website**: Optional website URL
-   - **Description**: Optional description of the key's purpose
+   - **Environment**: Choose between "Live (Production)" or "Sandbox (Testing)"
 5. Copy your key immediately - it won't be shown again!
 
 <Warning>
@@ -26,7 +24,8 @@ API keys are the primary method of authenticating with the DHMAD API. This guide
 ### Viewing Keys
 
 In the dashboard, you can see:
-- Key name and description
+- Key name
+- Environment (Live or Sandbox)
 - Creation date
 - Last used date
 - Active/Inactive status
@@ -130,7 +129,7 @@ export DHMAD_API_KEY=sk_live_abc123...
 
 - Verify the key is copied correctly (no extra spaces)
 - Check the key is active in the dashboard
-- Ensure you're using the correct key for your environment: `sk_live_` for production (`api.dhmad.tn`), `sk_sandbox_` for the [sandbox](/guides/sandbox) (`sandbox.dhmad.tn`). Using the wrong key type returns a clear 401 message.
+- Ensure you're using the correct key for your environment: `sk_live_` for production (`dhmad.tn`), `sk_sandbox_` for the [sandbox](/guides/sandbox) (`sandbox.dhmad.tn`). Using the wrong key type returns a clear 401 message.
 
 ### Key Not Working
 

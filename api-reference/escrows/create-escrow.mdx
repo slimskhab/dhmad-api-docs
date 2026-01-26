@@ -9,7 +9,7 @@ Create a new escrow transaction. By default, the escrow is created with your ass
 
 <RequestExample>
 ```bash cURL
-curl -X POST https://api.dhmad.tn/api/v1/escrows \
+curl -X POST https://dhmad.tn/api/v1/escrows \
   -H "Authorization: Bearer sk_live_your_api_key_here" \
   -H "Content-Type: application/json" \
   -d '{
@@ -24,7 +24,7 @@ curl -X POST https://api.dhmad.tn/api/v1/escrows \
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.dhmad.tn/api/v1/escrows', {
+const response = await fetch('https://dhmad.tn/api/v1/escrows', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer sk_live_your_api_key_here',
@@ -61,7 +61,7 @@ data = {
 }
 
 response = requests.post(
-    'https://api.dhmad.tn/api/v1/escrows',
+    'https://dhmad.tn/api/v1/escrows',
     json=data,
     headers=headers
 )
