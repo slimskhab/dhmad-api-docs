@@ -1,16 +1,17 @@
 ---
 title: Webhooks
-description: Set up real-time notifications for escrow events
+description: Set up real-time notifications for escrow and contract events
 ---
 
 Webhooks allow you to receive real-time notifications when events occur in your escrow transactions. This guide explains how to set up and use webhooks.
 
 ## Overview
 
-Webhooks are HTTP callbacks that notify your application when escrow status changes. Instead of polling the API, you can receive instant notifications when:
+Webhooks are HTTP callbacks that notify your application when escrow or contract events occur. Instead of polling the API, you can receive instant notifications when:
 
-- Escrow status changes (pending → paid → delivered → completed)
+- Escrow status changes (pending → paid → delivered → completed → cancelled)
 - Escrows are cancelled
+- A contract is signed by the seller or buyer
 - Any status update occurs
 
 ## Setting Up Webhooks
@@ -28,19 +29,20 @@ const app = express();
 app.use(express.json());
 
 app.post('/webhooks/dhmad', async (req, res) => {
-  const signature = req.headers['x-webhook-signature'];
-  const event = req.headers['x-webhook-event'];
-  const payload = JSON.stringify(req.body);
-  
-  // Verify webhook signature (see verification section)
-  // Process the event
-  // Return 200 OK quickly
-  
-  res.status(200).send('OK');
+const signature = req.headers['x-webhook-signature'];
+const event = req.headers['x-webhook-event'];
+const payload = JSON.stringify(req.body);
+
+// Verify webhook signature (see verification section)
+// Process the event
+// Return 200 OK quickly
+
+res.status(200).send('OK');
 });
 
 app.listen(3000);
-```
+
+````
 
 ```python Flask
 from flask import Flask, request, jsonify
@@ -54,16 +56,16 @@ def webhook():
     signature = request.headers.get('X-Webhook-Signature')
     event = request.headers.get('X-Webhook-Event')
     payload = request.get_json()
-    
+
     # Verify webhook signature (see verification section)
     # Process the event
     # Return 200 OK quickly
-    
+
     return jsonify({'status': 'ok'}), 200
 
 if __name__ == '__main__':
     app.run(port=3000)
-```
+````
 
 ```php Laravel
 <?php
@@ -79,15 +81,16 @@ class WebhookController extends Controller
         $signature = $request->header('X-Webhook-Signature');
         $event = $request->header('X-Webhook-Event');
         $payload = $request->all();
-        
+
         // Verify webhook signature (see verification section)
         // Process the event
         // Return 200 OK quickly
-        
+
         return response()->json(['status' => 'ok'], 200);
     }
 }
 ```
+
 </CodeGroup>
 
 ### Step 2: Configure Webhook in Dashboard
@@ -99,26 +102,36 @@ class WebhookController extends Controller
 5. The webhook will automatically subscribe to `escrow.status.updated` events
 
 <Warning>
-  You can create a maximum of 2 webhooks per developer account. Choose your endpoints carefully.
+  You can create a maximum of 2 webhooks per developer account. Choose your
+  endpoints carefully.
 </Warning>
 
 <Info>
-  In development mode, HTTP URLs are allowed. In production, only HTTPS URLs are accepted.
+  In development mode, HTTP URLs are allowed. In production, only HTTPS URLs are
+  accepted.
 </Info>
 
 ## Webhook Events
 
-Currently, the following event is available:
+You can subscribe to the following events:
 
 <CardGroup cols={1}>
   <Card title="escrow.status.updated" icon="refresh">
-    Triggered when an escrow status changes (pending → paid → delivered → completed → cancelled)
+    Triggered when an escrow status changes (pending → paid → delivered →
+    completed → cancelled)
+  </Card>
+  <Card title="contract.signed" icon="file-signature">
+    Triggered when the escrow contract is signed by the seller or the buyer.
+    Each signature triggers one event; `data.contract.signedBy` indicates who
+    signed ("seller" or "buyer").
   </Card>
 </CardGroup>
 
 ## Event Payload
 
-All webhook events follow this structure:
+All webhook events share the same top-level structure: `id`, `type`, `timestamp`, and `data`. The `data` object depends on the event type.
+
+### escrow.status.updated
 
 ```json
 {
@@ -129,8 +142,8 @@ All webhook events follow this structure:
     "escrow": {
       "id": "507f1f77bcf86cd799439011",
       "title": "Web Development Service",
-      "amount": 1000.00,
-      "escrowFee": 50.00,
+      "amount": 1000.0,
+      "escrowFee": 50.0,
       "status": "paid",
       "oldStatus": "pending",
       "seller": {
@@ -155,6 +168,51 @@ All webhook events follow this structure:
 }
 ```
 
+### contract.signed
+
+Sent when the seller or the buyer signs the contract (one event per signature).
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "type": "contract.signed",
+  "timestamp": "2024-01-15T11:00:00Z",
+  "data": {
+    "contract": {
+      "id": "507f1f77bcf86cd799439012",
+      "escrowId": "507f1f77bcf86cd799439011",
+      "signedBy": "seller",
+      "sellerSignature": { "signedAt": "2024-01-15T11:00:00Z" },
+      "buyerSignature": null,
+      "isFullySigned": false,
+      "signedAt": "2024-01-15T11:00:00Z"
+    },
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Web Development Service",
+      "amount": 1000.0,
+      "escrowFee": 50.0,
+      "status": "pending",
+      "seller": {
+        "_id": "507f1f77bcf86cd799439013",
+        "username": "seller_user",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      "buyer": {
+        "_id": "507f1f77bcf86cd799439014",
+        "username": "buyer_user",
+        "firstName": "Jane",
+        "lastName": "Smith"
+      },
+      "estimatedDeliveryDays": 7,
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T11:00:00Z"
+    }
+  }
+}
+```
+
 ### Payload Fields
 
 <ParamField response="id" type="string">
@@ -162,7 +220,7 @@ All webhook events follow this structure:
 </ParamField>
 
 <ParamField response="type" type="string">
-  Event type (e.g., "escrow.status.updated")
+  Event type: "escrow.status.updated" or "contract.signed"
 </ParamField>
 
 <ParamField response="timestamp" type="string">
@@ -174,11 +232,21 @@ All webhook events follow this structure:
 </ParamField>
 
 <ParamField response="data.escrow.status" type="string">
-  New escrow status (pending, paid, delivered, completed, cancelled)
+  Escrow status (pending, paid, delivered, completed, cancelled). For
+  contract.signed, oldStatus is not present.
 </ParamField>
 
 <ParamField response="data.escrow.oldStatus" type="string">
-  Previous escrow status
+  Previous escrow status (escrow.status.updated only)
+</ParamField>
+
+<ParamField response="data.contract" type="object">
+  Present for contract.signed only. Contains contract id, escrowId, signedBy
+  ("seller" or "buyer"), signature timestamps, and isFullySigned.
+</ParamField>
+
+<ParamField response="data.contract.signedBy" type="string">
+  Who signed in this event: "seller" or "buyer"
 </ParamField>
 
 ## Webhook Headers
@@ -186,11 +254,12 @@ All webhook events follow this structure:
 Each webhook request includes the following headers:
 
 <ParamField response="X-Webhook-Signature" type="string">
-  HMAC SHA256 signature of the payload. Use this to verify the webhook is from DHMAD.
+  HMAC SHA256 signature of the payload. Use this to verify the webhook is from
+  DHMAD.
 </ParamField>
 
 <ParamField response="X-Webhook-Event" type="string">
-  The event type (e.g., "escrow.status.updated")
+  The event type (e.g., "escrow.status.updated", "contract.signed")
 </ParamField>
 
 <ParamField response="Content-Type" type="string">
@@ -206,7 +275,8 @@ Always verify webhook signatures to ensure requests are from DHMAD and haven't b
 The webhook secret is generated automatically when you create a webhook. You can retrieve it from the webhook details in your dashboard (it's only shown once when created).
 
 <Warning>
-  Store your webhook secret securely. Never commit it to version control or expose it publicly.
+  Store your webhook secret securely. Never commit it to version control or
+  expose it publicly.
 </Warning>
 
 ### Signature Verification Examples
@@ -216,31 +286,32 @@ The webhook secret is generated automatically when you create a webhook. You can
 const crypto = require('crypto');
 
 function verifyWebhookSignature(payload, signature, secret) {
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(JSON.stringify(payload))
-    .digest('hex');
-  
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+const expectedSignature = crypto
+.createHmac('sha256', secret)
+.update(JSON.stringify(payload))
+.digest('hex');
+
+return crypto.timingSafeEqual(
+Buffer.from(signature),
+Buffer.from(expectedSignature)
+);
 }
 
 // In your webhook handler
 app.post('/webhooks/dhmad', express.json(), (req, res) => {
-  const signature = req.headers['x-webhook-signature'];
-  const secret = process.env.DHMAD_WEBHOOK_SECRET;
-  
-  if (!verifyWebhookSignature(req.body, signature, secret)) {
-    return res.status(401).send('Invalid signature');
-  }
-  
-  // Process webhook
-  console.log('Webhook verified:', req.body);
-  res.status(200).send('OK');
+const signature = req.headers['x-webhook-signature'];
+const secret = process.env.DHMAD_WEBHOOK_SECRET;
+
+if (!verifyWebhookSignature(req.body, signature, secret)) {
+return res.status(401).send('Invalid signature');
+}
+
+// Process webhook
+console.log('Webhook verified:', req.body);
+res.status(200).send('OK');
 });
-```
+
+````
 
 ```python Python
 import hmac
@@ -253,7 +324,7 @@ def verify_webhook_signature(payload, signature, secret):
         json.dumps(payload, separators=(',', ':')).encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
-    
+
     return hmac.compare_digest(signature, expected_signature)
 
 # In your webhook handler
@@ -262,14 +333,14 @@ def webhook():
     signature = request.headers.get('X-Webhook-Signature')
     secret = os.getenv('DHMAD_WEBHOOK_SECRET')
     payload = request.get_json()
-    
+
     if not verify_webhook_signature(payload, signature, secret):
         return jsonify({'error': 'Invalid signature'}), 401
-    
+
     # Process webhook
     print('Webhook verified:', payload)
     return jsonify({'status': 'ok'}), 200
-```
+````
 
 ```php PHP
 <?php
@@ -284,32 +355,37 @@ public function handle(Request $request) {
     $signature = $request->header('X-Webhook-Signature');
     $secret = env('DHMAD_WEBHOOK_SECRET');
     $payload = $request->all();
-    
+
     if (!verifyWebhookSignature($payload, $signature, $secret)) {
         return response()->json(['error' => 'Invalid signature'], 401);
     }
-    
+
     // Process webhook
     Log::info('Webhook verified:', $payload);
     return response()->json(['status' => 'ok'], 200);
 }
 ```
+
 </CodeGroup>
 
 ## Best Practices
 
 <CardGroup cols={2}>
   <Card title="Verify Signatures" icon="shield-check">
-    Always verify webhook signatures before processing. This ensures the request is from DHMAD and hasn't been tampered with.
+    Always verify webhook signatures before processing. This ensures the request
+    is from DHMAD and hasn't been tampered with.
   </Card>
   <Card title="Respond Quickly" icon="bolt">
-    Return 200 OK within 5 seconds. Process the webhook asynchronously if needed.
+    Return 200 OK within 5 seconds. Process the webhook asynchronously if
+    needed.
   </Card>
   <Card title="Idempotency" icon="refresh">
-    Handle duplicate events gracefully. Use the event `id` to track processed events.
+    Handle duplicate events gracefully. Use the event `id` to track processed
+    events.
   </Card>
   <Card title="Error Handling" icon="exclamation-triangle">
-    Log errors and implement retry logic for failed processing. Don't fail the webhook response.
+    Log errors and implement retry logic for failed processing. Don't fail the
+    webhook response.
   </Card>
   <Card title="HTTPS Only" icon="lock">
     Use HTTPS endpoints in production. HTTP is only allowed in development.
@@ -339,7 +415,8 @@ You can monitor webhook delivery status in your dashboard:
 - **Failure Count**: Number of consecutive failures
 
 <Warning>
-  If a webhook fails repeatedly, consider checking your endpoint and fixing any issues. High failure counts may indicate problems with your webhook handler.
+  If a webhook fails repeatedly, consider checking your endpoint and fixing any
+  issues. High failure counts may indicate problems with your webhook handler.
 </Warning>
 
 ## Example: Complete Webhook Handler
@@ -356,60 +433,62 @@ const app = express();
 app.use(express.json());
 
 const webhookQueue = new Queue('webhooks', {
-  connection: { host: 'localhost', port: 6379 }
+connection: { host: 'localhost', port: 6379 }
 });
 
 function verifyWebhookSignature(payload, signature, secret) {
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(JSON.stringify(payload))
-    .digest('hex');
-  
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+const expectedSignature = crypto
+.createHmac('sha256', secret)
+.update(JSON.stringify(payload))
+.digest('hex');
+
+return crypto.timingSafeEqual(
+Buffer.from(signature),
+Buffer.from(expectedSignature)
+);
 }
 
 app.post('/webhooks/dhmad', async (req, res) => {
-  const signature = req.headers['x-webhook-signature'];
-  const event = req.headers['x-webhook-event'];
-  const secret = process.env.DHMAD_WEBHOOK_SECRET;
-  
-  // Verify signature
-  if (!verifyWebhookSignature(req.body, signature, secret)) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-  
-  // Return 200 OK immediately
-  res.status(200).json({ received: true });
-  
-  // Process webhook asynchronously
-  await webhookQueue.add('process-webhook', {
-    event,
-    payload: req.body,
-    receivedAt: new Date().toISOString()
-  });
+const signature = req.headers['x-webhook-signature'];
+const event = req.headers['x-webhook-event'];
+const secret = process.env.DHMAD_WEBHOOK_SECRET;
+
+// Verify signature
+if (!verifyWebhookSignature(req.body, signature, secret)) {
+return res.status(401).json({ error: 'Invalid signature' });
+}
+
+// Return 200 OK immediately
+res.status(200).json({ received: true });
+
+// Process webhook asynchronously
+await webhookQueue.add('process-webhook', {
+event,
+payload: req.body,
+receivedAt: new Date().toISOString()
+});
 });
 
 // Worker to process webhooks
 const worker = new Worker('webhooks', async (job) => {
-  const { event, payload } = job.data;
-  
-  if (event === 'escrow.status.updated') {
-    const { escrow } = payload.data;
-    console.log(`Escrow ${escrow.id} status changed: ${escrow.oldStatus} → ${escrow.status}`);
-    
-    // Update your database
-    // Send notifications
-    // Trigger other actions
-  }
+const { event, payload } = job.data;
+
+if (event === 'escrow.status.updated') {
+const { escrow } = payload.data;
+console.log(`Escrow ${escrow.id} status changed: ${escrow.oldStatus} → ${escrow.status}`);
+// Update your database, send notifications, trigger other actions
+} else if (event === 'contract.signed') {
+const { contract, escrow } = payload.data;
+console.log(`Contract ${contract.id} signed by ${contract.signedBy} for escrow ${escrow.id}`);
+// Update your database, notify when both parties have signed (contract.isFullySigned)
+}
 });
 
 app.listen(3000, () => {
-  console.log('Webhook server listening on port 3000');
+console.log('Webhook server listening on port 3000');
 });
-```
+
+````
 
 ```python Python
 from flask import Flask, request, jsonify
@@ -428,7 +507,7 @@ def verify_webhook_signature(payload, signature, secret):
         json.dumps(payload, separators=(',', ':')).encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
-    
+
     return hmac.compare_digest(signature, expected_signature)
 
 @app.route('/webhooks/dhmad', methods=['POST'])
@@ -437,17 +516,17 @@ def webhook():
     event = request.headers.get('X-Webhook-Event')
     secret = os.getenv('DHMAD_WEBHOOK_SECRET')
     payload = request.get_json()
-    
+
     # Verify signature
     if not verify_webhook_signature(payload, signature, secret):
         return jsonify({'error': 'Invalid signature'}), 401
-    
+
     # Return 200 OK immediately
     response = jsonify({'received': True})
-    
+
     # Process webhook asynchronously
     process_webhook.delay(event, payload)
-    
+
     return response, 200
 
 @celery.task
@@ -455,14 +534,17 @@ def process_webhook(event, payload):
     if event == 'escrow.status.updated':
         escrow = payload['data']['escrow']
         print(f"Escrow {escrow['id']} status changed: {escrow['oldStatus']} → {escrow['status']}")
-        
-        # Update your database
-        # Send notifications
-        # Trigger other actions
+        # Update your database, send notifications, trigger other actions
+    elif event == 'contract.signed':
+        contract = payload['data']['contract']
+        escrow = payload['data']['escrow']
+        print(f"Contract {contract['id']} signed by {contract['signedBy']} for escrow {escrow['id']}")
+        # Update your database, notify when both parties have signed (contract['isFullySigned'])
 
 if __name__ == '__main__':
     app.run(port=3000)
-```
+````
+
 </CodeGroup>
 
 ## Testing Webhooks
@@ -522,6 +604,7 @@ ngrok http 3000
 ### Viewing Webhooks
 
 In your dashboard, you can:
+
 - View all your webhooks
 - See delivery status and failure counts
 - Check last triggered timestamp
@@ -538,9 +621,12 @@ Delete webhooks you no longer need. Remember, you can only have 2 webhooks maxim
 ---
 
 <Info>
-  Webhooks are only delivered for escrows where your associated user account is the seller or buyer. Make sure your developer account is properly associated with a user account.
+  Webhooks are only delivered for escrows where your associated user account is
+  the seller or buyer. Make sure your developer account is properly associated
+  with a user account.
 </Info>
 
 <Warning>
-  Never expose your webhook secret. Treat it like a password and store it securely using environment variables or secret management services.
+  Never expose your webhook secret. Treat it like a password and store it
+  securely using environment variables or secret management services.
 </Warning>
