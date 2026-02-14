@@ -22,7 +22,7 @@ All requests require authentication using an API key. You can use either:
 See the [Authentication guide](/authentication) for more details.
 
 <Warning>
-  Before using the API, you must associate your developer account with a user account. This is required for all API operations (creating escrows, checking balance, etc.). You can associate your account in the [developer dashboard](https://developer.dhmad.tn/dashboard).
+  Most API operations require your developer account to be associated with a user account (e.g., checking balance, listing escrows, getting escrow details). The `GET /me` endpoint works without association. Creating escrows with `sellerEmail` also does not require association. You can associate your account in the [developer dashboard](https://developer.dhmad.tn/dashboard).
 </Warning>
 
 ## Interactive API Explorer
@@ -53,13 +53,15 @@ We provide an **interactive API Explorer** (Swagger UI) in the [Developer Portal
 - `GET /escrows` - [List escrows](/api-reference/escrows/list-escrows) (with pagination and filters)
 - `GET /escrows/:id` - [Get escrow details](/api-reference/escrows/get-escrow)
 
-### Webhooks
+### Webhooks (Developer Portal Authentication)
 
-- `GET /developer/webhooks` - List all webhooks
-- `POST /developer/webhooks` - Create a new webhook
-- `GET /developer/webhooks/:id` - Get webhook details
-- `PUT /developer/webhooks/:id` - Update a webhook
-- `DELETE /developer/webhooks/:id` - Delete a webhook
+These endpoints use developer JWT authentication (not API key). Manage them via the [Developer Dashboard](https://developer.dhmad.tn/dashboard) or the Developer Portal API.
+
+- `GET /api/developer/webhooks` - List all webhooks
+- `POST /api/developer/webhooks` - Create a new webhook
+- `GET /api/developer/webhooks/:id` - Get webhook details
+- `PUT /api/developer/webhooks/:id` - Update a webhook
+- `DELETE /api/developer/webhooks/:id` - Delete a webhook
 
 ## Response Format
 
@@ -104,12 +106,12 @@ Error responses:
 
 ## Rate Limiting
 
-- **Default**: 100 requests per minute per API key
+- **Default**: 100 requests per minute per IP address
 - **Header**: Rate limit information is included in response headers
 - **Exceeding**: Returns `429 Too Many Requests`
 
 <Info>
-  Rate limits are per API key. You can set a custom rate limit when creating or updating an API key in the dashboard.
+  The default rate limit applies per IP address. Custom per-key rate limits can be configured when creating or updating an API key in the dashboard.
 </Info>
 
 ## Pagination

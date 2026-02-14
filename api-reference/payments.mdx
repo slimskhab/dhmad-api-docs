@@ -57,6 +57,7 @@ data = response.json()
     "id": "507f1f77bcf86cd799439011",
     "name": "Production API Key",
     "keyPrefix": "sk_live_abc123",
+    "environment": "live",
     "isActive": true,
     "lastUsedAt": "2024-01-15T10:30:00Z",
     "expiresAt": null,
@@ -69,7 +70,6 @@ data = response.json()
   },
   "developer": {
     "id": "507f1f77bcf86cd799439012",
-    "username": "dev_user",
     "email": "dev@example.com",
     "companyName": "Example Corp"
   }
@@ -88,6 +88,10 @@ data = response.json()
 
 <ParamField response="apiKey.keyPrefix" type="string">
   First few characters of the API key (for identification)
+</ParamField>
+
+<ParamField response="apiKey.environment" type="string">
+  API key environment: `live` or `sandbox`
 </ParamField>
 
 <ParamField response="apiKey.isActive" type="boolean">
@@ -112,10 +116,6 @@ data = response.json()
 
 <ParamField response="developer.id" type="string">
   Unique identifier for the developer account
-</ParamField>
-
-<ParamField response="developer.username" type="string">
-  Developer account username
 </ParamField>
 
 <ParamField response="developer.email" type="string">

@@ -20,7 +20,6 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "estimatedDeliveryDays": 7,
     "autoSign": true
   }'
-  }'
 ```
 
 ```javascript JavaScript
@@ -89,6 +88,7 @@ data = response.json()
   },
   "contract": {
     "id": "507f1f77bcf86cd799439012",
+    "pdfUrl": "https://dhmad.tn/contracts/507f1f77bcf86cd799439012.pdf",
     "sellerSigned": true,
     "buyerSigned": false,
     "isFullySigned": false
@@ -183,6 +183,10 @@ data = response.json()
   Unique identifier for the contract
 </ParamField>
 
+<ParamField response="contract.pdfUrl" type="string|null">
+  URL to the generated contract PDF, or `null` if PDF generation is pending
+</ParamField>
+
 <ParamField response="contract.sellerSigned" type="boolean">
   Whether the seller has signed the contract
 </ParamField>
@@ -268,6 +272,20 @@ data = response.json()
 {
   "error": "Bad Request",
   "message": "Seller email verification required before creating escrows"
+}
+```
+
+### 429 Too Many Requests
+
+**Daily Escrow Limit Exceeded**
+
+```json
+{
+  "error": "Rate Limit Exceeded",
+  "message": "You have reached your daily limit of 10 escrows. You can create more escrows tomorrow.",
+  "limit": 10,
+  "count": 10,
+  "remaining": 0
 }
 ```
 

@@ -54,14 +54,12 @@ data = response.json()
     "status": "paid",
     "seller": {
       "_id": "507f1f77bcf86cd799439013",
-      "username": "seller_user",
       "email": "seller@example.com",
       "firstName": "John",
       "lastName": "Doe"
     },
     "buyer": {
       "_id": "507f1f77bcf86cd799439014",
-      "username": "buyer_user",
       "email": "buyer@example.com",
       "firstName": "Jane",
       "lastName": "Smith"
@@ -107,7 +105,7 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.seller" type="object">
-  Seller user object with _id, username, email, firstName, lastName
+  Seller user object with _id, email, firstName, lastName
 </ParamField>
 
 <ParamField response="escrow.buyer" type="object|null">
@@ -154,6 +152,17 @@ data = response.json()
 }
 ```
 
+### 403 Forbidden
+
+**Not Your Escrow**
+
+```json
+{
+  "error": "Forbidden",
+  "message": "You do not have access to this escrow. You can only view escrows where you are the seller or buyer."
+}
+```
+
 ### 404 Not Found
 
 **Escrow Not Found**
@@ -164,12 +173,10 @@ data = response.json()
 }
 ```
 
-This error occurs if:
-- The escrow ID doesn't exist
-- You are not the seller or buyer of the escrow
+This error occurs if the escrow ID doesn't exist.
 
 ---
 
 <Info>
-  You can only access escrows where your associated user account is the seller or buyer. If you try to access an escrow you're not involved in, you'll receive a 404 error.
+  You can only access escrows where your associated user account is the seller or buyer. If you try to access an escrow you're not involved in, you'll receive a 403 Forbidden error.
 </Info>

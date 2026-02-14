@@ -100,7 +100,7 @@ API keys follow this format:
 ## Account Association
 
 <Warning>
-  Before using the API, you must associate your developer account with a user account. This is required for all API operations (creating escrows, checking balance, etc.). You can associate your account in the [developer dashboard](https://developer.dhmad.tn/dashboard).
+  Most API operations require your developer account to be associated with a user account (e.g., checking balance, listing escrows, getting escrow details). The `GET /me` endpoint works without association. Creating escrows with `sellerEmail` also does not require association. You can associate your account in the [developer dashboard](https://developer.dhmad.tn/dashboard).
 </Warning>
 
 ## Security Best Practices
@@ -148,14 +148,14 @@ If your API key is valid but your developer account is not associated with a use
 
 ## Rate Limiting
 
-API keys are subject to rate limits:
+API requests are subject to rate limits:
 
-- **Default**: 100 requests per minute per API key
+- **Default**: 100 requests per minute per IP address
 - **Custom limits**: You can set a custom rate limit when creating or updating an API key
 - **Exceeding limit**: Returns 429 Too Many Requests
 
 <Info>
-  Rate limits are per API key. If you need higher limits, contact support@dhmad.tn
+  The default rate limit applies per IP address. If you need higher limits, contact support@dhmad.tn
 </Info>
 
 ## Testing Your Authentication

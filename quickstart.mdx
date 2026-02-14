@@ -10,7 +10,7 @@ This quickstart guide will walk you through creating your first escrow transacti
 - A DHMAD developer account with an approved application
 - An API key (see [Getting Started](/getting-started))
 - Your developer account associated with a user account
-- The associated user account must have email and phone verification completed
+- The associated user account must have email verification completed (phone verification is only required when the buyer accepts and pays, not at escrow creation)
 - Basic knowledge of REST APIs
 
 ## Step 1: Check Your Balance
@@ -63,10 +63,18 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "escrowFee": 50.00,
     "status": "pending",
     "seller": "507f1f77bcf86cd799439013",
+    "sellerEmail": null,
     "buyer": null,
     "buyerEmail": "buyer@example.com",
     "estimatedDeliveryDays": 7,
     "createdAt": "2024-01-15T10:00:00Z"
+  },
+  "contract": {
+    "id": "507f1f77bcf86cd799439012",
+    "pdfUrl": "https://dhmad.tn/contracts/507f1f77bcf86cd799439012.pdf",
+    "sellerSigned": false,
+    "buyerSigned": false,
+    "isFullySigned": false
   },
   "url": "https://dhmad.tn/dashboard/escrow/507f1f77bcf86cd799439011",
   "trackingId": "507f1f77bcf86cd799439011"
@@ -99,7 +107,6 @@ curl -X GET https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011 \
     "status": "pending",
     "seller": {
       "_id": "507f1f77bcf86cd799439013",
-      "username": "seller_user",
       "email": "seller@example.com",
       "firstName": "John",
       "lastName": "Doe"

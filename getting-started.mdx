@@ -39,7 +39,7 @@ To use the API, you need to associate your developer account with a user account
 5. Your accounts are now associated
 
 <Warning>
-  The user account must have email and phone verification completed before you can create escrows via the API.
+  The user account must have email verification completed before you can create escrows via the API. Phone verification is only required when the buyer accepts and pays, not at escrow creation.
 </Warning>
 
 <Info>
@@ -85,7 +85,7 @@ curl -X GET https://dhmad.tn/api/v1/balance \
 ```
 
 <Info>
-  **Testing first?** Use the [sandbox](/guides/sandbox): replace the URL with `https://sandbox.dhmad.tn/api/v1` and use a `sk_sandbox_` API key from [developer.sandbox.dhmad.tn](https://developer.sandbox.dhmad.tn).
+  **Testing first?** Use the [sandbox](/guides/sandbox): replace the URL with `https://sandbox.dhmad.tn/api/v1` and use a `sk_sandbox_` API key from [developer.dhmad.tn](https://developer.dhmad.tn) (sandbox keys are created in the same developer portal).
 </Info>
 
 <Accordion title="Response Example">

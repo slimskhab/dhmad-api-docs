@@ -148,14 +148,12 @@ All webhook events share the same top-level structure: `id`, `type`, `timestamp`
       "oldStatus": "pending",
       "seller": {
         "_id": "507f1f77bcf86cd799439013",
-        "username": "seller_user",
         "email": "seller@example.com",
         "firstName": "John",
         "lastName": "Doe"
       },
       "buyer": {
         "_id": "507f1f77bcf86cd799439014",
-        "username": "buyer_user",
         "email": "buyer@example.com",
         "firstName": "Jane",
         "lastName": "Smith"
@@ -195,13 +193,13 @@ Sent when the seller or the buyer signs the contract (one event per signature).
       "status": "pending",
       "seller": {
         "_id": "507f1f77bcf86cd799439013",
-        "username": "seller_user",
+        "email": "seller@example.com",
         "firstName": "John",
         "lastName": "Doe"
       },
       "buyer": {
         "_id": "507f1f77bcf86cd799439014",
-        "username": "buyer_user",
+        "email": "buyer@example.com",
         "firstName": "Jane",
         "lastName": "Smith"
       },
@@ -621,9 +619,11 @@ Delete webhooks you no longer need. Remember, you can only have 2 webhooks maxim
 ---
 
 <Info>
-  Webhooks are only delivered for escrows where your associated user account is
-  the seller or buyer. Make sure your developer account is properly associated
-  with a user account.
+  Webhooks are delivered for escrows where your associated user account is the
+  seller or buyer, **or** for escrows created through your developer account via
+  the API (tracked by `createdByDeveloper`). This means if you create escrows
+  with a `sellerEmail`, you'll still receive webhook notifications for those
+  escrows.
 </Info>
 
 <Warning>
