@@ -88,12 +88,17 @@ data = response.json()
   "webhook": {
     "id": "507f1f77bcf86cd799439011",
     "url": "https://example.com/webhooks/dhmad",
+    "secret": "a1b2c3d4e5f6...your_webhook_secret_hex",
     "events": ["escrow.status.updated", "contract.signed"],
     "isActive": true,
     "createdAt": "2024-01-15T10:00:00Z"
   }
 }
 ```
+
+<Warning>
+  The `secret` field is **only returned when creating a webhook** and when regenerating the secret. It is never included in list or get responses. Copy and store it immediately.
+</Warning>
 
 ## List Webhooks
 
@@ -183,6 +188,38 @@ curl -X PUT https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 \
     "isActive": false
   }'
 ```
+
+## Regenerate Secret
+
+Generate a new signing secret for a webhook. The old secret will immediately stop working.
+
+<Endpoint method="POST" path="/api/developer/webhooks/:id/regenerate-secret" />
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011/regenerate-secret \
+  -H "Authorization: Bearer your_developer_token"
+```
+
+### Example Response
+
+```json
+{
+  "message": "Webhook secret regenerated successfully",
+  "secret": "e7f8a9b0c1d2...new_webhook_secret_hex"
+}
+```
+
+<Warning>
+  The new secret is only shown in this response. Copy and store it immediately, then update your webhook handler to use the new secret for signature verification.
+</Warning>
 
 ## Delete Webhook
 

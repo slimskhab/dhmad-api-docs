@@ -31,10 +31,18 @@ app.use(express.json());
 app.post('/webhooks/dhmad', async (req, res) => {
 const signature = req.headers['x-webhook-signature'];
 const event = req.headers['x-webhook-event'];
+const webhookId = req.headers['x-webhook-id'];
+const timestamp = req.headers['x-webhook-timestamp'];
 const payload = JSON.stringify(req.body);
 
+// Reject replayed events older than 5 minutes
+const age = Date.now() - new Date(timestamp).getTime();
+if (age > 5 * 60 * 1000) {
+  return res.status(400).send('Event too old');
+}
+
 // Verify webhook signature (see verification section)
-// Process the event
+// Process the event (use webhookId for deduplication)
 // Return 200 OK quickly
 
 res.status(200).send('OK');
@@ -48,6 +56,7 @@ app.listen(3000);
 from flask import Flask, request, jsonify
 import hmac
 import hashlib
+from datetime import datetime, timezone, timedelta
 
 app = Flask(__name__)
 
@@ -55,10 +64,17 @@ app = Flask(__name__)
 def webhook():
     signature = request.headers.get('X-Webhook-Signature')
     event = request.headers.get('X-Webhook-Event')
+    webhook_id = request.headers.get('X-Webhook-Id')
+    timestamp = request.headers.get('X-Webhook-Timestamp')
     payload = request.get_json()
 
+    # Reject replayed events older than 5 minutes
+    event_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+    if datetime.now(timezone.utc) - event_time > timedelta(minutes=5):
+        return jsonify({'error': 'Event too old'}), 400
+
     # Verify webhook signature (see verification section)
-    # Process the event
+    # Process the event (use webhook_id for deduplication)
     # Return 200 OK quickly
 
     return jsonify({'status': 'ok'}), 200
@@ -73,6 +89,7 @@ if __name__ == '__main__':
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class WebhookController extends Controller
 {
@@ -80,10 +97,17 @@ class WebhookController extends Controller
     {
         $signature = $request->header('X-Webhook-Signature');
         $event = $request->header('X-Webhook-Event');
+        $webhookId = $request->header('X-Webhook-Id');
+        $timestamp = $request->header('X-Webhook-Timestamp');
         $payload = $request->all();
 
+        // Reject replayed events older than 5 minutes
+        if (Carbon::parse($timestamp)->diffInMinutes(now()) > 5) {
+            return response()->json(['error' => 'Event too old'], 400);
+        }
+
         // Verify webhook signature (see verification section)
-        // Process the event
+        // Process the event (use $webhookId for deduplication)
         // Return 200 OK quickly
 
         return response()->json(['status' => 'ok'], 200);
@@ -260,9 +284,21 @@ Each webhook request includes the following headers:
   The event type (e.g., "escrow.status.updated", "contract.signed")
 </ParamField>
 
+<ParamField response="X-Webhook-Id" type="string">
+  Unique identifier (UUID) for this delivery. Use this to detect and discard duplicate deliveries.
+</ParamField>
+
+<ParamField response="X-Webhook-Timestamp" type="string">
+  ISO 8601 timestamp of when the event was dispatched. Reject events with timestamps older than 5 minutes to prevent replay attacks.
+</ParamField>
+
 <ParamField response="Content-Type" type="string">
   Always "application/json"
 </ParamField>
+
+<Warning>
+  To protect against replay attacks, always validate `X-Webhook-Timestamp` — reject any delivery where the timestamp is more than 5 minutes in the past. Track `X-Webhook-Id` values to discard duplicate deliveries.
+</Warning>
 
 ## Verifying Webhook Signatures
 
@@ -270,7 +306,9 @@ Always verify webhook signatures to ensure requests are from DHMAD and haven't b
 
 ### Getting Your Webhook Secret
 
-The webhook secret is generated automatically when you create a webhook. You can retrieve it from the webhook details in your dashboard (it's only shown once when created).
+The webhook secret is generated automatically when you create a webhook. **The secret is only shown once at creation** and again if you regenerate it. It is never returned by the list or get endpoints.
+
+Copy and store the secret immediately when it is displayed. If you lose it, use the "Regenerate Secret" action in your dashboard to get a new one (the old secret will stop working).
 
 <Warning>
   Store your webhook secret securely. Never commit it to version control or

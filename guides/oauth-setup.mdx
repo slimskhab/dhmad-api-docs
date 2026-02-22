@@ -188,9 +188,13 @@ Available OAuth scopes:
 
 ## Security Best Practices
 
+<Warning>
+  DHMAD only supports the `S256` code challenge method for PKCE. The `plain` method is **not** accepted and will be rejected with an `invalid_request` error. Always use SHA-256 to hash your code verifier.
+</Warning>
+
 <CardGroup cols={2}>
-  <Card title="Use PKCE" icon="shield-check">
-    Always use PKCE (Proof Key for Code Exchange) for security
+  <Card title="Use PKCE (S256)" icon="shield-check">
+    Always use PKCE with the S256 code challenge method (plain is not supported)
   </Card>
   <Card title="HTTPS Only" icon="lock">
     Always use HTTPS for redirect URIs in production
