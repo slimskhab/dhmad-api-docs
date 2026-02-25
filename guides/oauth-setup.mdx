@@ -24,40 +24,38 @@ OAuth 2.0 allows your application to:
 
 ## Configuring Redirect URIs
 
-You can configure redirect URIs in two ways:
+Redirect URIs must be full URLs including a path. During authorization, the `redirect_uri` parameter must exactly match one of your registered URIs.
 
-### Full URL
-Specify the exact callback URL:
 ```
 https://example.com/callback
+https://example.com/auth/dhmad/callback
 ```
 
-### Domain-Only
-Allow any path under your domain:
-```
-https://example.com
-```
-
-This allows:
-- `https://example.com/callback`
-- `https://example.com/auth/callback`
-- Any other path under `example.com`
+<Warning>
+  Domain-only URIs (e.g., `https://example.com`) are **not accepted**. You must include a path such as `/callback` or `/auth/callback`. Each redirect URI is matched exactly — no wildcard or pattern matching is performed.
+</Warning>
 
 ## OAuth Flow
 
 The OAuth 2.0 authorization code flow with PKCE:
 
-1. **Authorization Request** - Redirect user to authorization endpoint
-2. **User Authentication** - User logs in with DHMAD account
-3. **Authorization Code** - User is redirected back with code
-4. **Token Exchange** - Exchange code for access token
-5. **User Info** - Use access token to get user information
+1. **Authorization Request** - Redirect user to authorization endpoint (the `state` parameter is **required**)
+2. **Consent Screen** - User sees which application is requesting access and what permissions (scopes) are being requested
+3. **User Authentication** - User logs in with their DHMAD account
+4. **Authorization** - User authorizes the application
+5. **Authorization Code** - User is redirected back with code and state
+6. **Token Exchange** - Exchange code for access token
+7. **User Info** - Use access token to get user information
+
+<Warning>
+  The `state` parameter is **required**. Requests without a `state` parameter will be rejected with an `invalid_request` error. Generate a unique, random value for each authorization request and validate it on the callback to prevent CSRF attacks.
+</Warning>
 
 ## Implementation Example
 
 <CodeGroup>
 ```javascript JavaScript
-// Step 1: Generate PKCE challenge
+// Step 1: Generate PKCE challenge and state
 import crypto from 'crypto';
 
 function generatePKCE() {
@@ -74,6 +72,10 @@ function generatePKCE() {
 const { codeVerifier, codeChallenge } = generatePKCE();
 sessionStorage.setItem('code_verifier', codeVerifier);
 
+// state is REQUIRED — generate a random value and store it for validation
+const state = crypto.randomBytes(16).toString('hex');
+sessionStorage.setItem('oauth_state', state);
+
 const params = new URLSearchParams({
   client_id: CLIENT_ID,
   redirect_uri: REDIRECT_URI,
@@ -81,15 +83,19 @@ const params = new URLSearchParams({
   scope: 'openid profile email',
   code_challenge: codeChallenge,
   code_challenge_method: 'S256',
-  state: generateState()
+  state
 });
 
 window.location.href = `https://dhmad.tn/api/oauth/authorize?${params}`;
 
-// Step 3: Handle callback
+// Step 3: Handle callback — validate state before using the code
 const urlParams = new URLSearchParams(window.location.search);
 const code = urlParams.get('code');
-const state = urlParams.get('state');
+const returnedState = urlParams.get('state');
+
+if (returnedState !== sessionStorage.getItem('oauth_state')) {
+  throw new Error('Invalid state parameter — possible CSRF attack');
+}
 
 // Step 4: Exchange code for token
 const tokenResponse = await fetch('https://dhmad.tn/api/oauth/token', {
@@ -139,6 +145,10 @@ def generate_pkce():
 code_verifier, code_challenge = generate_pkce()
 session['code_verifier'] = code_verifier
 
+# state is REQUIRED — generate a random value and store it for validation
+state = secrets.token_urlsafe(16)
+session['oauth_state'] = state
+
 auth_url = 'https://dhmad.tn/api/oauth/authorize'
 params = {
     'client_id': CLIENT_ID,
@@ -147,12 +157,15 @@ params = {
     'scope': 'openid profile email',
     'code_challenge': code_challenge,
     'code_challenge_method': 'S256',
-    'state': secrets.token_urlsafe(16)
+    'state': state
 }
 
 # Redirect user to: f"{auth_url}?{urlencode(params)}"
 
-# Step 3: Handle callback and exchange code
+# Step 3: Handle callback — validate state before using the code
+if request.args.get('state') != session.get('oauth_state'):
+    raise ValueError('Invalid state parameter')
+
 code = request.args.get('code')
 token_response = requests.post(
     'https://dhmad.tn/api/oauth/token',
@@ -199,13 +212,40 @@ Available OAuth scopes:
   <Card title="HTTPS Only" icon="lock">
     Always use HTTPS for redirect URIs in production
   </Card>
-  <Card title="Validate State" icon="check">
-    Always validate the state parameter to prevent CSRF attacks
+  <Card title="State is Required" icon="check">
+    The `state` parameter is mandatory. Requests without it are rejected. Generate a unique random value per request and validate it on callback to prevent CSRF attacks.
   </Card>
   <Card title="Secure Storage" icon="key">
     Store tokens securely, never in localStorage for sensitive apps
   </Card>
 </CardGroup>
+
+## Consent Screen
+
+When a user is redirected to the authorization endpoint, they are shown a consent screen that displays:
+
+- **Your application name** (as registered in the Developer Dashboard)
+- **Requested permissions** (scopes) with clear descriptions of what data will be shared
+
+The user must explicitly authorize the request before an authorization code is issued. If the user clicks "Cancel", they are redirected back to your `redirect_uri` with `error=access_denied`.
+
+## Client Info Endpoint
+
+You can retrieve public information about an OAuth client (useful for pre-flight checks):
+
+```bash
+curl https://dhmad.tn/api/oauth/client-info?client_id=YOUR_CLIENT_ID
+```
+
+**Response:**
+```json
+{
+  "name": "Your Application Name",
+  "scopes": ["openid", "profile", "email"]
+}
+```
+
+This endpoint is public and does not require authentication. It returns only the client name and allowed scopes.
 
 ## Discovery Endpoint
 
