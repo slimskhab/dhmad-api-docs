@@ -33,7 +33,19 @@
                   "api-reference/escrows/overview",
                   "api-reference/escrows/create-escrow",
                   "api-reference/escrows/list-escrows",
-                  "api-reference/escrows/get-escrow"
+                  "api-reference/escrows/get-escrow",
+                  "api-reference/escrows/get-contract",
+                  "api-reference/escrows/update-escrow",
+                  "api-reference/escrows/deliver-escrow",
+                  "api-reference/escrows/cancel-escrow"
+                ]
+              },
+              {
+                "group": "Checkout Sessions",
+                "pages": [
+                  "api-reference/checkout-sessions/overview",
+                  "api-reference/checkout-sessions/create-session",
+                  "api-reference/checkout-sessions/get-session"
                 ]
               },
               "api-reference/payments",
@@ -47,6 +59,7 @@
             "pages": [
               "guides/sandbox",
               "guides/oauth-setup",
+              "guides/checkout-sessions",
               "guides/api-keys",
               "guides/webhooks",
               "guides/rate-limits",
@@ -58,7 +71,8 @@
             "pages": [
               "developer-portal/overview",
               "developer-portal/account-setup",
-              "developer-portal/associating-accounts"
+              "developer-portal/associating-accounts",
+              "developer-portal/signature-management"
             ]
           }
         ]

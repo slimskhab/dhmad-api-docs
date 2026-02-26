@@ -77,12 +77,14 @@
         },
         "api-reference/payments",
         "api-reference/ledger",
+        "api-reference/webhooks",
         "api-reference/errors"
       ]
     },
     {
       "group": "Guides",
       "pages": [
+        "guides/sandbox",
         "guides/oauth-setup",
         "guides/checkout-sessions",
         "guides/api-keys",
@@ -96,7 +98,8 @@
       "pages": [
         "developer-portal/overview",
         "developer-portal/account-setup",
-        "developer-portal/associating-accounts"
+        "developer-portal/associating-accounts",
+        "developer-portal/signature-management"
       ]
     }
   ],
