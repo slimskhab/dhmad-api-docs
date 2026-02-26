@@ -1,0 +1,186 @@
+---
+title: Checkout Sessions Integration Guide
+description: Step-by-step guide to integrating DHMAD Checkout Sessions
+---
+
+# Checkout Sessions Integration Guide
+
+Checkout Sessions let you redirect users to dhmad.tn to perform critical escrow actions—signing contracts, accepting payments, completing deliveries, opening disputes, or handling cancellations—without building these flows yourself. This guide walks you through the full integration.
+
+## Introduction
+
+When your application needs a user to perform an escrow action that requires DHMAD's hosted UI (e.g., contract signing, payment, completion), you:
+
+1. Create a checkout session via the API
+2. Redirect the user to the session URL
+3. The user completes the action on dhmad.tn
+4. DHMAD redirects the user back to your app with the result
+
+This approach is similar to Stripe Checkout: you get a hosted, secure flow with minimal integration effort.
+
+## Step-by-Step Integration
+
+### Step 1: Configure Allowed Redirect URLs
+
+Before creating any checkout sessions, add your redirect URLs in the [Developer Dashboard](https://developer.dhmad.tn/dashboard) under Settings. Only URLs in this list will be accepted as `redirectUrl` when creating sessions.
+
+**Examples:**
+- `https://myapp.com/checkout/callback`
+- `https://myapp.com/escrow/complete`
+- `http://localhost:3000/callback` (for local development)
+
+<Warning>
+  In production, redirect URLs must use HTTPS. `http://localhost` is allowed for development only.
+</Warning>
+
+### Step 2: Create a Checkout Session via API
+
+Call `POST /api/v1/escrows/:id/sessions` with:
+
+- **action** — The action type (e.g., `sign_contract`, `accept_pay`, `complete`)
+- **targetUserEmail** — Email of the user who will perform the action
+- **redirectUrl** — Your callback URL (must match an allowed URL)
+- **metadata** (optional) — Key-value pairs for your own tracking
+
+You receive `sessionId`, `url`, and `expiresAt`. Redirect the user to `url`.
+
+### Step 3: Redirect the User to the Session URL
+
+Send the user to the `url` returned from the create session call. For example:
+
+```javascript
+// After creating the session
+window.location.href = data.url;
+// e.g., https://dhmad.tn/checkout/550e8400-e29b-41d4-a716-446655440000
+```
+
+The user will see the DHMAD checkout page, log in if needed, and complete the action.
+
+### Step 4: Handle the Redirect Callback
+
+When the user finishes (or abandons) the flow, DHMAD redirects them to your `redirectUrl` with query parameters:
+
+- `session_id` — The session ID
+- `status` — One of: `completed`, `expired`, `cancelled`
+
+Example callback URL:
+```
+https://myapp.com/checkout/callback?session_id=550e8400-e29b-41d4-a716-446655440000&status=completed
+```
+
+Parse these parameters and update your UI. Optionally call `GET /api/v1/sessions/:sessionId` to verify and get full session details.
+
+### Step 5: Verify with Webhooks
+
+Treat webhooks as the source of truth. When a user completes an action via a Checkout Session, DHMAD emits webhooks for the underlying events (e.g., `contract.signed`, `escrow.paid`, `escrow.completed`). Use webhooks to update your backend state; use the redirect for immediate UI feedback.
+
+## Complete Code Example (Node.js / Express)
+
+<CodeGroup>
+```javascript JavaScript
+// Create checkout session and redirect user
+app.post('/create-checkout', async (req, res) => {
+  const { escrowId, action, targetUserEmail, orderId } = req.body;
+
+  const response = await fetch(
+    `https://dhmad.tn/api/v1/escrows/${escrowId}/sessions`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.DHMAD_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action,
+        targetUserEmail,
+        redirectUrl: `${process.env.APP_URL}/checkout/callback`,
+        metadata: orderId ? { order_id: orderId } : undefined
+      })
+    }
+  );
+
+  const data = await response.json();
+  if (!response.ok) {
+    return res.status(response.status).json(data);
+  }
+
+  // Redirect user to DHMAD checkout
+  res.redirect(302, data.url);
+});
+
+// Handle redirect callback
+app.get('/checkout/callback', (req, res) => {
+  const { session_id, status } = req.query;
+
+  if (status === 'completed') {
+    // Optionally verify via API
+    // const session = await fetchSession(session_id);
+    res.redirect(`/orders/success?session=${session_id}`);
+  } else if (status === 'expired') {
+    res.redirect('/orders/expired');
+  } else {
+    res.redirect('/orders/cancelled');
+  }
+});
+
+// Optional: verify session status
+async function fetchSession(sessionId) {
+  const response = await fetch(
+    `https://dhmad.tn/api/v1/sessions/${sessionId}`,
+    {
+      headers: { 'Authorization': `Bearer ${process.env.DHMAD_API_KEY}` }
+    }
+  );
+  return response.json();
+}
+```
+</CodeGroup>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Validate Redirect Params" icon="shield-check">
+    When handling the callback, validate that `session_id` matches a session you created. Don't trust arbitrary query params.
+  </Card>
+  <Card title="Use Webhooks" icon="webhook">
+    Always process webhooks for escrow state changes. Redirect params are for UX; webhooks are for backend truth.
+  </Card>
+  <Card title="HTTPS in Production" icon="lock">
+    Use HTTPS for all redirect URLs in production. Never use `http://` except for localhost during development.
+  </Card>
+  <Card title="Protect API Keys" icon="key">
+    Keep API keys server-side only. Never expose them in client-side code or public repositories.
+  </Card>
+</CardGroup>
+
+## FAQ
+
+### What happens if the session expires?
+
+Sessions expire 30 minutes after creation. If the user does not complete the flow in time, they will be redirected with `status=expired`. Create a new session and redirect the user again if needed.
+
+### Can I create multiple sessions for the same escrow?
+
+Yes. You can create multiple sessions for different actions or for retries. Each session has a unique `sessionId` and is single-use.
+
+### Can the same user complete multiple sessions?
+
+Yes. Each session is independent. A user can complete one session (e.g., sign contract) and later complete another (e.g., accept & pay) for the same escrow.
+
+### What if the user closes the browser before completing?
+
+If the user abandons the flow, they may be redirected with `status=cancelled` or may not reach your callback at all. Handle both cases in your UI. The session remains `pending` until it expires or is completed.
+
+### Do I need to handle the redirect if I use webhooks?
+
+Yes. The redirect provides immediate feedback to the user (e.g., "Payment successful"). Webhooks update your backend. Use both: redirect for UX, webhooks for data integrity.
+
+### Can I use checkout sessions in sandbox mode?
+
+Yes. Use your sandbox API key (`sk_sandbox_*`) and the sandbox base URL. The checkout URL will point to the sandbox frontend (e.g., `https://sandbox.dhmad.tn/checkout/:sessionId`).
+
+---
+
+<Info>
+  For API reference details, see [Create Checkout Session](/api-reference/checkout-sessions/create-session) and [Get Checkout Session](/api-reference/checkout-sessions/get-session).
+</Info>

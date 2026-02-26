@@ -12,7 +12,11 @@ Escrows are secure transactions where funds are held until both parties agree th
 - Create new escrow transactions
 - List and filter your escrows
 - Get detailed information about specific escrows
+- Update, deliver, and cancel pending escrows
+- Get contract details and PDF URLs
 - Receive real-time notifications via webhooks
+
+For critical actions that require user interaction (signing contracts, paying, completing, disputes, and cancellation flows), use **[Checkout Sessions](/api-reference/checkout-sessions/overview)** to redirect users to dhmad.tn.
 
 <Warning>
   Your developer account must be associated with a user account to create escrows (unless you provide a `sellerEmail`). The associated user account must have email verification completed. Phone verification is only required when the buyer accepts and pays, not at escrow creation.
@@ -64,11 +68,27 @@ If the buyer email doesn't correspond to an existing user:
 
 When you create an escrow via the API, a contract is automatically created with the terms you provide. Both parties must sign the contract before the buyer can pay.
 
-## Related Endpoints
+## API Endpoints (Direct)
+
+These endpoints can be called directly from your server using your API key:
 
 - **[Create Escrow](/api-reference/escrows/create-escrow)** - Create a new escrow transaction
 - **[List Escrows](/api-reference/escrows/list-escrows)** - Get a paginated list of escrows
 - **[Get Escrow](/api-reference/escrows/get-escrow)** - Get detailed information about a specific escrow
+- **[Get Contract](/api-reference/escrows/get-contract)** - Get contract details and PDF URL
+- **[Update Escrow](/api-reference/escrows/update-escrow)** - Update a pending escrow
+- **[Deliver Escrow](/api-reference/escrows/deliver-escrow)** - Seller marks escrow as delivered
+- **[Cancel Escrow](/api-reference/escrows/cancel-escrow)** - Cancel a pending escrow
+
+## Checkout Sessions (Redirect)
+
+For actions that require user interaction, use [Checkout Sessions](/api-reference/checkout-sessions/overview) to redirect users to dhmad.tn:
+
+- **Sign Contract** - User signs the escrow contract
+- **Accept & Pay** - Buyer reviews and pays for the escrow
+- **Complete** - Buyer confirms delivery and releases funds
+- **Dispute** - User opens a dispute
+- **Request/Reject/Accept Cancellation** - Cancellation flow for paid or delivered escrows
 
 ---
 

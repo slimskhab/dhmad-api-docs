@@ -1,0 +1,148 @@
+---
+title: Update Escrow
+description: Update a pending escrow transaction
+---
+
+<Endpoint method="PUT" path="/api/v1/escrows/:id" />
+
+Update a pending escrow transaction. Only escrows in `pending` status can be updated. You can modify the title, amount, description, and estimated delivery days. At least one field must be provided in the request body. The escrow fee is recalculated automatically when the amount is updated.
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011 \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated Web Development Service",
+    "amount": 1500.00,
+    "description": "Full-stack website with admin panel",
+    "estimatedDeliveryDays": 14
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    title: 'Updated Web Development Service',
+    amount: 1500.00,
+    description: 'Full-stack website with admin panel',
+    estimatedDeliveryDays: 14
+  })
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Escrow updated successfully",
+  "escrow": {
+    "id": "507f1f77bcf86cd799439011",
+    "title": "Updated Web Development Service",
+    "amount": 1500.00,
+    "escrowFee": 75.00,
+    "status": "pending",
+    "description": "Full-stack website with admin panel",
+    "estimatedDeliveryDays": 14,
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-15T11:30:00Z"
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Request Body
+
+All fields are optional, but at least one must be provided.
+
+<ParamField body="title" type="string" required={false}>
+  Updated title for the escrow
+</ParamField>
+
+<ParamField body="amount" type="number" required={false}>
+  Updated transaction amount in TND (must be greater than 0). Escrow fee is recalculated automatically.
+</ParamField>
+
+<ParamField body="description" type="string" required={false}>
+  Updated description (max 2000 characters)
+</ParamField>
+
+<ParamField body="estimatedDeliveryDays" type="number" required={false}>
+  Updated estimated delivery days (must be at least 1)
+</ParamField>
+
+## Response Fields
+
+<ParamField response="message" type="string">
+  Success message
+</ParamField>
+
+<ParamField response="escrow" type="object">
+  Updated escrow object with all current fields
+</ParamField>
+
+## Error Responses
+
+### 400 Bad Request
+
+**Escrow Not Pending**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Can only update escrows in pending status"
+}
+```
+
+**No Valid Fields**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "No valid fields to update"
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+### 403 Forbidden
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Developer account must be associated with a user account. Please associate your account in the developer dashboard."
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+---
+
+<Warning>
+  Only escrows in `pending` status can be updated. Once the buyer has paid, the escrow moves to `paid` status and can no longer be updated via this endpoint.
+</Warning>

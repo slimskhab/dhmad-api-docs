@@ -1,0 +1,112 @@
+---
+title: Deliver Escrow
+description: Mark an escrow as delivered by the seller
+---
+
+<Endpoint method="POST" path="/api/v1/escrows/:id/deliver" />
+
+Mark an escrow as delivered. Only the **seller** can perform this action, and the escrow must be in `paid` status (i.e., the buyer has already paid). After delivery, the escrow moves to `delivered` status and the buyer will be notified. The buyer can then confirm delivery to release funds to the seller.
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/deliver \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/deliver', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Escrow marked as delivered",
+  "escrow": {
+    "id": "507f1f77bcf86cd799439011",
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "status": "delivered",
+    "deliveredAt": "2024-01-20T14:00:00Z",
+    "completionDeadline": "2024-01-27T14:00:00Z",
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-20T14:00:00Z"
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Response Fields
+
+<ParamField response="message" type="string">
+  Success message
+</ParamField>
+
+<ParamField response="escrow" type="object">
+  Updated escrow object with status `delivered`, `deliveredAt`, and `completionDeadline`
+</ParamField>
+
+## Error Responses
+
+### 400 Bad Request
+
+**Escrow Not Paid**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Escrow must be in paid status before delivery"
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+### 403 Forbidden
+
+**Only Seller Can Deliver**
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Only the seller can mark an escrow as delivered"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+---
+
+<Warning>
+  Only the **seller** can mark an escrow as delivered. Your developer account must be associated with the seller's user account. If you are the buyer, you cannot call this endpoint.
+</Warning>
+
+<Info>
+  After delivery, the buyer receives a notification and can confirm completion to release funds. Use the checkout session with `complete` action if you need to redirect the buyer to confirm delivery on dhmad.tn.
+</Info>

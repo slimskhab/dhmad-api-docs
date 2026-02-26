@@ -1,0 +1,157 @@
+---
+title: Get Contract
+description: Retrieve contract details and PDF URL for an escrow
+---
+
+<Endpoint method="GET" path="/api/v1/escrows/:id/contract" />
+
+Retrieve the contract details and PDF URL for a specific escrow transaction. You must be the seller or buyer of the escrow to access the contract. The response includes the contract terms, signing status, and a presigned URL to download the contract PDF.
+
+<RequestExample>
+```bash cURL
+curl -X GET https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/contract \
+  -H "Authorization: Bearer sk_live_your_api_key_here"
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/contract', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "contract": {
+    "id": "507f1f77bcf86cd799439012",
+    "escrow": "507f1f77bcf86cd799439011",
+    "terms": "The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.",
+    "language": "en",
+    "pdfUrl": "https://dhmad.tn/contracts/507f1f77bcf86cd799439012.pdf",
+    "sellerSignature": {
+      "signedAt": "2024-01-15T10:30:00Z",
+      "signatureImage": "data:image/png;base64,..."
+    },
+    "buyerSignature": {
+      "signedAt": "2024-01-16T14:00:00Z",
+      "signatureImage": "data:image/png;base64,..."
+    },
+    "isFullySigned": true,
+    "pdfVersions": [
+      {
+        "type": "fully-signed",
+        "url": "https://cdn.dhmad.tn/contracts/507f1f77bcf86cd799439012/1705406400000.pdf",
+        "mimeType": "application/pdf",
+        "createdAt": "2024-01-16T14:00:00Z"
+      }
+    ],
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-16T14:00:00Z"
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Response Fields
+
+<ParamField response="contract.id" type="string">
+  Unique identifier for the contract
+</ParamField>
+
+<ParamField response="contract.escrow" type="string">
+  Escrow ID this contract belongs to
+</ParamField>
+
+<ParamField response="contract.terms" type="string">
+  Contract terms text
+</ParamField>
+
+<ParamField response="contract.language" type="string">
+  Contract language (en, fr, ar)
+</ParamField>
+
+<ParamField response="contract.pdfUrl" type="string|null">
+  URL to the latest contract PDF. May be a presigned URL for direct download.
+</ParamField>
+
+<ParamField response="contract.sellerSignature" type="object|null">
+  Seller signature details (signedAt, signatureImage) if signed, otherwise null
+</ParamField>
+
+<ParamField response="contract.buyerSignature" type="object|null">
+  Buyer signature details (signedAt, signatureImage) if signed, otherwise null
+</ParamField>
+
+<ParamField response="contract.isFullySigned" type="boolean">
+  Whether both parties have signed the contract
+</ParamField>
+
+<ParamField response="contract.pdfVersions" type="array">
+  Array of PDF versions at different signing states (unsigned, buyer-signed, seller-signed, fully-signed). Each has type, url, mimeType, createdAt.
+</ParamField>
+
+## Error Responses
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+### 403 Forbidden
+
+**No Associated User Account**
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Developer account must be associated with a user account. Please associate your account in the developer dashboard."
+}
+```
+
+**Not Your Escrow**
+
+```json
+{
+  "error": "Forbidden",
+  "message": "You do not have access to this escrow. You can only view escrows where you are the seller or buyer."
+}
+```
+
+### 404 Not Found
+
+**Escrow Not Found**
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+**Contract Not Found**
+
+```json
+{
+  "error": "Contract not found for this escrow"
+}
+```
+
+---
+
+<Info>
+  Authenticate using your API key via the `Authorization: Bearer sk_live_...` header or the `X-API-Key: sk_live_...` header.
+</Info>

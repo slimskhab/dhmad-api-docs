@@ -1,0 +1,82 @@
+---
+title: Checkout Sessions Overview
+description: Stripe Checkout-style redirect flow for critical escrow actions
+---
+
+Checkout Sessions provide a Stripe Checkout-style redirect flow for critical escrow actions that require user interaction on dhmad.tn. Instead of implementing complex flows in your application, you create a session via the API, redirect the user to dhmad.tn, and they perform the action in a secure, hosted environment.
+
+## What Are Checkout Sessions?
+
+Checkout Sessions are short-lived, single-use sessions that direct a specific user to dhmad.tn to perform a critical escrow action. The user is authenticated on DHMAD, completes the action (e.g., signing a contract, accepting payment, completing delivery), and is then redirected back to your application with the result.
+
+## When to Use Checkout Sessions
+
+Use Checkout Sessions when your integration needs a user to perform one of these critical actions:
+
+<CardGroup cols={2}>
+  <Card title="Sign Contract" icon="file-signature">
+    Redirect the buyer or seller to sign the escrow contract on dhmad.tn.
+  </Card>
+  <Card title="Accept & Pay" icon="credit-card">
+    Redirect the buyer to accept the contract and complete payment.
+  </Card>
+  <Card title="Complete" icon="check-circle">
+    Redirect the buyer to mark the escrow as complete and release funds to the seller.
+  </Card>
+  <Card title="Dispute" icon="alert-triangle">
+    Redirect either party to open a dispute on the escrow.
+  </Card>
+  <Card title="Request Cancellation" icon="x-circle">
+    Redirect a party to request cancellation of the escrow.
+  </Card>
+  <Card title="Reject Cancellation" icon="ban">
+    Redirect the other party to reject a cancellation request.
+  </Card>
+  <Card title="Accept Cancellation" icon="check">
+    Redirect a party to accept a cancellation request and finalize the cancellation.
+  </Card>
+</CardGroup>
+
+## How the Flow Works
+
+1. **Create a session via API** — Call `POST /api/v1/escrows/:id/sessions` with the action type, target user email, and your redirect URL. You receive a `sessionId` and `url`.
+
+2. **Redirect the user** — Send the user to `https://dhmad.tn/checkout/:sessionId` (or your sandbox URL for testing).
+
+3. **User performs the action** — The user logs in (if needed), sees the escrow context, and completes the action on dhmad.tn.
+
+4. **User is redirected back** — DHMAD redirects the user to your `redirectUrl` with query parameters: `session_id` and `status` (e.g., `completed`, `expired`, `cancelled`).
+
+<Info>
+  The redirect URL parameters (`session_id`, `status`) are **informational**. Treat webhooks as the source of truth for escrow state changes. Use the redirect to update your UI and optionally call `GET /api/v1/sessions/:sessionId` to verify the session status.
+</Info>
+
+## Security
+
+<CardGroup cols={2}>
+  <Card title="30-Minute Expiry" icon="clock">
+    Sessions expire 30 minutes after creation. Expired sessions cannot be used.
+  </Card>
+  <Card title="Single-Use" icon="lock">
+    Each session can only be completed once. After completion, the session is marked as used.
+  </Card>
+  <Card title="User Email Validation" icon="mail">
+    Only the user whose email matches `targetUserEmail` can complete the session.
+  </Card>
+  <Card title="HTTPS Enforcement" icon="shield">
+    Redirect URLs must use HTTPS in production. `http://localhost` is allowed for development.
+  </Card>
+  <Card title="Redirect URL Validation" icon="link">
+    Redirect URLs must be pre-configured in your developer dashboard. No arbitrary URLs are accepted.
+  </Card>
+</CardGroup>
+
+## Webhook as Source of Truth
+
+When a user completes an action via a Checkout Session, DHMAD emits webhooks for the underlying escrow events (e.g., `contract.signed`, `escrow.paid`, `escrow.completed`). Always process webhooks to update your backend state. The redirect parameters are useful for immediate UI feedback but should not be the sole basis for state changes.
+
+---
+
+<Warning>
+  Configure allowed redirect URLs in your [Developer Dashboard](https://developer.dhmad.tn/dashboard) settings before creating checkout sessions. Requests with unconfigured or mismatched redirect URLs will fail with a 400 error.
+</Warning>

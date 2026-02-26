@@ -1,0 +1,109 @@
+---
+title: Cancel Escrow
+description: Cancel a pending escrow before payment
+---
+
+<Endpoint method="POST" path="/api/v1/escrows/:id/cancel" />
+
+Cancel an escrow that is still in `pending` status (before the buyer has paid). Both the seller and buyer can cancel a pending escrow via the API. For escrows that have already been paid or delivered, use a [checkout session](/api-reference/checkout-sessions/overview) with the `request_cancellation` action instead.
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/cancel \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/cancel', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Escrow cancelled successfully",
+  "escrow": {
+    "id": "507f1f77bcf86cd799439011",
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "status": "cancelled",
+    "cancelledAt": "2024-01-16T10:00:00Z",
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-16T10:00:00Z"
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Response Fields
+
+<ParamField response="message" type="string">
+  Success message
+</ParamField>
+
+<ParamField response="escrow" type="object">
+  Updated escrow object with status `cancelled` and `cancelledAt` timestamp
+</ParamField>
+
+## Error Responses
+
+### 400 Bad Request
+
+**Escrow Not Pending**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Only pending escrows can be cancelled via API. For paid or delivered escrows, use a checkout session with the request_cancellation action."
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+### 403 Forbidden
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Developer account must be associated with a user account. Please associate your account in the developer dashboard."
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+---
+
+<Warning>
+  This endpoint only works on escrows in `pending` status. Once the buyer has paid, the escrow cannot be cancelled via this endpoint. For paid or delivered escrows, the buyer or seller must use a checkout session with the `request_cancellation` action to initiate a cancellation request.
+</Warning>
+
+<Note>
+  Both the seller and buyer can cancel a pending escrow. The other party will receive a notification when the escrow is cancelled.
+</Note>

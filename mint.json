@@ -54,7 +54,27 @@
       "group": "API Reference",
       "pages": [
         "api-reference/overview",
-        "api-reference/escrows",
+        {
+          "group": "Escrows",
+          "pages": [
+            "api-reference/escrows/overview",
+            "api-reference/escrows/create-escrow",
+            "api-reference/escrows/list-escrows",
+            "api-reference/escrows/get-escrow",
+            "api-reference/escrows/get-contract",
+            "api-reference/escrows/update-escrow",
+            "api-reference/escrows/deliver-escrow",
+            "api-reference/escrows/cancel-escrow"
+          ]
+        },
+        {
+          "group": "Checkout Sessions",
+          "pages": [
+            "api-reference/checkout-sessions/overview",
+            "api-reference/checkout-sessions/create-session",
+            "api-reference/checkout-sessions/get-session"
+          ]
+        },
         "api-reference/payments",
         "api-reference/ledger",
         "api-reference/errors"
@@ -64,6 +84,7 @@
       "group": "Guides",
       "pages": [
         "guides/oauth-setup",
+        "guides/checkout-sessions",
         "guides/api-keys",
         "guides/webhooks",
         "guides/rate-limits",
