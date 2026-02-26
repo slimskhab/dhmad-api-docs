@@ -1,0 +1,188 @@
+---
+title: Token Endpoint
+description: Exchange an authorization code for access and ID tokens
+---
+
+<Endpoint method="POST" path="/api/oauth/token" />
+
+Exchange an authorization code for an access token (and optionally an ID token if `openid` scope was requested). This must be done server-side — never expose your client secret in client-side code.
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/oauth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grant_type": "authorization_code",
+    "code": "AUTHORIZATION_CODE",
+    "redirect_uri": "https://example.com/callback",
+    "client_id": "YOUR_CLIENT_ID",
+    "client_secret": "YOUR_CLIENT_SECRET",
+    "code_verifier": "YOUR_CODE_VERIFIER"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/oauth/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    grant_type: 'authorization_code',
+    code: 'AUTHORIZATION_CODE',
+    redirect_uri: 'https://example.com/callback',
+    client_id: 'YOUR_CLIENT_ID',
+    client_secret: 'YOUR_CLIENT_SECRET',
+    code_verifier: 'YOUR_CODE_VERIFIER'
+  })
+});
+
+const tokens = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://dhmad.tn/api/oauth/token',
+    json={
+        'grant_type': 'authorization_code',
+        'code': 'AUTHORIZATION_CODE',
+        'redirect_uri': 'https://example.com/callback',
+        'client_id': 'YOUR_CLIENT_ID',
+        'client_secret': 'YOUR_CLIENT_SECRET',
+        'code_verifier': 'YOUR_CODE_VERIFIER'
+    }
+)
+
+tokens = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "openid profile email",
+  "id_token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+</ResponseExample>
+
+## Request Body
+
+<ParamField body="grant_type" type="string" required>
+  Must be `authorization_code`
+</ParamField>
+
+<ParamField body="code" type="string" required>
+  The authorization code received from the authorize endpoint callback
+</ParamField>
+
+<ParamField body="redirect_uri" type="string" required>
+  Must exactly match the `redirect_uri` used in the authorization request
+</ParamField>
+
+<ParamField body="client_id" type="string" required>
+  Your OAuth client ID
+</ParamField>
+
+<ParamField body="client_secret" type="string" required>
+  Your OAuth client secret
+</ParamField>
+
+<ParamField body="code_verifier" type="string">
+  PKCE code verifier (required if `code_challenge` was provided during authorization)
+</ParamField>
+
+## Response Fields
+
+<ParamField response="access_token" type="string">
+  Bearer token for accessing protected resources (e.g., the UserInfo endpoint). Expires in 1 hour.
+</ParamField>
+
+<ParamField response="token_type" type="string">
+  Always `Bearer`
+</ParamField>
+
+<ParamField response="expires_in" type="number">
+  Token lifetime in seconds (3600 = 1 hour)
+</ParamField>
+
+<ParamField response="scope" type="string">
+  Space-separated list of granted scopes
+</ParamField>
+
+<ParamField response="id_token" type="string">
+  OpenID Connect ID token (JWT). Only returned if `openid` scope was requested. Contains user claims like `sub`, `email`, `name`.
+</ParamField>
+
+## ID Token Claims
+
+When `openid` scope is included, the ID token contains:
+
+| Claim | Description |
+|-------|-------------|
+| `iss` | Issuer (e.g., `https://dhmad.tn`) |
+| `sub` | User ID |
+| `aud` | Your client ID |
+| `exp` | Expiration timestamp |
+| `iat` | Issued-at timestamp |
+| `email` | User's email address |
+| `email_verified` | Whether the email is verified |
+| `name` | Full name |
+| `given_name` | First name |
+| `family_name` | Last name |
+
+## Error Responses
+
+**Unsupported grant type:**
+
+```json
+{
+  "error": "unsupported_grant_type",
+  "error_description": "Only 'authorization_code' grant type is supported"
+}
+```
+
+**Invalid or expired code:**
+
+```json
+{
+  "error": "invalid_grant",
+  "error_description": "Invalid or expired authorization code"
+}
+```
+
+**Invalid client credentials:**
+
+```json
+{
+  "error": "invalid_client",
+  "error_description": "Invalid client credentials"
+}
+```
+
+**Redirect URI mismatch:**
+
+```json
+{
+  "error": "invalid_grant",
+  "error_description": "Invalid redirect_uri. Must exactly match the URI used during authorization."
+}
+```
+
+**Invalid PKCE verifier:**
+
+```json
+{
+  "error": "invalid_grant",
+  "error_description": "Invalid code_verifier"
+}
+```
+
+---
+
+<Warning>
+  Authorization codes expire after 10 minutes and can only be used once. Exchange the code immediately after receiving it.
+</Warning>

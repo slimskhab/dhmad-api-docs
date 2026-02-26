@@ -28,6 +28,13 @@
             "pages": [
               "api-reference/overview",
               {
+                "group": "Account",
+                "pages": [
+                  "api-reference/payments",
+                  "api-reference/ledger"
+                ]
+              },
+              {
                 "group": "Escrows",
                 "pages": [
                   "api-reference/escrows/overview",
@@ -48,8 +55,14 @@
                   "api-reference/checkout-sessions/get-session"
                 ]
               },
-              "api-reference/payments",
-              "api-reference/ledger",
+              {
+                "group": "OAuth 2.0",
+                "pages": [
+                  "api-reference/oauth/authorize",
+                  "api-reference/oauth/token",
+                  "api-reference/oauth/userinfo"
+                ]
+              },
               "api-reference/webhooks",
               "api-reference/errors"
             ]

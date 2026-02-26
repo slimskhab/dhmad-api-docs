@@ -43,25 +43,46 @@ We provide an **interactive API Explorer** (Swagger UI) in the [Developer Portal
 
 ### Account & Authentication
 
-- `GET /me` - Get API key information
-- `GET /balance` - Get user balance
+- `GET /me` - [Get API key information](/api-reference/payments) — verify your API key and get developer account details
+- `GET /balance` - [Get user balance](/api-reference/ledger) — available, pending, and escrow balances
 
 ### Escrows
 
-- **[Overview](/api-reference/escrows/overview)** - Introduction to escrows and statuses
+- **[Overview](/api-reference/escrows/overview)** — Introduction to escrows, statuses, and lifecycle
 - `POST /escrows` - [Create a new escrow](/api-reference/escrows/create-escrow)
 - `GET /escrows` - [List escrows](/api-reference/escrows/list-escrows) (with pagination and filters)
 - `GET /escrows/:id` - [Get escrow details](/api-reference/escrows/get-escrow)
+- `GET /escrows/:id/contract` - [Get contract](/api-reference/escrows/get-contract) — retrieve contract details and PDF
+- `PUT /escrows/:id` - [Update escrow](/api-reference/escrows/update-escrow) — update a pending escrow
+- `POST /escrows/:id/deliver` - [Deliver escrow](/api-reference/escrows/deliver-escrow) — seller marks as delivered
+- `POST /escrows/:id/cancel` - [Cancel escrow](/api-reference/escrows/cancel-escrow) — cancel a pending escrow
+
+### Checkout Sessions
+
+Checkout Sessions let you redirect users to dhmad.tn to perform critical escrow actions (sign contract, accept & pay, complete, dispute, cancellation). See the [Checkout Sessions Guide](/guides/checkout-sessions) for a full integration walkthrough.
+
+- **[Overview](/api-reference/checkout-sessions/overview)** — How checkout sessions work, security, and supported actions
+- `POST /escrows/:id/sessions` - [Create checkout session](/api-reference/checkout-sessions/create-session) — create a session and get a redirect URL
+- `GET /sessions/:sessionId` - [Get checkout session](/api-reference/checkout-sessions/get-session) — verify session status after redirect
+
+### OAuth 2.0
+
+OAuth endpoints for Single Sign-On (SSO) integration. See the [OAuth Setup Guide](/guides/oauth-setup) for implementation details.
+
+- `GET /api/oauth/authorize` - [Authorization endpoint](/api-reference/oauth/authorize) — redirect users to authenticate
+- `POST /api/oauth/token` - [Token endpoint](/api-reference/oauth/token) — exchange authorization code for tokens
+- `GET /api/oauth/userinfo` - [UserInfo endpoint](/api-reference/oauth/userinfo) — get authenticated user profile
 
 ### Webhooks (Developer Portal Authentication)
 
-These endpoints use developer JWT authentication (not API key). Manage them via the [Developer Dashboard](https://developer.dhmad.tn/dashboard) or the Developer Portal API.
+These endpoints use developer JWT authentication (not API key). Manage them via the [Developer Dashboard](https://developer.dhmad.tn/dashboard) or the Developer Portal API. See the [Webhooks Guide](/guides/webhooks) for event payloads and signature verification.
 
-- `GET /api/developer/webhooks` - List all webhooks
-- `POST /api/developer/webhooks` - Create a new webhook
-- `GET /api/developer/webhooks/:id` - Get webhook details
-- `PUT /api/developer/webhooks/:id` - Update a webhook
-- `DELETE /api/developer/webhooks/:id` - Delete a webhook
+- `POST /api/developer/webhooks` - [Create webhook](/api-reference/webhooks#create-webhook)
+- `GET /api/developer/webhooks` - [List webhooks](/api-reference/webhooks#list-webhooks)
+- `GET /api/developer/webhooks/:id` - [Get webhook](/api-reference/webhooks#get-webhook)
+- `PUT /api/developer/webhooks/:id` - [Update webhook](/api-reference/webhooks#update-webhook)
+- `POST /api/developer/webhooks/:id/regenerate-secret` - [Regenerate secret](/api-reference/webhooks#regenerate-secret)
+- `DELETE /api/developer/webhooks/:id` - [Delete webhook](/api-reference/webhooks#delete-webhook)
 
 ## Response Format
 

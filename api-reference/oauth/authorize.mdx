@@ -1,0 +1,112 @@
+---
+title: Authorization Endpoint
+description: Redirect users to authenticate with their DHMAD account
+---
+
+<Endpoint method="GET" path="/api/oauth/authorize" />
+
+Initiate the OAuth 2.0 authorization code flow. Redirect users to this endpoint so they can authenticate with their DHMAD account and grant your application access. After the user authorizes, they are redirected back to your `redirect_uri` with an authorization code.
+
+## Query Parameters
+
+<ParamField query="client_id" type="string" required>
+  Your OAuth client ID (from the Developer Dashboard)
+</ParamField>
+
+<ParamField query="redirect_uri" type="string" required>
+  Must exactly match one of your registered redirect URIs. Must include a path (e.g., `https://example.com/callback`).
+</ParamField>
+
+<ParamField query="response_type" type="string" required>
+  Must be `code` (only authorization code flow is supported)
+</ParamField>
+
+<ParamField query="state" type="string" required>
+  A unique, random value generated per request. DHMAD returns this value unchanged in the callback so you can validate it to prevent CSRF attacks. Requests without `state` are rejected.
+</ParamField>
+
+<ParamField query="scope" type="string">
+  Space-separated list of scopes. Available: `openid`, `profile`, `email`. Defaults to `openid profile email`.
+</ParamField>
+
+<ParamField query="code_challenge" type="string">
+  PKCE code challenge (base64url-encoded SHA-256 hash of your code verifier). Recommended for all clients.
+</ParamField>
+
+<ParamField query="code_challenge_method" type="string">
+  Must be `S256`. The `plain` method is not accepted.
+</ParamField>
+
+## Example Request
+
+```bash
+https://dhmad.tn/api/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=https://example.com/callback&response_type=code&scope=openid%20profile%20email&state=RANDOM_STATE_VALUE&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256
+```
+
+## Success Response
+
+The user is redirected to your `redirect_uri` with:
+
+```
+https://example.com/callback?code=AUTHORIZATION_CODE&state=RANDOM_STATE_VALUE
+```
+
+<ParamField query="code" type="string">
+  Authorization code to exchange for tokens (expires in 10 minutes, single-use)
+</ParamField>
+
+<ParamField query="state" type="string">
+  The same state value you provided — validate it matches your stored value
+</ParamField>
+
+## Error Response
+
+If the user denies access:
+
+```
+https://example.com/callback?error=access_denied&state=RANDOM_STATE_VALUE
+```
+
+### Direct Error Responses (before redirect)
+
+**Missing required parameters:**
+
+```json
+{
+  "error": "invalid_request",
+  "error_description": "Missing required parameters (client_id, redirect_uri, response_type, or state)"
+}
+```
+
+**Invalid client:**
+
+```json
+{
+  "error": "invalid_client",
+  "error_description": "Invalid client_id"
+}
+```
+
+**Invalid redirect URI:**
+
+```json
+{
+  "error": "invalid_request",
+  "error_description": "Invalid redirect_uri. Redirect URIs must be an exact match with a registered URI."
+}
+```
+
+**Unsupported PKCE method:**
+
+```json
+{
+  "error": "invalid_request",
+  "error_description": "Only S256 code_challenge_method is supported"
+}
+```
+
+---
+
+<Info>
+  If the user is not logged in, they are redirected to the DHMAD login page first, then returned to the consent screen. After granting access, they are redirected to your `redirect_uri`.
+</Info>

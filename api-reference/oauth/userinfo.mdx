@@ -1,0 +1,116 @@
+---
+title: UserInfo Endpoint
+description: Get authenticated user profile information
+---
+
+<Endpoint method="GET" path="/api/oauth/userinfo" />
+
+Retrieve profile information about the authenticated user. The response fields depend on the scopes granted during authorization. Requires a valid OAuth access token obtained from the [token endpoint](/api-reference/oauth/token).
+
+<RequestExample>
+```bash cURL
+curl -X GET https://dhmad.tn/api/oauth/userinfo \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/oauth/userinfo', {
+  headers: {
+    'Authorization': 'Bearer YOUR_ACCESS_TOKEN'
+  }
+});
+
+const user = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://dhmad.tn/api/oauth/userinfo',
+    headers={'Authorization': 'Bearer YOUR_ACCESS_TOKEN'}
+)
+
+user = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "sub": "507f1f77bcf86cd799439011",
+  "name": "John Doe",
+  "given_name": "John",
+  "family_name": "Doe",
+  "preferred_username": "john@example.com",
+  "email": "john@example.com",
+  "email_verified": true
+}
+```
+</ResponseExample>
+
+## Authorization
+
+Include the OAuth access token as a Bearer token in the `Authorization` header.
+
+## Response Fields by Scope
+
+### Always included
+
+<ParamField response="sub" type="string">
+  Unique user identifier (DHMAD user ID)
+</ParamField>
+
+### `profile` scope
+
+<ParamField response="name" type="string">
+  Full name (first + last)
+</ParamField>
+
+<ParamField response="given_name" type="string">
+  First name
+</ParamField>
+
+<ParamField response="family_name" type="string">
+  Last name
+</ParamField>
+
+<ParamField response="preferred_username" type="string">
+  User's email address (used as username)
+</ParamField>
+
+### `email` scope
+
+<ParamField response="email" type="string">
+  User's email address
+</ParamField>
+
+<ParamField response="email_verified" type="boolean">
+  Whether the user's email has been verified on DHMAD
+</ParamField>
+
+## Error Responses
+
+**Missing or invalid token:**
+
+```json
+{
+  "error": "invalid_token",
+  "error_description": "Missing or invalid access token"
+}
+```
+
+**Expired token:**
+
+```json
+{
+  "error": "invalid_token",
+  "error_description": "Invalid or expired access token"
+}
+```
+
+---
+
+<Info>
+  The access token expires after 1 hour. If you receive a 401 error, the user needs to re-authenticate through the [authorization flow](/api-reference/oauth/authorize).
+</Info>
