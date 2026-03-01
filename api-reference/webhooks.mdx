@@ -3,7 +3,7 @@ title: Webhooks API
 description: Manage webhooks for real-time event notifications
 ---
 
-The Webhooks API allows you to create and manage webhooks that receive real-time notifications when escrow status changes or when a contract is signed by the seller or buyer.
+The Webhooks API allows you to create and manage webhooks that receive real-time notifications when escrow status changes, contracts are signed, or cancellation requests are created, accepted, or rejected.
 
 <Warning>
   You can create a maximum of 2 webhooks per developer account. Choose your
@@ -24,7 +24,9 @@ Create a new webhook endpoint to receive event notifications.
 
 <ParamField body="events" type="array">
   Array of event types to subscribe to. Supported: `escrow.status.updated`,
-  `contract.signed`. Default: `["escrow.status.updated"]`
+  `contract.signed`, `escrow.cancellation.requested`,
+  `escrow.cancellation.rejected`, `escrow.cancellation.accepted`. Default:
+  `["escrow.status.updated"]`
 </ParamField>
 
 ### Example Request
@@ -260,7 +262,8 @@ curl -X DELETE https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 
 
 <ParamField response="webhook.events" type="array">
   Array of subscribed event types (e.g. "escrow.status.updated",
-  "contract.signed")
+  "contract.signed", "escrow.cancellation.requested",
+  "escrow.cancellation.rejected", "escrow.cancellation.accepted")
 </ParamField>
 
 <ParamField response="webhook.isActive" type="boolean">

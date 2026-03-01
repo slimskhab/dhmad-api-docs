@@ -149,6 +149,19 @@ You can subscribe to the following events:
     Each signature triggers one event; `data.contract.signedBy` indicates who
     signed ("seller" or "buyer").
   </Card>
+  <Card title="escrow.cancellation.requested" icon="xmark">
+    Triggered when a buyer or seller requests cancellation of a paid or
+    delivered escrow. The escrow status does not change yet.
+  </Card>
+  <Card title="escrow.cancellation.rejected" icon="ban">
+    Triggered when the other party rejects a pending cancellation request.
+    The escrow status remains unchanged.
+  </Card>
+  <Card title="escrow.cancellation.accepted" icon="check">
+    Triggered when the other party accepts a cancellation request. The escrow
+    is refunded and its status changes to cancelled. An
+    `escrow.status.updated` event is also fired.
+  </Card>
 </CardGroup>
 
 ## Event Payload
@@ -235,6 +248,52 @@ Sent when the seller or the buyer signs the contract (one event per signature).
 }
 ```
 
+### escrow.cancellation.requested
+
+Sent when a buyer or seller requests cancellation. The same payload structure applies to `escrow.cancellation.rejected` and `escrow.cancellation.accepted` (with the corresponding `type` and `cancellationRequest.status`).
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "type": "escrow.cancellation.requested",
+  "timestamp": "2024-01-16T09:00:00Z",
+  "data": {
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Web Development Service",
+      "amount": 1000.0,
+      "escrowFee": 50.0,
+      "status": "delivered",
+      "seller": {
+        "_id": "507f1f77bcf86cd799439013",
+        "email": "seller@example.com",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      "buyer": {
+        "_id": "507f1f77bcf86cd799439014",
+        "email": "buyer@example.com",
+        "firstName": "Jane",
+        "lastName": "Smith"
+      },
+      "estimatedDeliveryDays": 7,
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-16T09:00:00Z"
+    },
+    "cancellationRequest": {
+      "requestedBy": {
+        "_id": "507f1f77bcf86cd799439014",
+        "firstName": "Jane",
+        "lastName": "Smith"
+      },
+      "reason": "Service not as described",
+      "status": "pending",
+      "requestedAt": "2024-01-16T09:00:00Z"
+    }
+  }
+}
+```
+
 ### Payload Fields
 
 <ParamField response="id" type="string">
@@ -242,7 +301,9 @@ Sent when the seller or the buyer signs the contract (one event per signature).
 </ParamField>
 
 <ParamField response="type" type="string">
-  Event type: "escrow.status.updated" or "contract.signed"
+  Event type: "escrow.status.updated", "contract.signed",
+  "escrow.cancellation.requested", "escrow.cancellation.rejected", or
+  "escrow.cancellation.accepted"
 </ParamField>
 
 <ParamField response="timestamp" type="string">
@@ -269,6 +330,20 @@ Sent when the seller or the buyer signs the contract (one event per signature).
 
 <ParamField response="data.contract.signedBy" type="string">
   Who signed in this event: "seller" or "buyer"
+</ParamField>
+
+<ParamField response="data.cancellationRequest" type="object">
+  Present for escrow.cancellation.* events only. Contains requestedBy, reason,
+  status ("pending", "accepted", or "rejected"), requestedAt, and optionally
+  acceptedBy or rejectedBy.
+</ParamField>
+
+<ParamField response="data.cancellationRequest.status" type="string">
+  Cancellation request status: "pending", "accepted", or "rejected"
+</ParamField>
+
+<ParamField response="data.cancellationRequest.reason" type="string">
+  The reason provided for the cancellation request
 </ParamField>
 
 ## Webhook Headers
