@@ -114,7 +114,7 @@ tokens = response.json()
 </ParamField>
 
 <ParamField response="id_token" type="string">
-  OpenID Connect ID token (JWT). Only returned if `openid` scope was requested. Contains user claims like `sub`, `email`, `name`.
+  OpenID Connect ID token (JWT). Only returned if `openid` scope was requested. Contains user claims including `sub`, `email`, `name`, and KYC verification status (`kyc_verified`, `kyc_status`).
 </ParamField>
 
 ## ID Token Claims
@@ -133,6 +133,8 @@ When `openid` scope is included, the ID token contains:
 | `name` | Full name |
 | `given_name` | First name |
 | `family_name` | Last name |
+| `kyc_verified` | Whether the user has approved KYC on DHMAD |
+| `kyc_status` | KYC status: `"pending"`, `"approved"`, `"rejected"`, or `null` |
 
 ## Error Responses
 
