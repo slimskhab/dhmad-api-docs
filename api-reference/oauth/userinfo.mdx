@@ -45,6 +45,8 @@ user = response.json()
   "preferred_username": "john@example.com",
   "email": "john@example.com",
   "email_verified": true,
+  "phone_number": "+21612345678",
+  "phone_number_verified": true,
   "kyc_verified": true,
   "kyc_status": "approved"
 }
@@ -97,6 +99,16 @@ Include the OAuth access token as a Bearer token in the `Authorization` header.
 
 <ParamField response="email_verified" type="boolean">
   Whether the user's email has been verified on DHMAD
+</ParamField>
+
+### `phone` scope
+
+<ParamField response="phone_number" type="string">
+  User's phone number (E.164 or as stored). `null` if the user has no phone on file.
+</ParamField>
+
+<ParamField response="phone_number_verified" type="boolean">
+  Whether the user's phone has been verified on DHMAD
 </ParamField>
 
 ## Error Responses

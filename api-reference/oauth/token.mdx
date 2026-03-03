@@ -5,7 +5,7 @@ description: Exchange an authorization code for access and ID tokens
 
 <Endpoint method="POST" path="/api/oauth/token" />
 
-Exchange an authorization code for an access token (and optionally an ID token if `openid` scope was requested). This must be done server-side — never expose your client secret in client-side code.
+Exchange an authorization code for an access token (and optionally an ID token if `openid` scope was requested). When the `phone` scope is granted, the ID token and [userinfo](/api-reference/oauth/userinfo) response include `phone_number` and `phone_number_verified`. This must be done server-side — never expose your client secret in client-side code.
 
 <RequestExample>
 ```bash cURL
@@ -63,7 +63,7 @@ tokens = response.json()
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "scope": "openid profile email",
+  "scope": "openid profile email phone",
   "id_token": "eyJhbGciOiJIUzI1NiIs..."
 }
 ```
