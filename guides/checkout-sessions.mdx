@@ -179,6 +179,10 @@ Yes. The redirect provides immediate feedback to the user (e.g., "Payment succes
 
 Yes. Use your sandbox API key (`sk_sandbox_*`) and the sandbox base URL. The checkout URL will point to the sandbox frontend (e.g., `https://sandbox.dhmad.tn/checkout/:sessionId`).
 
+### What about instant escrows (digital goods)?
+
+For escrows created with `mode: "instant"` (e.g. in-app coins, AI credits), use only the **accept_pay** action. The buyer pays in one step; there is no contract to sign and no "complete" step. After the buyer pays, you receive a webhook, deliver the goods, then call the Deliver Escrow API—the escrow auto-completes and funds are released. See [Instant escrow mode](/api-reference/escrows/overview#instant-escrow-mode) in the Escrows overview.
+
 ---
 
 <Info>

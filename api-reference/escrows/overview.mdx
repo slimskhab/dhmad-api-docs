@@ -66,7 +66,20 @@ If the buyer email doesn't correspond to an existing user:
 
 ## Contract Creation
 
-When you create an escrow via the API, a contract is automatically created with the terms you provide. Both parties must sign the contract before the buyer can pay.
+When you create an escrow via the API in **standard** mode (default), a contract is automatically created with the terms you provide. Both parties must sign the contract before the buyer can pay. In **instant** mode, no contract is created (see [Instant escrow mode](#instant-escrow-mode) below).
+
+## Instant escrow mode
+
+For digital goods (e.g. in-app coins, AI credits), the full flow (contract → sign → pay → deliver → complete) has too many steps and can hurt conversion. Use **instant** mode when creating an escrow:
+
+- Set `mode: "instant"` and omit `contractTerms`. `estimatedDeliveryDays` is optional (defaults to 1).
+- No contract is created; the response includes `contract: null` and `escrow.mode: "instant"`.
+- Create a checkout session with **`action: "accept_pay"` only**. The actions `sign_contract` and `complete` are **not valid** for instant escrows and return 400.
+- The buyer experience is a single step: confirm and pay.
+- When you receive the `escrow.status.updated` webhook (pending → paid), deliver the digital goods (e.g. credit the user's balance).
+- Call **Deliver Escrow** (`POST /api/v1/escrows/:id/deliver`). The escrow **auto-completes** and funds are released to you immediately (no buyer confirmation step). You receive a webhook (paid → completed).
+
+State flow for instant mode: `pending` → `paid` → `completed` (the `delivered` state is skipped; calling deliver transitions directly to completed).
 
 ## API Endpoints (Direct)
 
@@ -84,9 +97,9 @@ These endpoints can be called directly from your server using your API key:
 
 For actions that require user interaction, use [Checkout Sessions](/api-reference/checkout-sessions/overview) to redirect users to dhmad.tn:
 
-- **Sign Contract** - User signs the escrow contract
+- **Sign Contract** - User signs the escrow contract (not available for instant escrows)
 - **Accept & Pay** - Buyer reviews and pays for the escrow
-- **Complete** - Buyer confirms delivery and releases funds
+- **Complete** - Buyer confirms delivery and releases funds (not available for instant escrows; deliver auto-completes)
 - **Dispute** - User opens a dispute
 - **Request/Reject/Accept Cancellation** - Cancellation flow for paid or delivered escrows
 

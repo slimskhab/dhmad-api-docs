@@ -5,7 +5,9 @@ description: Create a new escrow transaction
 
 <Endpoint method="POST" path="/api/v1/escrows" />
 
-Create a new escrow transaction. By default, the escrow is created with your associated user account as the seller. You can optionally specify a `sellerEmail` to create escrows on behalf of other users (useful for freelance platforms). If the seller already has an account, they must have email verification completed. If the seller doesn't have an account, they will be invited to register. Phone verification is only required when the buyer accepts and pays, not at escrow creation. A contract will be automatically created with the provided terms.
+Create a new escrow transaction. By default, the escrow is created with your associated user account as the seller. You can optionally specify a `sellerEmail` to create escrows on behalf of other users (useful for freelance platforms). If the seller already has an account, they must have email verification completed. If the seller doesn't have an account, they will be invited to register. Phone verification is only required when the buyer accepts and pays, not at escrow creation.
+
+Use **standard** mode (default) for full contract/sign/deliver/complete flow. Use **instant** mode for digital goods (e.g. in-app coins, AI credits): no contract is created, the buyer only confirms and pays, and when you call deliver the escrow auto-completes and funds are released immediately. See [Instant escrow mode](/api-reference/escrows/overview#instant-escrow-mode) in the Escrows overview.
 
 <RequestExample>
 ```bash cURL
@@ -117,16 +119,20 @@ data = response.json()
   Email address of the buyer. If the buyer has an account, they'll receive a notification. If not, they'll receive an invitation email with a registration link.
 </ParamField>
 
-<ParamField body="estimatedDeliveryDays" type="number" required>
-  Estimated delivery days (must be at least 1)
+<ParamField body="estimatedDeliveryDays" type="number" required={false}>
+  Estimated delivery days (must be at least 1). **Required** when `mode` is `standard`. Optional when `mode` is `instant`; defaults to `1` if omitted.
 </ParamField>
 
-<ParamField body="contractTerms" type="string" required>
-  Contract terms describing the transaction agreement. A contract will be automatically created with these terms.
+<ParamField body="contractTerms" type="string" required={false}>
+  Contract terms describing the transaction agreement. **Required** when `mode` is `standard`; a contract is created with these terms. Omit when `mode` is `instant` (no contract is used).
 </ParamField>
 
 <ParamField body="autoSign" type="boolean" required={false}>
-  If `true`, the contract will be automatically signed by the seller using the signature configured in the developer dashboard. Requires a signature to be set up first. **Note:** Auto-sign is only available when `sellerEmail` is not provided (i.e., when using your associated user account as the seller). When `sellerEmail` is provided, the seller must sign the contract themselves. Defaults to `false`.
+  If `true`, the contract will be automatically signed by the seller using the signature configured in the developer dashboard. Requires a signature to be set up first. **Note:** Auto-sign is only available when `sellerEmail` is not provided (i.e., when using your associated user account as the seller). When `sellerEmail` is provided, the seller must sign the contract themselves. Not applicable when `mode` is `instant` (returns 400 if set). Defaults to `false`.
+</ParamField>
+
+<ParamField body="mode" type="string" required={false}>
+  Escrow mode: `standard` (default) or `instant`. Use `instant` for digital goods (e.g. in-app coins, AI credits) to skip the contract and get a one-step buyer flow (pay only); calling deliver then auto-completes and releases funds. Defaults to `standard`.
 </ParamField>
 
 ## Response Fields
@@ -155,6 +161,10 @@ data = response.json()
   Current escrow status (pending, paid, delivered, completed, cancelled)
 </ParamField>
 
+<ParamField response="escrow.mode" type="string">
+  Escrow mode: `standard` or `instant`. Present when created via API; defaults to `standard` for existing escrows.
+</ParamField>
+
 <ParamField response="escrow.seller" type="string">
   Seller user ID. If `sellerEmail` was provided, this will be the user ID of that seller. Otherwise, this will be your associated user account ID.
 </ParamField>
@@ -179,8 +189,12 @@ data = response.json()
   Escrow ID for tracking purposes. Use this ID to query the escrow status via the API
 </ParamField>
 
+<ParamField response="contract" type="object|null">
+  Contract object when `mode` is `standard`; `null` when `mode` is `instant` (no contract is created).
+</ParamField>
+
 <ParamField response="contract.id" type="string">
-  Unique identifier for the contract
+  Unique identifier for the contract (only when `contract` is not null)
 </ParamField>
 
 <ParamField response="contract.pdfUrl" type="string|null">
@@ -257,6 +271,15 @@ data = response.json()
 }
 ```
 
+**Auto-Sign With Instant Mode**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Auto-sign is not applicable for instant mode (no contract is created)"
+}
+```
+
 **Invalid Seller Email**
 
 ```json
@@ -324,5 +347,9 @@ data = response.json()
 </Info>
 
 <Note>
-  To use the `autoSign` feature, you must first set up your signature in the developer dashboard. Use the `PUT /developer/signature` endpoint to upload your signature image (base64 encoded). Once configured, you can enable `autoSign: true` when creating escrows to automatically sign contracts as the seller.
+  To use the `autoSign` feature, you must first set up your signature in the developer dashboard. Use the `PUT /developer/signature` endpoint to upload your signature image (base64 encoded). Once configured, you can enable `autoSign: true` when creating **standard** mode escrows to automatically sign contracts as the seller. `autoSign` is not applicable for `mode: "instant"`.
 </Note>
+
+<Info title="Instant mode example">
+  For digital goods (e.g. 100 AI coins), create with `mode: "instant"` and omit `contractTerms` and optionally `estimatedDeliveryDays` (defaults to 1). The response will include `escrow.mode: "instant"` and `contract: null`. Create a checkout session with `action: "accept_pay"` only; the buyer pays in one step. When you deliver via `POST /api/v1/escrows/:id/deliver`, the escrow auto-completes and funds are released. See [Instant escrow mode](/api-reference/escrows/overview#instant-escrow-mode).
+</Info>

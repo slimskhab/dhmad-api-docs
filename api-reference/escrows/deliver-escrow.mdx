@@ -5,7 +5,10 @@ description: Mark an escrow as delivered by the seller
 
 <Endpoint method="POST" path="/api/v1/escrows/:id/deliver" />
 
-Mark an escrow as delivered. Only the **seller** can perform this action, and the escrow must be in `paid` status (i.e., the buyer has already paid). After delivery, the escrow moves to `delivered` status and the buyer will be notified. The buyer can then confirm delivery to release funds to the seller.
+Mark an escrow as delivered. Only the **seller** can perform this action, and the escrow must be in `paid` status (i.e., the buyer has already paid).
+
+- **Standard mode:** After delivery, the escrow moves to `delivered` status and the buyer is notified. The buyer must then confirm delivery to release funds to the seller.
+- **Instant mode:** Calling deliver **auto-completes** the escrow and releases funds to you immediately. The escrow moves directly from `paid` to `completed`; there is no buyer confirmation step. The response message will indicate that the escrow was delivered and completed (instant mode).
 
 <RequestExample>
 ```bash cURL
@@ -44,6 +47,14 @@ const data = await response.json();
 }
 ```
 </ResponseExample>
+
+For **instant** mode escrows, the response is:
+```json
+{
+  "message": "Escrow delivered and completed (instant mode). Funds released.",
+  "escrow": { "id": "...", "status": "completed", "deliveredAt": "...", "completedAt": "...", ... }
+}
+```
 
 ## Path Parameters
 
@@ -108,5 +119,5 @@ const data = await response.json();
 </Warning>
 
 <Info>
-  After delivery, the buyer receives a notification and can confirm completion to release funds. Use the checkout session with `complete` action if you need to redirect the buyer to confirm delivery on dhmad.tn.
+  **Standard mode:** After delivery, the buyer receives a notification and can confirm completion to release funds. Use the checkout session with `complete` action if you need to redirect the buyer to confirm delivery on dhmad.tn. **Instant mode:** Deliver auto-completes and releases funds; no buyer confirmation or checkout session for complete is needed.
 </Info>

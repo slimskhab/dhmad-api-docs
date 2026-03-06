@@ -84,7 +84,7 @@ data = response.json()
 ## Request Body
 
 <ParamField body="action" type="string" required>
-  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`.
+  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`. **For instant escrows:** only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract` and `complete` return 400 with a message to use `accept_pay` or the deliver endpoint instead.
 </ParamField>
 
 <ParamField body="targetUserEmail" type="string" required>
@@ -153,6 +153,24 @@ data = response.json()
 }
 ```
 
+**Instant escrow – sign_contract not allowed**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Instant escrows do not use a contract. Use action 'accept_pay' to get a checkout URL for payment."
+}
+```
+
+**Instant escrow – complete not allowed**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Instant escrows auto-complete when you call the deliver endpoint. Use action 'accept_pay' for the buyer checkout."
+}
+```
+
 ### 401 Unauthorized
 
 ```json
@@ -193,3 +211,7 @@ data = response.json()
 <Note>
   Sessions expire 30 minutes after creation. Ensure users complete the flow within this window, or create a new session if needed.
 </Note>
+
+<Info title="Instant escrows">
+  For escrows created with `mode: "instant"`, only the `accept_pay` action (and dispute/cancellation actions) is valid. Do not use `sign_contract` or `complete`; they will return 400. After the buyer pays, deliver the digital goods and call [Deliver Escrow](/api-reference/escrows/deliver-escrow) to auto-complete and release funds.
+</Info>
