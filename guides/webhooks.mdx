@@ -162,6 +162,12 @@ You can subscribe to the following events:
     is refunded and its status changes to cancelled. An
     `escrow.status.updated` event is also fired.
   </Card>
+  <Card title="escrow.updated" icon="pencil">
+    Triggered when escrow details are updated: title, amount, estimated
+    delivery time, or contract terms (via the DHMAD dashboard or API). Use
+    this to keep your app in sync when users edit these fields in DHMAD
+    instead of in your app.
+  </Card>
 </CardGroup>
 
 ## Event Payload
@@ -202,6 +208,45 @@ All webhook events share the same top-level structure: `id`, `type`, `timestamp`
   }
 }
 ```
+
+### escrow.updated
+
+Sent when the escrow's title, amount, estimated delivery days, or contract terms are updated (via the dashboard or API). The payload includes which fields changed and the current escrow snapshot; when contract terms were updated, `data.contract` is also present.
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "type": "escrow.updated",
+  "timestamp": "2024-01-15T12:00:00Z",
+  "data": {
+    "updatedFields": ["amount", "estimatedDeliveryDays"],
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Web Development Service",
+      "amount": 1200.0,
+      "escrowFee": 60.0,
+      "status": "pending",
+      "seller": {
+        "_id": "507f1f77bcf86cd799439013",
+        "email": "seller@example.com",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      "buyer": {
+        "_id": "507f1f77bcf86cd799439014",
+        "email": "buyer@example.com",
+        "firstName": "Jane",
+        "lastName": "Smith"
+      },
+      "estimatedDeliveryDays": 14,
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T12:00:00Z"
+    }
+  }
+}
+```
+
+When contract terms are updated, `data` also includes a `contract` object with `id`, `terms`, and optional `language`. The `escrow` object has the same shape as in the example above.
 
 ### contract.signed
 
