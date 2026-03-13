@@ -44,6 +44,8 @@ Call `POST /api/v1/escrows/:id/sessions` with:
 
 You receive `sessionId`, `url`, and `expiresAt`. Redirect the user to `url`.
 
+If the action is already done (e.g. the user has already signed the contract, or payment is already completed), the API returns **400** with an error object: `error.code`, `error.message` (for developers), and `error.user_message` (for end users). Check `error.type === 'business_rule_violation'` and display `error.user_message` in your UI instead of redirecting to checkout. See [Create Checkout Session](/api-reference/checkout-sessions/create-session) for all error codes.
+
 ### Step 3: Redirect the User to the Session URL
 
 Send the user to the `url` returned from the create session call. For example:
@@ -101,6 +103,10 @@ app.post('/create-checkout', async (req, res) => {
 
   const data = await response.json();
   if (!response.ok) {
+    // Handle business rule errors: show user_message to the user instead of redirecting
+    if (response.status === 400 && data?.error?.type === 'business_rule_violation') {
+      return res.status(400).json({ message: data.error.user_message, code: data.error.code });
+    }
     return res.status(response.status).json(data);
   }
 

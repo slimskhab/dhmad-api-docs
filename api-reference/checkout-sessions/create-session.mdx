@@ -7,6 +7,8 @@ description: Create a checkout session for critical escrow actions
 
 Create a checkout session for a critical escrow action. The session allows you to redirect a specific user to dhmad.tn to perform the action (e.g., sign contract, accept & pay, complete, dispute, or handle cancellation). The user is redirected back to your `redirectUrl` after completing or abandoning the flow.
 
+The API validates that the action is still needed before creating a session. If the action is already done (e.g. the target user has already signed the contract, or payment is already completed), the request returns **400** with a structured error (`error.code`, `error.user_message`). Use these to show a clear message in your app instead of redirecting to checkout.
+
 <Warning>
   Configure allowed redirect URLs in your [Developer Dashboard](https://developer.dhmad.tn/dashboard) settings before creating checkout sessions. If no redirect URLs are configured, or if the `redirectUrl` does not match any allowed URL, the request will fail with a 400 error.
 </Warning>
@@ -84,7 +86,7 @@ data = response.json()
 ## Request Body
 
 <ParamField body="action" type="string" required>
-  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`. **For instant escrows:** only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract` and `complete` return 400 with a message to use `accept_pay` or the deliver endpoint instead.
+  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below. **For instant escrows:** only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract` and `complete` return 400.
 </ParamField>
 
 <ParamField body="targetUserEmail" type="string" required>
@@ -115,61 +117,62 @@ data = response.json()
 
 ## Error Responses
 
-### 400 Bad Request
+When a request is rejected because of a business rule (e.g. the action is already done, or redirect URL is invalid), the API returns **400 Bad Request** with an `error` object. Use `error.code` to branch in your app and `error.user_message` to show a clear message to the end user; `error.message` is for developers and logging.
 
-**No Redirect URLs Configured**
-
-```json
-{
-  "error": "Bad Request",
-  "message": "No allowed redirect URLs configured. Please add redirect URLs in the developer dashboard settings."
-}
-```
-
-**Redirect URL Mismatch**
+**Business rule error shape (400)**
 
 ```json
 {
-  "error": "Bad Request",
-  "message": "Redirect URL does not match any allowed redirect URLs. Allowed: https://myapp.com/callback, https://myapp.com/checkout/callback"
+  "error": {
+    "code": "CONTRACT_ALREADY_SIGNED",
+    "type": "business_rule_violation",
+    "message": "Cannot create checkout session: this signer has already signed the contract.",
+    "user_message": "This contract has already been signed."
+  }
 }
 ```
 
-**Not HTTPS**
+| Code | When |
+|------|------|
+| `NO_REDIRECT_URLS_CONFIGURED` | Developer has no allowed redirect URLs in dashboard settings. |
+| `REDIRECT_URL_NOT_ALLOWED` | `redirectUrl` does not match any allowed redirect URL. |
+| `REDIRECT_URL_MUST_BE_HTTPS` | `redirectUrl` is not HTTPS (except `http://localhost`). |
+| `INSTANT_ESCROW_NO_CONTRACT` | Action is `sign_contract` but escrow is instant (no contract). Use `accept_pay` instead. |
+| `INSTANT_ESCROW_NO_COMPLETE_STEP` | Action is `complete` but escrow is instant; completion happens via deliver endpoint. |
+| `CONTRACT_ALREADY_SIGNED` | Action is `sign_contract` and the target user has already signed the contract. |
+| `PAYMENT_ALREADY_DONE` | Action is `accept_pay` but the escrow is already paid, delivered, or completed. |
+| `ESCROW_ALREADY_COMPLETED` | Action is `complete` but the escrow is already completed. |
+| `DISPUTE_ALREADY_OPENED` | Action is `dispute` but a dispute has already been opened. |
+| `CANCELLATION_ALREADY_REQUESTED` | Action is `request_cancellation` but a cancellation has already been requested or processed. |
+| `NO_PENDING_CANCELLATION` | Action is `reject_cancellation` or `accept_cancellation` but there is no pending cancellation request. |
+
+**Example: contract already signed**
 
 ```json
 {
-  "error": "Bad Request",
-  "message": "Redirect URL must use HTTPS (http://localhost is allowed for development)."
+  "error": {
+    "code": "CONTRACT_ALREADY_SIGNED",
+    "type": "business_rule_violation",
+    "message": "Cannot create checkout session: this signer has already signed the contract.",
+    "user_message": "This contract has already been signed."
+  }
 }
 ```
 
-**Invalid Action**
+**Example: payment already done**
 
 ```json
 {
-  "error": "Bad Request",
-  "message": "Invalid action. Must be one of: sign_contract, accept_pay, complete, dispute, request_cancellation, reject_cancellation, accept_cancellation"
+  "error": {
+    "code": "PAYMENT_ALREADY_DONE",
+    "type": "business_rule_violation",
+    "message": "Cannot create checkout session: payment has already been made for this escrow.",
+    "user_message": "Payment has already been completed for this transaction."
+  }
 }
 ```
 
-**Instant escrow – sign_contract not allowed**
-
-```json
-{
-  "error": "Bad Request",
-  "message": "Instant escrows do not use a contract. Use action 'accept_pay' to get a checkout URL for payment."
-}
-```
-
-**Instant escrow – complete not allowed**
-
-```json
-{
-  "error": "Bad Request",
-  "message": "Instant escrows auto-complete when you call the deliver endpoint. Use action 'accept_pay' for the buyer checkout."
-}
-```
+Handle these in your app by checking `response.error?.code` and displaying `response.error?.user_message` to the user instead of redirecting to checkout.
 
 ### 401 Unauthorized
 
