@@ -5,7 +5,7 @@ description: Get detailed information about a specific escrow
 
 <Endpoint method="GET" path="/api/v1/escrows/:id" />
 
-Get detailed information about a specific escrow. Only accessible if you are the seller or buyer of the escrow.
+Get detailed information about a specific escrow, including **contract signature status** (whether the seller and buyer have signed the contract). Only accessible if you created the escrow or your associated user account is the seller or buyer.
 
 <RequestExample>
 ```bash cURL
@@ -48,10 +48,12 @@ data = response.json()
 {
   "escrow": {
     "id": "507f1f77bcf86cd799439011",
+    "_id": "507f1f77bcf86cd799439011",
     "title": "Web Development Service",
     "amount": 1000.00,
     "escrowFee": 50.00,
     "status": "paid",
+    "mode": "standard",
     "seller": {
       "_id": "507f1f77bcf86cd799439013",
       "email": "seller@example.com",
@@ -65,12 +67,24 @@ data = response.json()
       "lastName": "Smith"
     },
     "estimatedDeliveryDays": 7,
+    "expiresAt": "2024-02-15T10:00:00Z",
     "paidAt": "2024-01-16T09:00:00Z",
     "deliveredAt": null,
     "completedAt": null,
     "cancelledAt": null,
     "createdAt": "2024-01-15T10:00:00Z",
-    "updatedAt": "2024-01-16T09:00:00Z"
+    "updatedAt": "2024-01-16T09:00:00Z",
+    "createdViaThirdParty": true,
+    "createdByApplicationName": "My App",
+    "disputeInfo": { "attachments": [] },
+    "signatures": {
+      "sellerSigned": true,
+      "sellerSignedAt": "2024-01-15T11:00:00Z",
+      "buyerSigned": true,
+      "buyerSignedAt": "2024-01-16T09:00:00Z",
+      "isFullySigned": true,
+      "signedAt": "2024-01-16T09:00:00Z"
+    }
   }
 }
 ```
@@ -101,7 +115,7 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.status" type="string">
-  Current escrow status (pending, paid, delivered, completed, cancelled)
+  Current escrow status (`pending`, `paid`, `delivered`, `completed`, `cancelled`, `disputed`)
 </ParamField>
 
 <ParamField response="escrow.seller" type="object">
@@ -139,6 +153,58 @@ data = response.json()
 <ParamField response="escrow.updatedAt" type="string">
   ISO 8601 timestamp when escrow was last updated
 </ParamField>
+
+<ParamField response="escrow.mode" type="string">
+  Escrow mode (`standard` — full contract/sign/deliver/complete flow; `instant` — no contract, auto-complete on deliver)
+</ParamField>
+
+<ParamField response="escrow.expiresAt" type="string">
+  ISO 8601 timestamp when the escrow expires (pending acceptance)
+</ParamField>
+
+<ParamField response="escrow.createdViaThirdParty" type="boolean">
+  Whether the escrow was created via the API (third-party application)
+</ParamField>
+
+<ParamField response="escrow.createdByApplicationName" type="string">
+  Name of the application that created the escrow (when created via API)
+</ParamField>
+
+<ParamField response="escrow.disputeInfo" type="object">
+  Dispute-related data (e.g. `attachments`); present when applicable
+</ParamField>
+
+<ParamField response="escrow.signatures" type="object|null">
+  Contract signature status. Indicates whether the seller and buyer have signed the contract. `null` when no contract exists for this escrow.
+</ParamField>
+
+<ParamField response="escrow.signatures.sellerSigned" type="boolean">
+  Whether the seller has signed the contract
+</ParamField>
+
+<ParamField response="escrow.signatures.sellerSignedAt" type="string">
+  ISO 8601 timestamp when the seller signed (present when `sellerSigned` is true)
+</ParamField>
+
+<ParamField response="escrow.signatures.buyerSigned" type="boolean">
+  Whether the buyer has signed the contract
+</ParamField>
+
+<ParamField response="escrow.signatures.buyerSignedAt" type="string">
+  ISO 8601 timestamp when the buyer signed (present when `buyerSigned` is true)
+</ParamField>
+
+<ParamField response="escrow.signatures.isFullySigned" type="boolean">
+  Whether both parties have signed the contract
+</ParamField>
+
+<ParamField response="escrow.signatures.signedAt" type="string">
+  ISO 8601 timestamp when both parties signed (present when `isFullySigned` is true)
+</ParamField>
+
+<Info>
+  When no contract exists for the escrow yet, `signatures` is `null`. Use `sellerSigned`, `buyerSigned`, and `isFullySigned` to check contract signing status without calling the contract endpoint.
+</Info>
 
 ## Error Responses
 
