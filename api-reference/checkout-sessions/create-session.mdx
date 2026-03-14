@@ -115,9 +115,13 @@ data = response.json()
   ISO 8601 timestamp when the session expires. Sessions expire 30 minutes after creation.
 </ParamField>
 
+<Info title="Session creation and KYC">
+  No KYC check is performed when creating a checkout session. You can create an `accept_pay` session regardless of the buyer's KYC status. If the buyer does not have approved KYC, they will be prompted to complete identity verification **inside** the DHMAD checkout flow (inline Verify KYC) before they can complete Accept & Pay. You do not receive a separate error code for KYC at session creation time.
+</Info>
+
 ## Error Responses
 
-When a request is rejected because of a business rule (e.g. the action is already done, or redirect URL is invalid), the API returns **400 Bad Request** with an `error` object. Use `error.code` to branch in your app and `error.user_message` to show a clear message to the end user; `error.message` is for developers and logging.
+When a request is rejected because of a business rule (e.g. the action is already done, or redirect URL is invalid), the API returns **400 Bad Request** with an `error` object. Use `error.code` to branch in your app and `error.user_message` to show a clear message to the end user; `error.message` is for developers and logging. The table below lists **all** error codes returned by this endpoint.
 
 **Business rule error shape (400)**
 

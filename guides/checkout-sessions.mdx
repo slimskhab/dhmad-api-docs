@@ -72,6 +72,20 @@ https://myapp.com/checkout/callback?session_id=550e8400-e29b-41d4-a716-446655440
 
 Parse these parameters and update your UI. Optionally call `GET /api/v1/sessions/:sessionId` to verify and get full session details.
 
+### What happens inside checkout
+
+The checkout page shows a summary of the escrow: amount, **platform service fee** (DHMAD's fee, paid by the seller), and, if the escrow was created with a developer fee, the **application / app fee** (with your app name when configured). Both fees are deducted from the seller's payout.
+
+When the user is on dhmad.tn/checkout and clicks **Accept and pay**, DHMAD may require them to complete additional steps before the action succeeds:
+
+- **Email or phone verification:** If the buyer has not verified their email or phone, they see an inline **popup** on the same page to enter the verification code (OTP). We send the code when the popup opens; after they enter it and verify, they can click **Confirm & Pay** again. No redirect to profile.
+- **KYC (identity verification):** If the buyer has not completed KYC, they see an inline **Verify identity (KYC)** block on the same page. They can start verification (opens in a new tab); after completing it, they return to the checkout page and can click **Confirm & Pay** again. No redirect away from checkout.
+- **Insufficient balance:** If the buyer's balance is too low, they see an inline top-up option on the same page. After topping up, they click **Confirm & Pay** again.
+
+The user is only redirected back to your `redirectUrl` with `session_id` and `status` when they **complete** the action, **cancel**, or the session **expires**. You do **not** receive error codes (e.g. `KYC_REQUIRED`) in your redirect callback—those cases are handled entirely on DHMAD.
+
+For all error codes returned when **creating** a session (e.g. contract already signed, payment already done), see [Create Checkout Session — Error Responses](/api-reference/checkout-sessions/create-session#error-responses).
+
 ### Step 5: Verify with Webhooks
 
 Treat webhooks as the source of truth. When a user completes an action via a Checkout Session, DHMAD emits webhooks for the underlying events (e.g., `contract.signed`, `escrow.paid`, `escrow.completed`). Use webhooks to update your backend state; use the redirect for immediate UI feedback.
