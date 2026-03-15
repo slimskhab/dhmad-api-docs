@@ -5,7 +5,7 @@ description: Create an escrow via the public API
 
 <Endpoint method="POST" path="/api/v1/escrows" />
 
-Create a new escrow. Requires API key authentication. The platform fee (DHMAD's percentage) is applied automatically. You can optionally set a **developer fee percentage** so that a portion of the transaction is credited to your associated user account when the escrow completes.
+Create a new escrow. Requires API key authentication. The platform fee (DHMAD's percentage) is applied automatically. **Instant** mode is only for when you are the seller (omit `sellerEmail`; "buy from the app"). **Developer fee** is only for when the seller is a third party (not your associated account); you can set a developer fee percentage so that a portion of the transaction is credited to your associated user account when the escrow completes.
 
 <RequestExample>
 ```bash cURL
@@ -64,11 +64,11 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 </ParamField>
 
 <ParamField body="sellerEmail" type="string" required={false}>
-  Email of the seller. If omitted, your developer account's associated user account is used as the seller. Required if you do not have an associated user account.
+  Email of the seller. If omitted, your developer account's associated user account is used as the seller (required for instant mode). If provided, the seller is that user or an invite; use **standard** mode for escrows between two other parties.
 </ParamField>
 
 <ParamField body="mode" type="string" required={false}>
-  `"standard"` (default) or `"instant"`. Standard escrows use a contract and full sign / pay / deliver / complete flow. Instant escrows have no contract and auto-complete on deliver.
+  `"standard"` (default) or `"instant"`. **Instant** is only allowed when you are the seller (omit `sellerEmail`; "buy from the app"). For escrows between two other parties, you must use `"standard"` and provide `sellerEmail`; if you send `mode: "instant"` with `sellerEmail`, the API returns **400**. Standard escrows use a contract and full sign / pay / deliver / complete flow; instant escrows have no contract and auto-complete on deliver.
 </ParamField>
 
 <ParamField body="estimatedDeliveryDays" type="number" required={false}>
@@ -84,7 +84,7 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 </ParamField>
 
 <ParamField body="developerFeePercentage" type="number" required={false}>
-  Optional percentage (0–20) of the escrow amount that will be credited to **your developer account's associated user** when the escrow completes. Default is **0** (no developer fee). This amount is deducted from the seller's payout (in addition to the platform fee). If you set a value greater than 0, your developer account **must be associated with a user account** in the developer dashboard; otherwise the request returns **403 Forbidden**.
+  Optional percentage (0–20) of the escrow amount, credited to your developer account's associated user when the escrow completes. **Only allowed when the seller is a third party** (not your associated user account). Not allowed when the seller is your associated account (whether you omit `sellerEmail` or pass that same email); if violated, the API returns **400**. Default is **0**. This amount is deducted from the seller's payout (in addition to the platform fee). If you set a value greater than 0, your developer account **must be associated with a user account** in the developer dashboard; otherwise the request returns **403 Forbidden**.
 </ParamField>
 
 ## Response Fields (escrow object)
@@ -110,6 +110,32 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 When you redirect users to a [Checkout Session](/api-reference/checkout-sessions/create-session), the DHMAD checkout page shows the **platform service fee** (paid by seller) and, if you set `developerFeePercentage` when creating the escrow, the **application / app fee** (with your app name when configured). Sellers see the total deductions before completing the flow.
 
 ## Errors
+
+### 400 Bad Request – Instant mode with third-party seller
+
+When `mode` is `"instant"` and `sellerEmail` is provided:
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Instant mode is only available when you are the seller (omit sellerEmail). For escrows between two other parties, use mode: standard."
+}
+```
+
+Use **standard** mode and provide `sellerEmail` for escrows between two other parties.
+
+### 400 Bad Request – Developer fee when seller is your associated account
+
+When `developerFeePercentage` is greater than 0 and the seller (resolved from the request) is your developer account's associated user:
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Developer fee is not allowed when the seller is your associated user account. Use developerFeePercentage only when the seller is a third party (different from your associated account)."
+}
+```
+
+Omit `developerFeePercentage` or set it to 0 when you are the seller (or when the seller email is your associated account).
 
 ### 403 Forbidden – Developer fee without associated user
 
