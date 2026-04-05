@@ -115,6 +115,10 @@
       {
         "label": "Support",
         "href": "mailto:support@dhmad.tn"
+      },
+      {
+        "label": "Tunisie Freelance",
+        "href": "https://tunisiefreelance.tn/"
       }
     ],
     "primary": {
@@ -128,6 +132,17 @@
       "twitter": "https://twitter.com/dhmad",
       "github": "https://github.com/dhmad",
       "linkedin": "https://www.linkedin.com/company/dhmad"
-    }
+    },
+    "links": [
+      {
+        "header": "Partners",
+        "items": [
+          {
+            "label": "Tunisie Freelance",
+            "href": "https://tunisiefreelance.tn/"
+          }
+        ]
+      }
+    ]
   }
 }

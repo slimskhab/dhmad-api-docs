@@ -76,7 +76,17 @@ Parse these parameters and update your UI. Optionally call `GET /api/v1/sessions
 
 The checkout page shows a summary of the escrow: amount, **platform service fee** (DHMAD's fee, paid by the seller), and, if the escrow was created with a developer fee, the **application / app fee** (with your app name when configured). Both fees are deducted from the seller's payout.
 
-When the user is on dhmad.tn/checkout and clicks **Accept and pay**, DHMAD may require them to complete additional steps before the action succeeds:
+#### Instant escrows — guest payment (`accept_pay`, no DHMAD login)
+
+For escrows created with **`mode: "instant"`** and a checkout session action **`accept_pay`**, if the buyer is **not** logged into DHMAD they can pay **without** creating an account. They pick a payment method (e.g. bank transfer, D17, Flouci, PayPal), complete the payment using the instructions shown, and upload a proof file. An **admin must approve** the proof; only then does the escrow move to `paid` and your app should rely on **`escrow.status.updated`** (and related webhooks) as usual.
+
+- **Funds are not held in a DHMAD buyer wallet** for this path until the proof is approved; cancellation and refunds follow DHMAD’s guest-checkout rules (your app should not assume an automatic wallet refund to the buyer).
+- **Sandbox:** the flow may complete without a proof file for faster testing.
+- **Seller cancellation before approval:** pending proofs for that escrow are closed automatically; you may receive **`escrow.deposit_proof.rejected`** (with a system reason) and **`escrow.status.updated`** when the escrow becomes `cancelled`. The checkout session may be marked `cancelled`. Treat **webhooks** as the source of truth, not only the browser redirect.
+
+#### Standard flow (logged-in buyer or non-instant escrow)
+
+When the user is on dhmad.tn/checkout and completes **Accept and pay** under the **standard** path (e.g. **standard** escrow mode, or the buyer is signed in and uses the wallet flow), DHMAD may require them to complete additional steps before the action succeeds:
 
 - **Email or phone verification:** If the buyer has not verified their email or phone, they see an inline **popup** on the same page to enter the verification code (OTP). We send the code when the popup opens; after they enter it and verify, they can click **Confirm & Pay** again. No redirect to profile.
 - **KYC (identity verification):** If the buyer has not completed KYC, they see an inline **Verify identity (KYC)** block on the same page. They can start verification (opens in a new tab); after completing it, they return to the checkout page and can click **Confirm & Pay** again. No redirect away from checkout.

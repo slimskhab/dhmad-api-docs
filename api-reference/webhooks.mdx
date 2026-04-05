@@ -25,8 +25,9 @@ Create a new webhook endpoint to receive event notifications.
 <ParamField body="events" type="array">
   Array of event types to subscribe to. Supported: `escrow.status.updated`,
   `contract.signed`, `escrow.cancellation.requested`,
-  `escrow.cancellation.rejected`, `escrow.cancellation.accepted`. Default:
-  `["escrow.status.updated"]`
+  `escrow.cancellation.rejected`, `escrow.cancellation.accepted`,
+  `escrow.updated`, `escrow.deposit_proof.rejected` (guest instant-escrow
+  payment proof rejected by admin). Default: `["escrow.status.updated"]`
 </ParamField>
 
 ### Example Request

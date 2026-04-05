@@ -168,6 +168,15 @@ You can subscribe to the following events:
     this to keep your app in sync when users edit these fields in DHMAD
     instead of in your app.
   </Card>
+  <Card title="escrow.deposit_proof.rejected" icon="ban">
+    Triggered when a **guest** instant-escrow payment proof is rejected: either
+    an admin rejected it, or DHMAD **auto-rejected** it because the escrow was
+    **cancelled** while the proof was still pending. Check `data.depositProof.reason`
+    and `data.escrow.status`: if the escrow is still `pending`, the buyer can
+    usually submit a new proof from the same checkout link; if the escrow is
+    `cancelled`, treat the payment attempt as closed. Subscribe if you use guest
+    checkout for instant escrows.
+  </Card>
 </CardGroup>
 
 ## Event Payload
@@ -247,6 +256,39 @@ Sent when the escrow's title, amount, estimated delivery days, or contract terms
 ```
 
 When contract terms are updated, `data` also includes a `contract` object with `id`, `terms`, and optional `language`. The `escrow` object has the same shape as in the example above.
+
+### escrow.deposit_proof.rejected
+
+Sent when a guest instant-escrow payment proof is rejected—by an **admin** (optional reason in `depositProof.reason`) or **automatically** when the **escrow is cancelled** while a proof was still pending (reason explains that the escrow was cancelled before review). Always inspect **`data.escrow.status`**: only when the escrow remains `pending` should you expect the buyer to upload another proof from the same checkout session.
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440099",
+  "type": "escrow.deposit_proof.rejected",
+  "timestamp": "2024-01-15T14:00:00Z",
+  "data": {
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Instant purchase",
+      "amount": 50.0,
+      "escrowFee": 0.0,
+      "status": "pending",
+      "seller": { "_id": "507f1f77bcf86cd799439013", "email": "seller@example.com" },
+      "buyer": null,
+      "estimatedDeliveryDays": 1,
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    "depositProof": {
+      "id": "507f1f77bcf86cd799439099",
+      "buyerEmail": "buyer@example.com",
+      "reason": "Amount mismatch",
+      "amount": 50.0,
+      "method": "flouci"
+    }
+  }
+}
+```
 
 ### contract.signed
 
