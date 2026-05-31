@@ -155,7 +155,7 @@ For **quick** and **instant** modes, `contract` is `null`.
 </ParamField>
 
 <ParamField body="developerFeePercentage" type="number" required={false}>
-  Optional percentage (0–20) of the escrow amount, credited to your developer account's associated user when the escrow completes. **Only allowed when the seller is a third party** (not your associated user account). Not allowed when the seller is your associated account (whether you omit `sellerEmail` or pass that same email); if violated, the API returns **400**. Default is **0**. This amount is deducted from the seller's payout (in addition to the platform fee). If you set a value greater than 0, your developer account **must be associated with a user account** in the developer dashboard; otherwise the request returns **403 Forbidden**.
+  Optional percentage (0–25) of the escrow amount, credited to your developer account's associated user when the escrow completes. **Only allowed when the seller is a third party** (not your associated user account). Not allowed when the seller is your associated account (whether you omit `sellerEmail` or pass that same email); if violated, the API returns **400**. Default is **0**. This amount is deducted from the seller's payout (in addition to the platform fee). If you set a value greater than 0, your developer account **must be associated with a user account** in the developer dashboard; otherwise the request returns **403 Forbidden**.
 </ParamField>
 
 ## Response Fields (escrow object)
@@ -177,7 +177,7 @@ For **quick** and **instant** modes, `contract` is `null`.
 </ParamField>
 
 <ParamField response="developerFeePercentage" type="number">
-  The percentage set at creation (0–20).
+  The percentage set at creation (0–25).
 </ParamField>
 
 ## Checkout page and fees
