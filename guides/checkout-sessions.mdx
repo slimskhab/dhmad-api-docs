@@ -211,7 +211,11 @@ Yes. Use your sandbox API key (`sk_sandbox_*`) and the sandbox base URL. The che
 
 ### What about instant escrows (digital goods)?
 
-For escrows created with `mode: "instant"` (e.g. in-app coins, AI credits), use only the **accept_pay** action. The buyer pays in one step; there is no contract to sign and no "complete" step. After the buyer pays, you receive a webhook, deliver the goods, then call the Deliver Escrow API—the escrow auto-completes and funds are released. See [Instant escrow mode](/api-reference/escrows/overview#instant-escrow-mode) in the Escrows overview.
+For escrows created with `mode: "instant"` (e.g. in-app coins, AI credits), use only the **accept_pay** action. The buyer pays in one step; there is no contract to sign and no "complete" step. After the buyer pays, you receive a webhook, deliver the goods, then call the Deliver Escrow API—the escrow auto-completes and funds are released. See [Escrow Modes — Instant](/api-reference/escrows/overview#instant-mode) in the Escrows overview.
+
+### What about quick escrows (products without a contract)?
+
+For escrows created with `mode: "quick"` (e.g. physical or digital products between two users), use **accept_pay** then **complete** after the seller delivers. There is no contract to sign — `sign_contract` returns 400. See [Escrow Modes — Quick](/api-reference/escrows/overview#quick-mode) in the Escrows overview.
 
 ---
 

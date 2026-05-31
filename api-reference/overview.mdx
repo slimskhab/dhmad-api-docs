@@ -48,7 +48,7 @@ We provide an **interactive API Explorer** (Swagger UI) in the [Developer Portal
 
 ### Escrows
 
-- **[Overview](/api-reference/escrows/overview)** — Introduction to escrows, statuses, and lifecycle
+- **[Overview](/api-reference/escrows/overview)** — Introduction to escrows, [modes](/api-reference/escrows/overview#escrow-modes) (standard, quick, instant), statuses, and lifecycle
 - `POST /escrows` - [Create a new escrow](/api-reference/escrows/create-escrow)
 - `GET /escrows` - [List escrows](/api-reference/escrows/list-escrows) (with pagination and filters)
 - `GET /escrows/:id` - [Get escrow details](/api-reference/escrows/get-escrow)
@@ -156,6 +156,18 @@ Response includes pagination metadata:
   }
 }
 ```
+
+## Escrow Modes
+
+When creating an escrow, set `mode` to choose the transaction flow:
+
+| Mode | Use case | Contract | Completion |
+|------|----------|----------|------------|
+| `standard` | Services, freelance work | Yes | Buyer confirms after delivery |
+| `quick` | Products between two users | No | Buyer confirms after delivery |
+| `instant` | In-app digital goods (you are seller) | No | Auto-completes on deliver |
+
+See [Escrow Modes](/api-reference/escrows/overview#escrow-modes) for full details, required fields, and checkout actions per mode.
 
 ## Escrow Statuses
 

@@ -86,7 +86,12 @@ data = response.json()
 ## Request Body
 
 <ParamField body="action" type="string" required>
-  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below. **For instant escrows:** only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract` and `complete` return 400.
+  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
+
+  **By escrow mode:**
+  - **standard** — all actions apply when status allows.
+  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Use `accept_pay` then `complete`.
+  - **instant** — only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract` and `complete` return 400.
 </ParamField>
 
 <ParamField body="targetUserEmail" type="string" required>
@@ -143,6 +148,7 @@ When a request is rejected because of a business rule (e.g. the action is alread
 | `REDIRECT_URL_MUST_BE_HTTPS` | `redirectUrl` is not HTTPS (except `http://localhost`). |
 | `INSTANT_ESCROW_NO_CONTRACT` | Action is `sign_contract` but escrow is instant (no contract). Use `accept_pay` instead. |
 | `INSTANT_ESCROW_NO_COMPLETE_STEP` | Action is `complete` but escrow is instant; completion happens via deliver endpoint. |
+| `QUICK_ESCROW_NO_CONTRACT` | Action is `sign_contract` but escrow is quick (no contract). Use `accept_pay` instead. |
 | `CONTRACT_ALREADY_SIGNED` | Action is `sign_contract` and the target user has already signed the contract. |
 | `PAYMENT_ALREADY_DONE` | Action is `accept_pay` but the escrow is already paid, delivered, or completed. |
 | `ESCROW_ALREADY_COMPLETED` | Action is `complete` but the escrow is already completed. |

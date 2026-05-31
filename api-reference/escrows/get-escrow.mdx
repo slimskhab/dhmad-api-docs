@@ -155,7 +155,7 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.mode" type="string">
-  Escrow mode (`standard` — full contract/sign/deliver/complete flow; `instant` — no contract, auto-complete on deliver)
+  Escrow mode: `standard` (contract + sign + pay + deliver + complete), `quick` (no contract; pay + deliver + buyer confirms), or `instant` (no contract; auto-complete on deliver). See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
 </ParamField>
 
 <ParamField response="escrow.expiresAt" type="string">

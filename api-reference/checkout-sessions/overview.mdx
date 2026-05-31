@@ -9,19 +9,21 @@ Checkout Sessions provide a Stripe Checkout-style redirect flow for critical esc
 
 Checkout Sessions are short-lived, single-use sessions that direct a specific user to dhmad.tn to perform a critical escrow action. The user is authenticated on DHMAD, completes the action (e.g., signing a contract, accepting payment, completing delivery), and is then redirected back to your application with the result.
 
+Which checkout actions apply depends on the escrow **mode** — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes). In **standard** mode, buyers may need to sign a contract before paying; in **quick** mode there is no contract but the buyer still confirms after delivery; in **instant** mode only `accept_pay` is used and completion happens when you call the deliver endpoint.
+
 ## When to Use Checkout Sessions
 
 Use Checkout Sessions when your integration needs a user to perform one of these critical actions:
 
 <CardGroup cols={2}>
   <Card title="Sign Contract" icon="file-signature">
-    Redirect the buyer or seller to sign the escrow contract on dhmad.tn.
+    Redirect the buyer or seller to sign the escrow contract on dhmad.tn. **Standard mode only.**
   </Card>
   <Card title="Accept & Pay" icon="credit-card">
     Redirect the buyer to accept the contract and complete payment.
   </Card>
   <Card title="Complete" icon="check-circle">
-    Redirect the buyer to mark the escrow as complete and release funds to the seller.
+    Redirect the buyer to mark the escrow as complete and release funds to the seller. **Standard and quick modes** (not instant).
   </Card>
   <Card title="Dispute" icon="alert-triangle">
     Redirect either party to open a dispute on the escrow.

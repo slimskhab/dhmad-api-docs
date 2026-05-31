@@ -5,7 +5,7 @@ description: Retrieve contract details and PDF URL for an escrow
 
 <Endpoint method="GET" path="/api/v1/escrows/:id/contract" />
 
-Retrieve the contract details and PDF URL for a specific escrow transaction. You must be the seller or buyer of the escrow to access the contract. The response includes the contract terms, signing status, and a presigned URL to download the contract PDF.
+Retrieve the contract details and PDF URL for a specific escrow transaction. **Only standard mode escrows have a contract** — for quick or instant escrows this endpoint returns 404. You must be the seller or buyer of the escrow to access the contract. The response includes the contract terms, signing status, and a presigned URL to download the contract PDF.
 
 <RequestExample>
 ```bash cURL

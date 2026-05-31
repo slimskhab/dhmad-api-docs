@@ -5,22 +5,75 @@ description: Create an escrow via the public API
 
 <Endpoint method="POST" path="/api/v1/escrows" />
 
-Create a new escrow. Requires API key authentication. The platform fee (DHMAD's percentage) is applied automatically. **Instant** mode is only for when you are the seller (omit `sellerEmail`; "buy from the app"). **Developer fee** is only for when the seller is a third party (not your associated account); you can set a developer fee percentage so that a portion of the transaction is credited to your associated user account when the escrow completes.
+Create a new escrow. Requires API key authentication. The platform fee (DHMAD's percentage) is applied automatically.
+
+Choose the escrow **mode** based on your use case — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes) for a full comparison:
+
+- **`standard`** (default) — contract + sign + pay + deliver + complete. Use with `sellerEmail` for escrows between two parties.
+- **`quick`** — no contract; pay → deliver → buyer confirms. Use with `sellerEmail` for product sales without a contract.
+- **`instant`** — no contract; you are the seller (omit `sellerEmail`); pay → deliver auto-completes. Use for in-app digital goods.
+
+**Developer fee** is only for when the seller is a third party (not your associated account); you can set a developer fee percentage so that a portion of the transaction is credited to your associated user account when the escrow completes.
 
 <RequestExample>
 ```bash cURL
+# Standard mode — you are the seller with auto-sign (omit sellerEmail)
 curl -X POST https://dhmad.tn/api/v1/escrows \
   -H "Authorization: Bearer sk_live_your_api_key_here" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Website design",
+    "title": "Web Development Service",
+    "amount": 1000,
+    "currency": "TND",
+    "buyerEmail": "buyer@example.com",
+    "mode": "standard",
+    "estimatedDeliveryDays": 7,
+    "contractTerms": "The seller agrees to deliver a fully functional website within 7 days.",
+    "autoSign": true
+  }'
+```
+
+```bash cURL
+# Standard mode — service between two parties (third-party seller)
+curl -X POST https://dhmad.tn/api/v1/escrows \
     "amount": 500,
+    "currency": "TND",
     "buyerEmail": "buyer@example.com",
     "sellerEmail": "seller@example.com",
     "mode": "standard",
     "estimatedDeliveryDays": 14,
     "contractTerms": "Full design delivery and 2 revisions.",
     "developerFeePercentage": 5
+  }'
+```
+
+```bash cURL
+# Quick mode — product sale, no contract
+curl -X POST https://dhmad.tn/api/v1/escrows \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Premium template pack",
+    "amount": 150,
+    "currency": "TND",
+    "buyerEmail": "buyer@example.com",
+    "sellerEmail": "seller@example.com",
+    "mode": "quick",
+    "estimatedDeliveryDays": 3
+  }'
+```
+
+```bash cURL
+# Instant mode — you are the seller (in-app purchase)
+curl -X POST https://dhmad.tn/api/v1/escrows \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "100 AI credits",
+    "amount": 25,
+    "currency": "TND",
+    "buyerEmail": "buyer@example.com",
+    "mode": "instant"
   }'
 ```
 </RequestExample>
@@ -33,6 +86,8 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "id": "507f1f77bcf86cd799439011",
     "title": "Website design",
     "amount": 500,
+    "currency": "TND",
+    "amountTnd": 500,
     "escrowFee": 25,
     "developerFee": 25,
     "developerFeePercentage": 5,
@@ -44,10 +99,19 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "buyerEmail": "buyer@example.com",
     "estimatedDeliveryDays": 14,
     "createdAt": "2024-01-15T10:00:00.000Z"
+  },
+  "contract": {
+    "id": "507f1f77bcf86cd799439012",
+    "pdfUrl": null,
+    "sellerSigned": false,
+    "buyerSigned": false,
+    "isFullySigned": false
   }
 }
 ```
 </ResponseExample>
+
+For **quick** and **instant** modes, `contract` is `null`.
 
 ## Request Body
 
@@ -56,7 +120,11 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 </ParamField>
 
 <ParamField body="amount" type="number" required>
-  Amount in TND. Minimum 0.01 for instant mode; minimum 5 TND for standard mode.
+  Commercial face amount in `currency`. After FX lock, standard and quick modes require internal ledger value (`amountTnd`) of at least **5 TND**; instant mode requires at least **0.01 TND**.
+</ParamField>
+
+<ParamField body="currency" type="string" required={false}>
+  Face currency: `"TND"` (default), `"USD"`, or `"EUR"`. Ledger, fees, and payouts use `amountTnd` (TND) locked at creation.
 </ParamField>
 
 <ParamField body="buyerEmail" type="string" required>
@@ -64,23 +132,26 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 </ParamField>
 
 <ParamField body="sellerEmail" type="string" required={false}>
-  Email of the seller. If omitted, your developer account's associated user account is used as the seller (required for instant mode). If provided, the seller is that user or an invite; use **standard** mode for escrows between two other parties.
+  Email of the seller. If omitted, your developer account's associated user account is used as the seller (**required for instant mode**). If provided, the seller is that user or an invite. Use **standard** or **quick** mode for escrows between two other parties.
 </ParamField>
 
 <ParamField body="mode" type="string" required={false}>
-  `"standard"` (default) or `"instant"`. **Instant** is only allowed when you are the seller (omit `sellerEmail`; "buy from the app"). For escrows between two other parties, you must use `"standard"` and provide `sellerEmail`; if you send `mode: "instant"` with `sellerEmail`, the API returns **400**. Standard escrows use a contract and full sign / pay / deliver / complete flow; instant escrows have no contract and auto-complete on deliver.
+  `"standard"` (default), `"quick"`, or `"instant"`. See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
+  - **standard** — requires `contractTerms` and `estimatedDeliveryDays`; creates a contract.
+  - **quick** — requires `estimatedDeliveryDays`; do not send `contractTerms` or `autoSign`.
+  - **instant** — only when you are the seller (omit `sellerEmail`); do not send `contractTerms` or `autoSign`; `estimatedDeliveryDays` optional.
 </ParamField>
 
 <ParamField body="estimatedDeliveryDays" type="number" required={false}>
-  Required when `mode` is `"standard"`. Minimum 1 day.
+  Required when `mode` is `"standard"` or `"quick"`. Minimum 1 day. Optional for `"instant"` (defaults to 1).
 </ParamField>
 
 <ParamField body="contractTerms" type="string" required={false}>
-  Required when `mode` is `"standard"`. Contract text (max 10,000 characters).
+  Required when `mode` is `"standard"`. Contract text (max 10,000 characters). Not allowed for `"quick"` or `"instant"`.
 </ParamField>
 
 <ParamField body="autoSign" type="boolean" required={false}>
-  Default `false`. Not applicable for instant mode.
+  Default `false`. If true, the contract is automatically signed by the seller using the signature configured in the developer dashboard. Requires a signature to be set up first. Auto-sign is only available when you are the seller (**omit** `sellerEmail` so your associated user account is used). Do not combine `autoSign: true` with `sellerEmail`. Not applicable for `"quick"` or `"instant"` modes.
 </ParamField>
 
 <ParamField body="developerFeePercentage" type="number" required={false}>
@@ -91,6 +162,10 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 
 <ParamField response="id" type="string">
   Escrow ID.
+</ParamField>
+
+<ParamField response="mode" type="string">
+  Escrow mode: `standard`, `quick`, or `instant`.
 </ParamField>
 
 <ParamField response="escrowFee" type="number">
@@ -118,11 +193,22 @@ When `mode` is `"instant"` and `sellerEmail` is provided:
 ```json
 {
   "error": "Bad Request",
-  "message": "Instant mode is only available when you are the seller (omit sellerEmail). For escrows between two other parties, use mode: standard."
+  "message": "Instant mode is only available when you are the seller (omit sellerEmail). For escrows between two other parties, use mode: standard (with a contract) or mode: quick (no contract)."
 }
 ```
 
-Use **standard** mode and provide `sellerEmail` for escrows between two other parties.
+Use **standard** or **quick** mode and provide `sellerEmail` for escrows between two other parties.
+
+### 400 Bad Request – Contract terms on quick/instant mode
+
+When `mode` is `"quick"` or `"instant"` and `contractTerms` is provided:
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Contract terms are not applicable for quick mode (no contract is created). Use mode: standard to include a contract."
+}
+```
 
 ### 400 Bad Request – Developer fee when seller is your associated account
 
@@ -136,6 +222,25 @@ When `developerFeePercentage` is greater than 0 and the seller (resolved from th
 ```
 
 Omit `developerFeePercentage` or set it to 0 when you are the seller (or when the seller email is your associated account).
+
+### 400 Bad Request – Auto-sign not allowed
+
+When `autoSign` is `true` but the seller is not your associated user account (for example, you provided `sellerEmail` for a third party, or the seller has not registered yet):
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Auto-sign is only available when you are the seller (omit sellerEmail). When specifying a sellerEmail, the seller must sign the contract themselves."
+}
+```
+
+Other auto-sign failures return **400** with messages such as:
+
+- No signature configured in the developer dashboard.
+- Developer account not associated with a user account (when `sellerEmail` was provided for a third party).
+- `sellerEmail` refers to a user who has not registered yet (seller must sign after registering).
+
+When you are the seller, omit `sellerEmail`, set up your signature in the [Developer Dashboard](https://developer.dhmad.tn/dashboard), and ensure your developer account is associated with your DHMAD user account.
 
 ### 403 Forbidden – Developer fee without associated user
 
