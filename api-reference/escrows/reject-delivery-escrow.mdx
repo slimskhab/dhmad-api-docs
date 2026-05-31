@@ -1,0 +1,142 @@
+---
+title: Reject Delivery
+description: Buyer rejects delivery and returns the escrow to paid status
+---
+
+<Endpoint method="POST" path="/api/v1/escrows/:id/reject-delivery" />
+
+Buyer rejects the seller's delivery. The escrow reverts from `delivered` to `paid` so the seller can fix issues and deliver again. **Funds stay locked** — this does not release or move money.
+
+Only the **buyer** can perform this action, and the escrow must be in `delivered` status. Not applicable to **instant** mode escrows (which skip the `delivered` status).
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/reject-delivery \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"reason": "One item was missing from the shipment."}'
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/reject-delivery', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    reason: 'One item was missing from the shipment.'
+  })
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Delivery rejected. Escrow returned to paid status.",
+  "escrow": {
+    "id": "507f1f77bcf86cd799439011",
+    "title": "Web Development Service",
+    "amount": 1000.00,
+    "status": "paid",
+    "deliveredAt": null,
+    "completionDeadline": null,
+    "deliveryRejections": [
+      {
+        "rejectedAt": "2024-01-21T10:00:00Z",
+        "reason": "One item was missing from the shipment.",
+        "previousDeliveredAt": "2024-01-20T14:00:00Z"
+      }
+    ],
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-21T10:00:00Z"
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Request Body
+
+<ParamField body="reason" type="string">
+  Optional feedback for the seller explaining what needs to be fixed
+</ParamField>
+
+## Response Fields
+
+<ParamField response="message" type="string">
+  Success message
+</ParamField>
+
+<ParamField response="escrow" type="object">
+  Updated escrow object with status `paid` and rejection history in `deliveryRejections`
+</ParamField>
+
+## Error Responses
+
+### 400 Bad Request
+
+**Escrow Not Delivered**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Escrow must be in delivered status to reject delivery"
+}
+```
+
+**Open Dispute**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Cannot reject delivery while a dispute is open"
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+### 403 Forbidden
+
+**Only Buyer Can Reject**
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Only the buyer can reject delivery for this escrow"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+---
+
+<Warning>
+  Only the **buyer** can reject delivery. Your developer account must be associated with the buyer's user account. If you are the seller, you cannot call this endpoint.
+</Warning>
+
+<Info>
+  After rejection, the seller can call [Deliver Escrow](/api-reference/escrows/deliver-escrow) again when ready. The buyer can still [open a dispute](/api-reference/checkout-sessions/create-session) if issues cannot be resolved.
+
+  Subscribe to **`escrow.delivery.rejected`** in your [webhook](/guides/webhooks) to receive the buyer's optional `reason`, plus **`escrow.status.updated`** (`delivered` → `paid`).
+</Info>

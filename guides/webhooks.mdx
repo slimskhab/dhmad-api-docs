@@ -177,6 +177,13 @@ You can subscribe to the following events:
     `cancelled`, treat the payment attempt as closed. Subscribe if you use guest
     checkout for instant escrows.
   </Card>
+  <Card title="escrow.delivery.rejected" icon="rotate-left">
+    Triggered when the **buyer** rejects the seller's delivery. The escrow
+    status changes from `delivered` back to `paid` so the seller can fix issues
+    and deliver again. Includes `data.deliveryRejection.reason` when the buyer
+    provided feedback. An `escrow.status.updated` event (`delivered` → `paid`)
+    is also fired.
+  </Card>
 </CardGroup>
 
 ## Event Payload
@@ -381,6 +388,53 @@ Sent when a buyer or seller requests cancellation. The same payload structure ap
 }
 ```
 
+### escrow.delivery.rejected
+
+Sent when the buyer rejects delivery. The escrow moves from `delivered` back to `paid`. Subscribe to this event to read the buyer's optional feedback in `data.deliveryRejection.reason`. An `escrow.status.updated` event is also emitted.
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "type": "escrow.delivery.rejected",
+  "timestamp": "2024-01-20T16:30:00Z",
+  "data": {
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Web Development Service",
+      "amount": 1000.0,
+      "currency": "TND",
+      "amountTnd": 1000.0,
+      "escrowFee": 50.0,
+      "status": "paid",
+      "oldStatus": "delivered",
+      "seller": {
+        "_id": "507f1f77bcf86cd799439013",
+        "email": "seller@example.com",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      "buyer": {
+        "_id": "507f1f77bcf86cd799439014",
+        "email": "buyer@example.com",
+        "firstName": "Jane",
+        "lastName": "Smith"
+      },
+      "estimatedDeliveryDays": 7,
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-20T16:30:00Z"
+    },
+    "deliveryRejection": {
+      "reason": "One item was missing from the shipment.",
+      "rejectedAt": "2024-01-20T16:30:00Z",
+      "previousDeliveredAt": "2024-01-20T14:00:00Z",
+      "rejectedBy": "507f1f77bcf86cd799439014"
+    }
+  }
+}
+```
+
+If the buyer did not provide a reason, `deliveryRejection.reason` is omitted from the payload.
+
 ### Payload Fields
 
 <ParamField response="id" type="string">
@@ -389,8 +443,9 @@ Sent when a buyer or seller requests cancellation. The same payload structure ap
 
 <ParamField response="type" type="string">
   Event type: "escrow.status.updated", "contract.signed",
-  "escrow.cancellation.requested", "escrow.cancellation.rejected", or
-  "escrow.cancellation.accepted"
+  "escrow.cancellation.requested", "escrow.cancellation.rejected",
+  "escrow.cancellation.accepted", "escrow.delivery.rejected",
+  "escrow.updated", or "escrow.deposit_proof.rejected"
 </ParamField>
 
 <ParamField response="timestamp" type="string">

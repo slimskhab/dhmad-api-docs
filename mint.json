@@ -75,6 +75,7 @@
             "api-reference/escrows/get-contract",
             "api-reference/escrows/update-escrow",
             "api-reference/escrows/deliver-escrow",
+            "api-reference/escrows/reject-delivery-escrow",
             "api-reference/escrows/cancel-escrow"
           ]
         },
