@@ -3,7 +3,7 @@ title: Webhooks API
 description: Manage webhooks for real-time event notifications
 ---
 
-The Webhooks API allows you to create and manage webhooks that receive real-time notifications when escrow status changes, contracts are signed, cancellation requests are created, accepted, or rejected, or a buyer rejects delivery.
+The Webhooks API allows you to create and manage webhooks that receive real-time notifications when escrow status changes, contracts are signed, cancellation requests are created, accepted, or rejected, a buyer rejects delivery, or identity verification status changes.
 
 <Warning>
   You can create a maximum of 2 webhooks per developer account. Choose your
@@ -28,7 +28,9 @@ Create a new webhook endpoint to receive event notifications.
   `escrow.cancellation.rejected`, `escrow.cancellation.accepted`,
   `escrow.updated`, `escrow.deposit_proof.rejected` (guest instant-escrow
   payment proof rejected by admin), `escrow.delivery.rejected` (buyer rejected
-  delivery; includes optional reason). Default: `["escrow.status.updated"]`
+  delivery; includes optional reason), `identity.verification.updated`
+  (pre-account KYC approved or rejected), `identity.verification.linked`
+  (KYC attached when user registers on DHMAD). Default: `["escrow.status.updated"]`
 </ParamField>
 
 ### Example Request

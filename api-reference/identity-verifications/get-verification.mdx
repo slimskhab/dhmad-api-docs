@@ -1,0 +1,148 @@
+---
+title: Get Identity Verification
+description: Retrieve the status of a pre-account identity verification session
+---
+
+<Endpoint method="GET" path="/api/v1/identity-verifications/:id" />
+
+Retrieve the current status of an identity verification session you created. Only verifications owned by your developer account (via the API key) are accessible.
+
+<RequestExample>
+```bash cURL
+curl -X GET https://sandbox.dhmad.tn/api/v1/identity-verifications/6655abc1234567890abcdef12 \
+  -H "Authorization: Bearer sk_sandbox_your_api_key_here"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://sandbox.dhmad.tn/api/v1/identity-verifications/6655abc1234567890abcdef12',
+  {
+    headers: {
+      'Authorization': 'Bearer sk_sandbox_your_api_key_here'
+    }
+  }
+);
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://sandbox.dhmad.tn/api/v1/identity-verifications/6655abc1234567890abcdef12',
+    headers={'Authorization': 'Bearer sk_sandbox_your_api_key_here'}
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "id": "6655abc1234567890abcdef12",
+  "email": "seller@example.com",
+  "external_user_id": "seller_42",
+  "kyc_status": "approved",
+  "didit_session_status": "completed",
+  "needs_admin_review": false,
+  "claim_status": "pending",
+  "linked_user_id": null,
+  "linked_at": null,
+  "created_at": "2026-06-06T12:00:00.000Z",
+  "updated_at": "2026-06-06T14:30:00.000Z",
+  "expires_at": "2026-09-04T12:00:00.000Z",
+  "verification_email_sent": true,
+  "verification_email_sent_at": "2026-06-06T12:00:00.000Z"
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Verification ID returned from [Create verification](/api-reference/identity-verifications/create-verification)
+</ParamField>
+
+## Response Fields
+
+<ParamField response="id" type="string">
+  Verification record ID
+</ParamField>
+
+<ParamField response="email" type="string">
+  User email address
+</ParamField>
+
+<ParamField response="external_user_id" type="string">
+  Your reference ID, or `null`
+</ParamField>
+
+<ParamField response="kyc_status" type="string">
+  `pending`, `approved`, or `rejected`
+</ParamField>
+
+<ParamField response="didit_session_status" type="string">
+  Didit session state (e.g. `in_progress`, `completed`), or `null`
+</ParamField>
+
+<ParamField response="needs_admin_review" type="boolean">
+  Whether DHMAD admin review is required before a final status
+</ParamField>
+
+<ParamField response="claim_status" type="string">
+  `pending` or `linked`
+</ParamField>
+
+<ParamField response="linked_user_id" type="string">
+  DHMAD user ID after the user registers, or `null`
+</ParamField>
+
+<ParamField response="linked_at" type="string">
+  ISO 8601 timestamp when linked to a DHMAD account, or `null`
+</ParamField>
+
+<ParamField response="verification_email_sent" type="boolean">
+  Whether an invite email was sent
+</ParamField>
+
+<ParamField response="verification_email_sent_at" type="string">
+  ISO 8601 timestamp of the last invite email, or `null`
+</ParamField>
+
+<ParamField response="created_at" type="string">
+  ISO 8601 creation timestamp
+</ParamField>
+
+<ParamField response="updated_at" type="string">
+  ISO 8601 last update timestamp
+</ParamField>
+
+<ParamField response="expires_at" type="string">
+  ISO 8601 expiry hint, or `null`
+</ParamField>
+
+<Note>
+  **`verification_url` is not returned.** Use webhooks as the primary way to learn when status changes.
+</Note>
+
+## Error Responses
+
+**Invalid ID:**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "Invalid verification ID"
+}
+```
+
+**Not found:**
+
+```json
+{
+  "error": "Not Found",
+  "message": "Verification not found"
+}
+```

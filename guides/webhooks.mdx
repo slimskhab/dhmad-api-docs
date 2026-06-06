@@ -1,17 +1,18 @@
 ---
 title: Webhooks
-description: Set up real-time notifications for escrow and contract events
+description: Set up real-time notifications for escrow, contract, and identity verification events
 ---
 
-Webhooks allow you to receive real-time notifications when events occur in your escrow transactions. This guide explains how to set up and use webhooks.
+Webhooks allow you to receive real-time notifications when events occur in your escrow transactions or identity verification sessions. This guide explains how to set up and use webhooks.
 
 ## Overview
 
-Webhooks are HTTP callbacks that notify your application when escrow or contract events occur. Instead of polling the API, you can receive instant notifications when:
+Webhooks are HTTP callbacks that notify your application when escrow, contract, or identity verification events occur. Instead of polling the API, you can receive instant notifications when:
 
 - Escrow status changes (pending → paid → delivered → completed → cancelled)
 - Escrows are cancelled
 - A contract is signed by the seller or buyer
+- Pre-account KYC status changes or links to a DHMAD user account
 - Any status update occurs
 
 ## Setting Up Webhooks
@@ -183,6 +184,16 @@ You can subscribe to the following events:
     and deliver again. Includes `data.deliveryRejection.reason` when the buyer
     provided feedback. An `escrow.status.updated` event (`delivered` → `paid`)
     is also fired.
+  </Card>
+  <Card title="identity.verification.updated" icon="id-card">
+    Triggered when a [pre-account identity verification](/guides/kyc-for-marketplaces)
+    `kyc_status` becomes `approved` or `rejected` (Didit result, admin review,
+    or sandbox auto-approve). Not sent while Didit returns an ambiguous pending
+    result awaiting admin review.
+  </Card>
+  <Card title="identity.verification.linked" icon="link">
+    Triggered when the user registers on DHMAD with the same email and approved
+    KYC is attached to their account. Includes `linked_user_id`.
   </Card>
 </CardGroup>
 
@@ -435,6 +446,58 @@ Sent when the buyer rejects delivery. The escrow moves from `delivered` back to 
 
 If the buyer did not provide a reason, `deliveryRejection.reason` is omitted from the payload.
 
+## Identity verification events
+
+Subscribe to these when you use [pre-account KYC](/guides/kyc-for-marketplaces).
+
+### identity.verification.updated
+
+Sent when `kyc_status` becomes `approved` or `rejected`.
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "type": "identity.verification.updated",
+  "timestamp": "2026-06-06T14:30:00.000Z",
+  "data": {
+    "id": "6655abc1234567890abcdef12",
+    "external_user_id": "seller_42",
+    "email": "seller@example.com",
+    "kyc_status": "approved",
+    "previous_kyc_status": "pending",
+    "needs_admin_review": false,
+    "linked_user_id": null,
+    "status_source": "didit",
+    "claim_status": "pending",
+    "updated_at": "2026-06-06T14:30:00.000Z"
+  }
+}
+```
+
+<ParamField response="data.status_source" type="string">
+  How the status was set: `didit`, `admin_review`, or `sandbox`
+</ParamField>
+
+### identity.verification.linked
+
+Sent when the user creates a DHMAD account and KYC is attached.
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "type": "identity.verification.linked",
+  "timestamp": "2026-06-10T09:00:00.000Z",
+  "data": {
+    "id": "6655abc1234567890abcdef12",
+    "external_user_id": "seller_42",
+    "email": "seller@example.com",
+    "kyc_status": "approved",
+    "linked_user_id": "6655user1234567890abcdef",
+    "linked_at": "2026-06-10T09:00:00.000Z"
+  }
+}
+```
+
 ### Payload Fields
 
 <ParamField response="id" type="string">
@@ -445,7 +508,8 @@ If the buyer did not provide a reason, `deliveryRejection.reason` is omitted fro
   Event type: "escrow.status.updated", "contract.signed",
   "escrow.cancellation.requested", "escrow.cancellation.rejected",
   "escrow.cancellation.accepted", "escrow.delivery.rejected",
-  "escrow.updated", or "escrow.deposit_proof.rejected"
+  "escrow.updated", "escrow.deposit_proof.rejected",
+  "identity.verification.updated", or "identity.verification.linked"
 </ParamField>
 
 <ParamField response="timestamp" type="string">

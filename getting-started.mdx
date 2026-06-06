@@ -102,7 +102,7 @@ curl -X GET https://dhmad.tn/api/v1/balance \
 
 ## Step 6: Set Up Webhooks (Optional)
 
-To receive real-time notifications when escrow status changes:
+To receive real-time notifications when escrow status changes or identity verification completes:
 
 1. Create a webhook endpoint in your application
 2. Add the webhook URL in the [Developer Dashboard](https://developer.dhmad.tn/dashboard)
@@ -110,10 +110,15 @@ To receive real-time notifications when escrow status changes:
 
 See the [Webhooks Guide](/guides/webhooks) for complete setup instructions.
 
+## Verify users before DHMAD signup (Optional)
+
+If your marketplace needs sellers verified before they create a dhmad.tn account, use the [Identity Verifications API](/guides/kyc-for-marketplaces). DHMAD emails the user a Didit link (never returned to your API) and links KYC when they register with the same email.
+
 ## Next Steps
 
 - **[Authentication Guide](/authentication)** - Learn about API authentication
 - **[Quickstart Tutorial](/quickstart)** - Build a complete example
+- **[KYC for marketplaces](/guides/kyc-for-marketplaces)** - Verify users before DHMAD signup
 - **[API Reference](/api-reference/overview)** - Explore all available endpoints
 - **[Webhooks Guide](/guides/webhooks)** - Set up real-time notifications
 - **[Best Practices](/guides/best-practices)** - Learn how to use the API effectively

@@ -1,0 +1,102 @@
+---
+title: Identity Verifications Overview
+description: Pre-account KYC for users who do not yet have a DHMAD account
+---
+
+The Identity Verifications API lets you start **Didit KYC** for a user by email **before** they register on [dhmad.tn](https://dhmad.tn). DHMAD sends the verification link by email, stores the result, and links it when the user later creates an account with the same email.
+
+<Info>
+  For a full integration walkthrough, see [KYC for marketplaces](/guides/kyc-for-marketplaces).
+</Info>
+
+## What you get
+
+<CardGroup cols={2}>
+  <Card title="Pre-account verification" icon="user-check">
+    Verify sellers or buyers during your onboarding, even without a DHMAD account
+  </Card>
+  <Card title="Email-based flow" icon="mail">
+    DHMAD emails the Didit link — the session URL is never returned to your API
+  </Card>
+  <Card title="Automatic linking" icon="link">
+    Approved KYC attaches when the user registers with the same email
+  </Card>
+  <Card title="Webhooks" icon="bolt">
+    `identity.verification.updated` and `identity.verification.linked` events
+  </Card>
+</CardGroup>
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/identity-verifications` | [Create session](/api-reference/identity-verifications/create-verification) and send invite email |
+| `GET` | `/api/v1/identity-verifications/:id` | [Get status](/api-reference/identity-verifications/get-verification) |
+| `GET` | `/api/v1/identity-verifications?email=` | [List by email](/api-reference/identity-verifications/list-verifications) |
+
+All endpoints require API key authentication. They do **not** require associating your developer account with a user account.
+
+## Typical flow
+
+1. **Create** — `POST` with `email`, optional `external_user_id`, optional `redirect_url`
+2. **User completes Didit** — from the DHMAD verification email (production only)
+3. **Webhook** — `identity.verification.updated` when status becomes `approved` or `rejected`
+4. **User registers on DHMAD** — same email, email OTP verified
+5. **Webhook** — `identity.verification.linked` with `linked_user_id`
+
+## Important constraints
+
+<Warning>
+  **`verification_url` is never returned.** You cannot embed or redirect to Didit from your app using the API response. The user must complete KYC from the DHMAD email.
+</Warning>
+
+<Warning>
+  If you pass `redirect_url`, it must match an **allowed redirect URL** in [Developer Dashboard settings](https://developer.dhmad.tn/dashboard/settings). Same validation as checkout sessions.
+</Warning>
+
+<Warning>
+  On **sandbox**, verifications are **auto-approved** immediately with no Didit or invite email. Production behavior is different — see [Sandbox behavior](#sandbox-behavior).
+</Warning>
+
+## Response fields (common)
+
+| Field | Description |
+|-------|-------------|
+| `id` | Verification record ID |
+| `email` | User email (lowercased) |
+| `external_user_id` | Your reference, if provided |
+| `kyc_status` | `pending`, `approved`, or `rejected` |
+| `claim_status` | `pending` until linked to a DHMAD user |
+| `linked_user_id` | DHMAD user ID after registration, or `null` |
+| `verification_email_sent` | Whether the invite email was sent |
+| `verification_email_sent_at` | ISO timestamp of last invite email |
+| `expires_at` | Record expiry hint (default 90 days) |
+
+## Error codes
+
+| Status | Meaning |
+|--------|---------|
+| `409` | DHMAD user with this email already has **approved** KYC (`user_exists: true`) |
+| `400` | Invalid email, invalid ID, or `redirect_url` not in allowed list |
+| `403` | Blocked email domain |
+| `404` | Verification not found (or not owned by your developer account) |
+
+## Sandbox behavior
+
+When using `https://sandbox.dhmad.tn/api/v1` with a `sk_sandbox_*` key:
+
+- New verifications are **auto-approved** immediately
+- **No Didit flow** and **no verification email**
+- Webhook `identity.verification.updated` fires with `status_source: "sandbox"`
+
+Use sandbox to test webhook handling and your onboarding logic. Validate the production email + Didit flow before launch.
+
+## Monitoring in the dashboard
+
+View sessions started by your API keys in [Developer Dashboard → Identity verifications](https://developer.dhmad.tn/dashboard/kyc). Document images and full Didit payloads are not shown — use webhooks or the GET endpoints from your backend.
+
+## Related
+
+- [KYC for marketplaces](/guides/kyc-for-marketplaces) — step-by-step integration guide
+- [Webhooks](/guides/webhooks#identity-verification-events) — event payloads
+- [OAuth userinfo](/api-reference/oauth/userinfo) — read `kyc_verified` for connected users

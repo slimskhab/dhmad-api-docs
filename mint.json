@@ -88,6 +88,15 @@
           ]
         },
         {
+          "group": "Identity Verifications",
+          "pages": [
+            "api-reference/identity-verifications/overview",
+            "api-reference/identity-verifications/create-verification",
+            "api-reference/identity-verifications/get-verification",
+            "api-reference/identity-verifications/list-verifications"
+          ]
+        },
+        {
           "group": "OAuth 2.0",
           "pages": [
             "api-reference/oauth/authorize",
@@ -103,6 +112,7 @@
       "group": "Guides",
       "pages": [
         "guides/sandbox",
+        "guides/kyc-for-marketplaces",
         "guides/oauth-setup",
         "guides/checkout-sessions",
         "guides/api-keys",

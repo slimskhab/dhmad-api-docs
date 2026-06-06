@@ -1,0 +1,90 @@
+---
+title: List Identity Verifications by Email
+description: List pre-account verification sessions for a given email address
+---
+
+<Endpoint method="GET" path="/api/v1/identity-verifications" />
+
+List identity verification sessions you created for a specific email address. Results are sorted by creation time (newest first), limited to 20 records.
+
+<RequestExample>
+```bash cURL
+curl -G "https://sandbox.dhmad.tn/api/v1/identity-verifications" \
+  --data-urlencode "email=seller@example.com" \
+  -H "Authorization: Bearer sk_sandbox_your_api_key_here"
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({ email: 'seller@example.com' });
+const response = await fetch(
+  `https://sandbox.dhmad.tn/api/v1/identity-verifications?${params}`,
+  {
+    headers: {
+      'Authorization': 'Bearer sk_sandbox_your_api_key_here'
+    }
+  }
+);
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://sandbox.dhmad.tn/api/v1/identity-verifications',
+    params={'email': 'seller@example.com'},
+    headers={'Authorization': 'Bearer sk_sandbox_your_api_key_here'}
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "verifications": [
+    {
+      "id": "6655abc1234567890abcdef12",
+      "email": "seller@example.com",
+      "external_user_id": "seller_42",
+      "kyc_status": "approved",
+      "didit_session_status": "completed",
+      "needs_admin_review": false,
+      "claim_status": "linked",
+      "linked_user_id": "6655user1234567890abcdef",
+      "linked_at": "2026-06-10T09:00:00.000Z",
+      "created_at": "2026-06-06T12:00:00.000Z",
+      "updated_at": "2026-06-10T09:00:00.000Z",
+      "expires_at": "2026-09-04T12:00:00.000Z",
+      "verification_email_sent": true,
+      "verification_email_sent_at": "2026-06-06T12:00:00.000Z"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Query Parameters
+
+<ParamField query="email" type="string" required>
+  Email address to look up. Lowercased on input.
+</ParamField>
+
+## Response Fields
+
+<ParamField response="verifications" type="array">
+  Array of verification objects with the same fields as [Get verification](/api-reference/identity-verifications/get-verification)
+</ParamField>
+
+## Error Responses
+
+**Missing email:**
+
+```json
+{
+  "error": "Bad Request",
+  "message": "email query parameter is required"
+}
+```

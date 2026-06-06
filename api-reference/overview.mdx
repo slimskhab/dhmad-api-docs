@@ -66,6 +66,19 @@ Checkout Sessions let you redirect users to dhmad.tn to perform critical escrow 
 - `POST /escrows/:id/sessions` - [Create checkout session](/api-reference/checkout-sessions/create-session) — create a session and get a redirect URL
 - `GET /sessions/:sessionId` - [Get checkout session](/api-reference/checkout-sessions/get-session) — verify session status after redirect
 
+### Identity Verifications
+
+Verify users through DHMAD **before** they have a dhmad.tn account. DHMAD emails the user a Didit KYC link (the URL is never returned to your API). When they later register with the same email, KYC links automatically. See the [KYC for marketplaces guide](/guides/kyc-for-marketplaces).
+
+- **[Overview](/api-reference/identity-verifications/overview)** — Pre-account KYC flow, sandbox behavior, and constraints
+- `POST /identity-verifications` - [Create verification](/api-reference/identity-verifications/create-verification) — start KYC and send invite email
+- `GET /identity-verifications/:id` - [Get verification](/api-reference/identity-verifications/get-verification) — poll status
+- `GET /identity-verifications?email=` - [List by email](/api-reference/identity-verifications/list-verifications)
+
+<Warning>
+  If you pass `redirect_url`, it must be in your **allowed redirect URLs** (Developer Dashboard → Settings). On **sandbox**, verifications auto-approve without Didit or email — production behavior differs.
+</Warning>
+
 ### OAuth 2.0
 
 OAuth endpoints for Single Sign-On (SSO) integration. See the [OAuth Setup Guide](/guides/oauth-setup) for implementation details.
