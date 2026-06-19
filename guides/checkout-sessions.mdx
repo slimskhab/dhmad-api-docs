@@ -9,7 +9,7 @@ Checkout Sessions let you redirect users to dhmad.tn to perform critical escrow 
 
 ## Introduction
 
-When your application needs a user to perform an escrow action that requires DHMAD's hosted UI (e.g., contract signing, payment, completion), you:
+When your application needs a user to perform an escrow action that requires DHMAD's hosted UI (e.g., contract signing, payment, proof upload/review, completion), you:
 
 1. Create a checkout session via the API
 2. Redirect the user to the session URL
@@ -37,7 +37,7 @@ Before creating any checkout sessions, add your redirect URLs in the [Developer 
 
 Call `POST /api/v1/escrows/:id/sessions` with:
 
-- **action** — The action type (e.g., `sign_contract`, `accept_pay`, `complete`)
+- **action** — The action type (e.g., `sign_contract`, `accept_pay`, `submit_proof`, `review_proof`, `complete`)
 - **targetUserEmail** — Email of the user who will perform the action
 - **redirectUrl** — Your callback URL (must match an allowed URL)
 - **metadata** (optional) — Key-value pairs for your own tracking
@@ -216,6 +216,10 @@ For escrows created with `mode: "instant"` (e.g. in-app coins, AI credits), use 
 ### What about quick escrows (products without a contract)?
 
 For escrows created with `mode: "quick"` (e.g. physical or digital products between two users), use **accept_pay** then **complete** after the seller delivers. There is no contract to sign — `sign_contract` returns 400. See [Escrow Modes — Quick](/api-reference/escrows/overview#quick-mode) in the Escrows overview.
+
+### What about Quick Escrow with Proof?
+
+When you set `fulfillmentPolicy.type: "purchase_proof_required"` at creation, add **`submit_proof`** (seller uploads after pay) and **`review_proof`** (buyer accepts or requests corrections) before the seller can deliver. Fetch proof files with [GET /escrows/:id/proof](/api-reference/escrows/get-escrow-proof). See the [Quick Escrow with Proof guide](/guides/quick-escrow-with-proof).
 
 ---
 

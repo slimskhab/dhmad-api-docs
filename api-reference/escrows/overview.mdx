@@ -57,6 +57,17 @@ When creating an escrow, set the `mode` field to choose the transaction flow. Al
 
 **State flow:** `pending` → `paid` → `delivered` → `completed`
 
+### Quick mode with purchase proof
+
+Add **`fulfillmentPolicy`** when you need the seller to prove purchase or shipment **before** delivery is unlocked — e.g. marketplaces, crowd-shipping, or product-deal apps.
+
+- Set `mode: "quick"` **and** `fulfillmentPolicy.type: "purchase_proof_required"`.
+- After the buyer pays, escrow `status` stays `paid` while **`proofInfo.phase`** tracks the proof gate (`waiting_seller_proof` → review → `accepted`).
+- Checkout actions: `accept_pay` → **`submit_proof`** (seller) → **`review_proof`** (buyer) → (seller delivers) → `complete`.
+- Fetch proof files with **[GET /escrows/:id/proof](/api-reference/escrows/get-escrow-proof)**; handle **`escrow.proof.*`** webhooks.
+
+See the **[Quick Escrow with Proof guide](/guides/quick-escrow-with-proof)** for the full walkthrough.
+
 ### Instant mode
 
 For digital goods (e.g. in-app coins, AI credits), the full standard flow has too many steps and can hurt conversion. Use **instant** when you are the seller:
@@ -85,6 +96,8 @@ For digital goods (e.g. in-app coins, AI credits), the full standard flow has to
 | Checkout: `sign_contract` | Yes | No (400) | No (400) |
 | Checkout: `accept_pay` | Yes | Yes | Yes |
 | Checkout: `complete` | Yes | Yes | No (400) |
+| `fulfillmentPolicy` (proof gate) | No | Optional | No |
+| Checkout: `submit_proof` / `review_proof` | No | When proof enabled | No |
 
 ## Escrow Statuses
 
@@ -135,6 +148,7 @@ These endpoints can be called directly from your server using your API key:
 - **[Create Escrow](/api-reference/escrows/create-escrow)** - Create a new escrow transaction
 - **[List Escrows](/api-reference/escrows/list-escrows)** - Get a paginated list of escrows
 - **[Get Escrow](/api-reference/escrows/get-escrow)** - Get detailed information about a specific escrow
+- **[Get Escrow Proof](/api-reference/escrows/get-escrow-proof)** - Proof attachments with `viewUrl` (Quick Escrow with Proof)
 - **[Get Contract](/api-reference/escrows/get-contract)** - Get contract details and PDF URL (standard mode only)
 - **[Update Escrow](/api-reference/escrows/update-escrow)** - Update a pending escrow
 - **[Deliver Escrow](/api-reference/escrows/deliver-escrow)** - Seller marks escrow as delivered
@@ -147,6 +161,8 @@ For actions that require user interaction, use [Checkout Sessions](/api-referenc
 
 - **Sign Contract** — User signs the escrow contract (**standard** mode only)
 - **Accept & Pay** — Buyer reviews and pays for the escrow (all modes)
+- **Submit proof** — Seller uploads purchase/shipment proof ([Quick Escrow with Proof](/guides/quick-escrow-with-proof) only)
+- **Review proof** — Buyer accepts proof or requests corrections (proof escrows only)
 - **Complete** — Buyer confirms delivery and releases funds (**standard** and **quick** modes; not instant)
 - **Dispute** — User opens a dispute
 - **Request/Reject/Accept Cancellation** — Cancellation flow for paid or delivered escrows

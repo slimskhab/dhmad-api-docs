@@ -72,6 +72,7 @@
             "api-reference/escrows/create-escrow",
             "api-reference/escrows/list-escrows",
             "api-reference/escrows/get-escrow",
+            "api-reference/escrows/get-escrow-proof",
             "api-reference/escrows/get-contract",
             "api-reference/escrows/update-escrow",
             "api-reference/escrows/deliver-escrow",
@@ -112,6 +113,7 @@
       "group": "Guides",
       "pages": [
         "guides/sandbox",
+        "guides/quick-escrow-with-proof",
         "guides/kyc-for-marketplaces",
         "guides/oauth-setup",
         "guides/checkout-sessions",

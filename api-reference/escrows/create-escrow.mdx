@@ -10,7 +10,7 @@ Create a new escrow. Requires API key authentication. The platform fee (DHMAD's 
 Choose the escrow **mode** based on your use case — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes) for a full comparison:
 
 - **`standard`** (default) — contract + sign + pay + deliver + complete. Use with `sellerEmail` for escrows between two parties.
-- **`quick`** — no contract; pay → deliver → buyer confirms. Use with `sellerEmail` for product sales without a contract.
+- **`quick`** — no contract; pay → deliver → buyer confirms. Use with `sellerEmail` for product sales without a contract. Optionally add **`fulfillmentPolicy`** for [Quick Escrow with Proof](/guides/quick-escrow-with-proof) (seller uploads proof before delivery).
 - **`instant`** — no contract; you are the seller (omit `sellerEmail`); pay → deliver auto-completes. Use for in-app digital goods.
 
 **Developer fee** is only for when the seller is a third party (not your associated account); you can set a developer fee percentage so that a portion of the transaction is credited to your associated user account when the escrow completes.
@@ -36,6 +36,10 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 ```bash cURL
 # Standard mode — service between two parties (third-party seller)
 curl -X POST https://dhmad.tn/api/v1/escrows \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Logo design package",
     "amount": 500,
     "currency": "TND",
     "buyerEmail": "buyer@example.com",
@@ -44,6 +48,28 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "estimatedDeliveryDays": 14,
     "contractTerms": "Full design delivery and 2 revisions.",
     "developerFeePercentage": 5
+  }'
+```
+
+```bash cURL
+# Quick mode with purchase proof — seller must prove purchase before delivery
+curl -X POST https://dhmad.tn/api/v1/escrows \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "iPhone 15 from Dubai",
+    "amount": 2500,
+    "currency": "TND",
+    "buyerEmail": "buyer@example.com",
+    "sellerEmail": "seller@example.com",
+    "mode": "quick",
+    "estimatedDeliveryDays": 7,
+    "fulfillmentPolicy": {
+      "type": "purchase_proof_required",
+      "proofUploadDeadlineHours": 24,
+      "buyerReviewDeadlineHours": 24,
+      "allowedProofTypes": ["receipt", "tracking_proof", "product_photo"]
+    }
   }'
 ```
 
@@ -157,6 +183,27 @@ For **quick** and **instant** modes, `contract` is `null`.
 <ParamField body="developerFeePercentage" type="number" required={false}>
   Optional percentage (0–25) of the escrow amount, credited to your developer account's associated user when the escrow completes. **Only allowed when the seller is a third party** (not your associated user account). Not allowed when the seller is your associated account (whether you omit `sellerEmail` or pass that same email); if violated, the API returns **400**. Default is **0**. This amount is deducted from the seller's payout (in addition to the platform fee). If you set a value greater than 0, your developer account **must be associated with a user account** in the developer dashboard; otherwise the request returns **403 Forbidden**.
 </ParamField>
+
+<ParamField body="fulfillmentPolicy" type="object" required={false}>
+  **Quick Escrow with Proof** — only allowed when `mode` is `"quick"`. Requires the seller to upload purchase/shipment proof after the buyer pays; the buyer reviews on DHMAD before delivery is unlocked. See the [Quick Escrow with Proof guide](/guides/quick-escrow-with-proof).
+
+  - **`type`** (required when set) — must be `"purchase_proof_required"`.
+  - **`proofUploadDeadlineHours`** — hours for seller upload after funding (must be within platform bounds, default 6–72h; returns **400** if out of range; default 24h when omitted).
+  - **`buyerReviewDeadlineHours`** — hours for buyer review (same bounds; auto-accept if buyer does nothing).
+  - **`allowedProofTypes`** — optional UI hints: `receipt`, `order_confirmation`, `product_photo`, `tracking_proof`, `other`. Informational only; DHMAD does not enforce uploads against this list.
+</ParamField>
+
+## Quick Escrow with Proof
+
+When `fulfillmentPolicy.type` is `purchase_proof_required`:
+
+1. Buyer pays via `accept_pay` checkout session.
+2. Seller uploads proof via `submit_proof` checkout session.
+3. Buyer reviews via `review_proof` checkout session (or proof auto-accepts after deadline).
+4. Seller delivers only after proof is accepted (`proofInfo.phase` is `accepted` or `accepted_by_timeout`).
+5. Fetch proof files with **[GET /escrows/:id/proof](/api-reference/escrows/get-escrow-proof)**; subscribe to `escrow.proof.*` webhooks.
+
+Escrow `status` remains `paid` during the proof gate; use `proofInfo.phase` and proof webhooks for progress.
 
 ## Response Fields (escrow object)
 

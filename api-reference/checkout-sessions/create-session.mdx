@@ -86,12 +86,12 @@ data = response.json()
 ## Request Body
 
 <ParamField body="action" type="string" required>
-  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
+  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`, `submit_proof`, `review_proof`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
 
   **By escrow mode:**
-  - **standard** — all actions apply when status allows.
-  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Use `accept_pay` then `complete`.
-  - **instant** — only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract` and `complete` return 400.
+  - **standard** — all actions apply when status allows (except proof actions).
+  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Use `accept_pay` then `complete`. With [Quick Escrow with Proof](/guides/quick-escrow-with-proof), use `submit_proof` (seller) and `review_proof` (buyer) while `proofInfo.phase` requires them.
+  - **instant** — only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract`, `complete`, and proof actions return 400.
 </ParamField>
 
 <ParamField body="targetUserEmail" type="string" required>

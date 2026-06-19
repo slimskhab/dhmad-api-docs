@@ -76,7 +76,15 @@ data = response.json()
     "updatedAt": "2024-01-16T09:00:00Z",
     "createdViaThirdParty": true,
     "createdByApplicationName": "My App",
-    "disputeInfo": { "attachments": [] },
+    "disputeTicketId": "65f1a2b3c4d5e6f7a8b9c0d1",
+    "disputeTicket": {
+      "ticketNumber": "DHM-00042",
+      "type": "dispute",
+      "subject": "Dispute: Website redesign",
+      "status": "open",
+      "createdAt": "2024-01-17T10:00:00Z",
+      "previewReason": "Delivered work does not match the agreed scope."
+    },
     "signatures": {
       "sellerSigned": true,
       "sellerSignedAt": "2024-01-15T11:00:00Z",
@@ -170,8 +178,12 @@ data = response.json()
   Name of the application that created the escrow (when created via API)
 </ParamField>
 
-<ParamField response="escrow.disputeInfo" type="object">
-  Dispute-related data (e.g. `attachments`); present when applicable
+<ParamField response="escrow.disputeTicketId" type="string|null">
+  ID of the linked dispute support ticket, or `null` when no dispute ticket exists
+</ParamField>
+
+<ParamField response="escrow.disputeTicket" type="object|null">
+  Summary of the linked dispute ticket (status, subject, preview reason); present when `disputeTicketId` is set
 </ParamField>
 
 <ParamField response="escrow.signatures" type="object|null">

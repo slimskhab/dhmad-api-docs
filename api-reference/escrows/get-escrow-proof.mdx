@@ -1,0 +1,112 @@
+---
+title: Get Escrow Proof
+description: Fetch purchase proof with viewable attachment URLs
+---
+
+<Endpoint method="GET" path="/api/v1/escrows/:id/proof" />
+
+Returns the proof lifecycle for **Quick Escrow with Proof** escrows, including time-limited **`viewUrl`** links you can show on your site. Raw S3 keys are never returned.
+
+Only available when the escrow was created with `fulfillmentPolicy.type: "purchase_proof_required"`. Requires API key access to the escrow (you created it or your associated user is buyer/seller).
+
+<RequestExample>
+```bash cURL
+curl -X GET https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/proof \
+  -H "Authorization: Bearer sk_live_your_api_key_here"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  "https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/proof",
+  {
+    headers: { Authorization: "Bearer sk_live_your_api_key_here" },
+  }
+);
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "proof": {
+    "phase": "submitted_waiting_buyer_review",
+    "correctionRounds": 0,
+    "uploadDeadline": "2026-06-20T10:00:00.000Z",
+    "reviewDeadline": "2026-06-21T10:00:00.000Z",
+    "submissionCount": 1,
+    "submissions": [
+      {
+        "submittedAt": "2026-06-19T14:00:00.000Z",
+        "note": "Receipt from Apple Store",
+        "attachments": [
+          {
+            "mimeType": "image/jpeg",
+            "viewUrl": "https://cdn.dhmad.tn/escrow-proof/..."
+          }
+        ]
+      }
+    ],
+    "latestSubmission": {
+      "submittedAt": "2026-06-19T14:00:00.000Z",
+      "note": "Receipt from Apple Store",
+      "attachments": [
+        {
+          "mimeType": "image/jpeg",
+          "viewUrl": "https://cdn.dhmad.tn/escrow-proof/..."
+        }
+      ]
+    },
+    "checkoutActions": [
+      {
+        "action": "review_proof",
+        "targetUserEmail": "buyer@example.com",
+        "description": "Create a checkout session with this action and redirect the buyer to DHMAD to accept the proof or request corrections."
+      }
+    ]
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Response Fields
+
+<ParamField response="proof.phase" type="string">
+  Current proof phase: `waiting_seller_proof`, `submitted_waiting_buyer_review`, `correction_requested`, `accepted`, `accepted_by_timeout`, `expired_no_proof`, `needs_dhmad_review`, etc.
+</ParamField>
+
+<ParamField response="proof.submissions" type="array">
+  All proof submissions with `submittedAt`, optional `note`, and `attachments` (`mimeType`, `viewUrl`).
+</ParamField>
+
+<ParamField response="proof.latestSubmission" type="object">
+  Most recent submission (same shape as an item in `submissions`).
+</ParamField>
+
+<ParamField response="proof.checkoutActions" type="array">
+  Suggested next [checkout session](/api-reference/checkout-sessions/create-session) actions (`submit_proof` or `review_proof`) with `targetUserEmail` for the current phase. Empty when no hosted action is available.
+</ParamField>
+
+<Warning>
+  `viewUrl` links expire. Refresh via this endpoint or handle proof webhooks — do not cache URLs long-term.
+</Warning>
+
+## Errors
+
+| Status | Meaning |
+| ------ | ------- |
+| **400** | Escrow does not use purchase proof (`fulfillmentPolicy` not set). |
+| **403** | Your API key cannot access this escrow. |
+| **404** | Escrow not found. |
+
+## Related
+
+- [Quick Escrow with Proof guide](/guides/quick-escrow-with-proof) — full integration walkthrough
+- [Create Escrow](/api-reference/escrows/create-escrow) — set `fulfillmentPolicy` at creation
+- [Create Checkout Session](/api-reference/checkout-sessions/create-session) — `submit_proof` and `review_proof` actions

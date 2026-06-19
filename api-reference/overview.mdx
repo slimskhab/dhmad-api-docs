@@ -32,7 +32,7 @@ We provide an **interactive API Explorer** (Swagger UI) in the [Developer Portal
 - Browse all available endpoints
 - View request/response schemas
 - Test API calls directly from your browser
-- See example requests and responses
+- See example requests and responses (including **Quick Escrow with Proof** on `POST /v1/escrows`)
 - Authenticate with your API key
 
 <Info>
@@ -48,10 +48,11 @@ We provide an **interactive API Explorer** (Swagger UI) in the [Developer Portal
 
 ### Escrows
 
-- **[Overview](/api-reference/escrows/overview)** — Introduction to escrows, [modes](/api-reference/escrows/overview#escrow-modes) (standard, quick, instant), statuses, and lifecycle
+- **[Overview](/api-reference/escrows/overview)** — Introduction to escrows, [modes](/api-reference/escrows/overview#escrow-modes) (standard, quick, instant), [Quick Escrow with Proof](/guides/quick-escrow-with-proof), statuses, and lifecycle
 - `POST /escrows` - [Create a new escrow](/api-reference/escrows/create-escrow)
 - `GET /escrows` - [List escrows](/api-reference/escrows/list-escrows) (with pagination and filters)
 - `GET /escrows/:id` - [Get escrow details](/api-reference/escrows/get-escrow)
+- `GET /escrows/:id/proof` - [Get escrow proof](/api-reference/escrows/get-escrow-proof) — viewable proof URLs for Quick Escrow with Proof
 - `GET /escrows/:id/contract` - [Get contract](/api-reference/escrows/get-contract) — retrieve contract details and PDF
 - `PUT /escrows/:id` - [Update escrow](/api-reference/escrows/update-escrow) — update a pending escrow
 - `POST /escrows/:id/deliver` - [Deliver escrow](/api-reference/escrows/deliver-escrow) — seller marks as delivered

@@ -185,6 +185,12 @@ You can subscribe to the following events:
     provided feedback. An `escrow.status.updated` event (`delivered` → `paid`)
     is also fired.
   </Card>
+  <Card title="escrow.proof.*" icon="file-image">
+    Triggered during the [Quick Escrow with Proof](/guides/quick-escrow-with-proof)
+    lifecycle (`escrow.proof.required`, `.submitted`, `.correction_requested`,
+    `.accepted`, `.accepted_by_timeout`, `.needs_review`, `.expired`). Payload
+    includes `proof` with phase, deadlines, and time-limited `viewUrl` on attachments.
+  </Card>
   <Card title="identity.verification.updated" icon="id-card">
     Triggered when a [pre-account identity verification](/guides/kyc-for-marketplaces)
     `kyc_status` becomes `approved` or `rejected` (Didit result, admin review,
@@ -446,6 +452,60 @@ Sent when the buyer rejects delivery. The escrow moves from `delivered` back to 
 
 If the buyer did not provide a reason, `deliveryRejection.reason` is omitted from the payload.
 
+### Quick Escrow with Proof events
+
+Subscribe to these when you create escrows with `fulfillmentPolicy.type: "purchase_proof_required"`. See the [Quick Escrow with Proof guide](/guides/quick-escrow-with-proof).
+
+| Event | When |
+| ----- | ---- |
+| `escrow.proof.required` | Buyer funded; seller must upload proof |
+| `escrow.proof.submitted` | Seller uploaded; buyer should review |
+| `escrow.proof.correction_requested` | Buyer requested better proof |
+| `escrow.proof.accepted` | Buyer accepted; delivery unlocked |
+| `escrow.proof.accepted_by_timeout` | Review deadline passed; delivery unlocked |
+| `escrow.proof.needs_review` | Escalated to DHMAD after max correction rounds |
+| `escrow.proof.expired` | No proof in time; escrow cancelled and buyer refunded |
+
+Proof payloads include a `proof` object with `phase`, deadlines, `submissions` (with time-limited `viewUrl` per attachment), `latestSubmission`, and `checkoutActions` for the next hosted step. You can also poll **[GET /api/v1/escrows/:id/proof](/api-reference/escrows/get-escrow-proof)**.
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440004",
+  "type": "escrow.proof.submitted",
+  "timestamp": "2026-06-19T14:00:00.000Z",
+  "data": {
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "iPhone 15 from Dubai",
+      "status": "paid",
+      "mode": "quick"
+    },
+    "proof": {
+      "phase": "submitted_waiting_buyer_review",
+      "correctionRounds": 0,
+      "uploadDeadline": "2026-06-20T10:00:00.000Z",
+      "reviewDeadline": "2026-06-21T10:00:00.000Z",
+      "latestSubmission": {
+        "submittedAt": "2026-06-19T14:00:00.000Z",
+        "attachments": [
+          {
+            "mimeType": "image/jpeg",
+            "viewUrl": "https://cdn.dhmad.tn/escrow-proof/..."
+          }
+        ]
+      },
+      "checkoutActions": [
+        {
+          "action": "review_proof",
+          "targetUserEmail": "buyer@example.com",
+          "description": "Create a checkout session with this action and redirect the buyer to DHMAD..."
+        }
+      ]
+    }
+  }
+}
+```
+
 ## Identity verification events
 
 Subscribe to these when you use [pre-account KYC](/guides/kyc-for-marketplaces).
@@ -509,6 +569,9 @@ Sent when the user creates a DHMAD account and KYC is attached.
   "escrow.cancellation.requested", "escrow.cancellation.rejected",
   "escrow.cancellation.accepted", "escrow.delivery.rejected",
   "escrow.updated", "escrow.deposit_proof.rejected",
+  "escrow.proof.required", "escrow.proof.submitted", "escrow.proof.correction_requested",
+  "escrow.proof.accepted", "escrow.proof.accepted_by_timeout", "escrow.proof.needs_review",
+  "escrow.proof.expired",
   "identity.verification.updated", or "identity.verification.linked"
 </ParamField>
 
