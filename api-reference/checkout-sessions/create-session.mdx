@@ -86,12 +86,13 @@ data = response.json()
 ## Request Body
 
 <ParamField body="action" type="string" required>
-  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`, `submit_proof`, `review_proof`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
+  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`, `cancel_escrow`, `submit_proof`, `review_proof`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
 
   **Cancellation actions (paid or delivered escrows):**
   - `request_cancellation` — **Buyer only.** Target the buyer's email. The buyer cannot cancel unilaterally after payment; they request cancellation and the seller must accept or reject.
+  - `cancel_escrow` — **Seller only.** Target the seller's email. Cancels immediately and refunds the buyer when applicable.
   - `reject_cancellation` / `accept_cancellation` — Target the **seller's** email (counterparty of the buyer who requested). Create these only after a pending cancellation request exists.
-  - **Sellers** do not use `request_cancellation`. They cancel directly on dhmad.tn (immediate refund when allowed). Targeting the seller for `request_cancellation` returns **400** (`CANCELLATION_REQUEST_BUYER_ONLY` or `CHECKOUT_TARGET_NOT_BUYER`).
+  - Targeting the wrong party returns **400** (`CANCELLATION_REQUEST_BUYER_ONLY`, `CANCEL_ESCROW_SELLER_ONLY`, or `CHECKOUT_TARGET_NOT_BUYER` / `CHECKOUT_TARGET_NOT_SELLER`).
 
   **By escrow mode:**
   - **standard** — all actions apply when status allows (except proof actions).
@@ -159,8 +160,11 @@ When a request is rejected because of a business rule (e.g. the action is alread
 | `ESCROW_ALREADY_COMPLETED` | Action is `complete` but the escrow is already completed. |
 | `DISPUTE_ALREADY_OPENED` | Action is `dispute` but a dispute has already been opened. |
 | `CANCELLATION_REQUEST_INVALID_STATUS` | Action is `request_cancellation` but escrow is not `paid` or `delivered`. |
-| `CANCELLATION_REQUEST_BUYER_ONLY` | Action is `request_cancellation` but `targetUserEmail` is the seller. Sellers cancel directly on dhmad.tn. |
+| `CANCELLATION_REQUEST_BUYER_ONLY` | Action is `request_cancellation` but `targetUserEmail` is the seller. Use `cancel_escrow` instead. |
+| `CANCEL_ESCROW_INVALID_STATUS` | Action is `cancel_escrow` but escrow is not `paid` or `delivered`. |
+| `CANCEL_ESCROW_SELLER_ONLY` | Action is `cancel_escrow` but `targetUserEmail` is the buyer. Use `request_cancellation` instead. |
 | `CHECKOUT_TARGET_NOT_BUYER` | Action is `request_cancellation` (or another buyer-only action) but `targetUserEmail` is not the buyer. |
+| `CHECKOUT_TARGET_NOT_SELLER` | Action is `cancel_escrow` (or another seller-only action) but `targetUserEmail` is not the seller. |
 | `CANCELLATION_ALREADY_REQUESTED` | Action is `request_cancellation` but a cancellation has already been requested or processed. |
 | `NO_PENDING_CANCELLATION` | Action is `reject_cancellation` or `accept_cancellation` but there is no pending cancellation request. |
 

@@ -5,7 +5,7 @@ description: Cancel a pending escrow before payment
 
 <Endpoint method="POST" path="/api/v1/escrows/:id/cancel" />
 
-Cancel an escrow that is still in `pending` status (before the buyer has paid). Both the seller and buyer can cancel a pending escrow via the API. For **paid or delivered** escrows, **buyers** must use a [checkout session](/api-reference/checkout-sessions/overview) with the `request_cancellation` action (target the buyer's email). **Sellers** cancel directly on dhmad.tn — there is no checkout session for seller cancellation.
+Cancel an escrow that is still in `pending` status (before the buyer has paid). Both the seller and buyer can cancel a pending escrow via the API. For **paid or delivered** escrows, **buyers** use a `request_cancellation` checkout session; **sellers** use a `cancel_escrow` checkout session.
 
 <RequestExample>
 ```bash cURL
@@ -69,7 +69,7 @@ const data = await response.json();
 ```json
 {
   "error": "Bad Request",
-  "message": "Only pending escrows can be cancelled via API. For paid or delivered escrows, create a buyer-targeted checkout session with the request_cancellation action (buyers only; sellers cancel directly on dhmad.tn)."
+  "message": "Only pending escrows can be cancelled via API. For paid or delivered escrows, buyers use a request_cancellation checkout session; sellers use a cancel_escrow checkout session."
 }
 ```
 
@@ -101,7 +101,7 @@ const data = await response.json();
 ---
 
 <Warning>
-  This endpoint only works on escrows in `pending` status. Once the buyer has paid, the escrow cannot be cancelled via this endpoint. For paid or delivered escrows, create a **`request_cancellation`** checkout session targeting the **buyer's** email. The seller then accepts or rejects via **`accept_cancellation`** / **`reject_cancellation`** checkout sessions (target the seller). Sellers cancel paid or delivered escrows directly on dhmad.tn without a checkout session.
+  This endpoint only works on escrows in `pending` status. Once the buyer has paid, use checkout sessions: **`request_cancellation`** (buyer email) for buyer-initiated cancellation, or **`cancel_escrow`** (seller email) for seller direct cancellation. The seller may also accept or reject a pending buyer request via **`accept_cancellation`** / **`reject_cancellation`** checkout sessions.
 </Warning>
 
 <Note>

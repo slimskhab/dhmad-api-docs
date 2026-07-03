@@ -226,9 +226,10 @@ When you set `fulfillmentPolicy.type: "purchase_proof_required"` at creation, ad
 After payment, **buyers cannot cancel unilaterally**. Use checkout sessions as follows:
 
 1. **`request_cancellation`** — Target the **buyer's** email. Escrow must be `paid` or `delivered`.
-2. **`accept_cancellation`** or **`reject_cancellation`** — After the buyer requests, target the **seller's** email so they can accept (refund) or reject.
+2. **`cancel_escrow`** — Target the **seller's** email. Escrow must be `paid` or `delivered`. Cancels immediately and refunds the buyer when applicable.
+3. **`accept_cancellation`** or **`reject_cancellation`** — After the buyer requests, target the **seller's** email so they can accept (refund) or reject.
 
-**Sellers** do not use `request_cancellation`. They cancel directly on dhmad.tn (immediate refund when allowed). Creating a `request_cancellation` session with the seller's email returns **400** (`CANCELLATION_REQUEST_BUYER_ONLY`).
+**Do not mix actions:** targeting the seller for `request_cancellation` or the buyer for `cancel_escrow` returns **400**.
 
 For escrows still in **`pending`** status (before payment), use [Cancel Escrow](/api-reference/escrows/cancel-escrow) instead — both parties can cancel via the API.
 

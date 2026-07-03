@@ -29,7 +29,10 @@ Use Checkout Sessions when your integration needs a user to perform one of these
     Redirect either party to open a dispute on the escrow.
   </Card>
   <Card title="Request Cancellation" icon="x-circle">
-    Redirect the **buyer** to request cancellation of a **paid or delivered** escrow. Sellers cancel directly on dhmad.tn — do not use this action for the seller.
+    Redirect the **buyer** to request cancellation of a **paid or delivered** escrow. Requires seller acceptance before funds are returned.
+  </Card>
+  <Card title="Cancel Escrow" icon="x-circle">
+    Redirect the **seller** to cancel a **paid or delivered** escrow immediately. Refunds the buyer when applicable — no counterparty approval needed.
   </Card>
   <Card title="Reject Cancellation" icon="ban">
     Redirect the **seller** to reject a pending buyer cancellation request.
