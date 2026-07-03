@@ -151,8 +151,9 @@ You can subscribe to the following events:
     signed ("seller" or "buyer").
   </Card>
   <Card title="escrow.cancellation.requested" icon="xmark">
-    Triggered when a buyer or seller requests cancellation of a paid or
-    delivered escrow. The escrow status does not change yet.
+    Triggered when the **buyer** requests cancellation of a paid or
+    delivered escrow. The escrow status does not change yet. Sellers cancel
+    directly on dhmad.tn without this event.
   </Card>
   <Card title="escrow.cancellation.rejected" icon="ban">
     Triggered when the other party rejects a pending cancellation request.
@@ -361,7 +362,7 @@ Sent when the seller or the buyer signs the contract (one event per signature).
 
 ### escrow.cancellation.requested
 
-Sent when a buyer or seller requests cancellation. The same payload structure applies to `escrow.cancellation.rejected` and `escrow.cancellation.accepted` (with the corresponding `type` and `cancellationRequest.status`).
+Sent when the **buyer** requests cancellation. The same payload structure applies to `escrow.cancellation.rejected` and `escrow.cancellation.accepted` (with the corresponding `type` and `cancellationRequest.status`).
 
 ```json
 {

@@ -94,7 +94,7 @@ When the user is on dhmad.tn/checkout and completes **Accept and pay** under the
 
 The user is only redirected back to your `redirectUrl` with `session_id` and `status` when they **complete** the action, **cancel**, or the session **expires**. You do **not** receive error codes (e.g. `KYC_REQUIRED`) in your redirect callback—those cases are handled entirely on DHMAD.
 
-For all error codes returned when **creating** a session (e.g. contract already signed, payment already done), see [Create Checkout Session — Error Responses](/api-reference/checkout-sessions/create-session#error-responses).
+For all error codes returned when **creating** a session (e.g. contract already signed, payment already done, **`SELLER_NOT_READY`** when the seller has not completed pre-account identity verification), see [Create Checkout Session — Error Responses](/api-reference/checkout-sessions/create-session#error-responses).
 
 ### Step 5: Verify with Webhooks
 
@@ -220,6 +220,17 @@ For escrows created with `mode: "quick"` (e.g. physical or digital products betw
 ### What about Quick Escrow with Proof?
 
 When you set `fulfillmentPolicy.type: "purchase_proof_required"` at creation, add **`submit_proof`** (seller uploads after pay) and **`review_proof`** (buyer accepts or requests corrections) before the seller can deliver. Fetch proof files with [GET /escrows/:id/proof](/api-reference/escrows/get-escrow-proof). See the [Quick Escrow with Proof guide](/guides/quick-escrow-with-proof).
+
+### How do paid or delivered cancellation checkout sessions work?
+
+After payment, **buyers cannot cancel unilaterally**. Use checkout sessions as follows:
+
+1. **`request_cancellation`** — Target the **buyer's** email. Escrow must be `paid` or `delivered`.
+2. **`accept_cancellation`** or **`reject_cancellation`** — After the buyer requests, target the **seller's** email so they can accept (refund) or reject.
+
+**Sellers** do not use `request_cancellation`. They cancel directly on dhmad.tn (immediate refund when allowed). Creating a `request_cancellation` session with the seller's email returns **400** (`CANCELLATION_REQUEST_BUYER_ONLY`).
+
+For escrows still in **`pending`** status (before payment), use [Cancel Escrow](/api-reference/escrows/cancel-escrow) instead — both parties can cancel via the API.
 
 ---
 
