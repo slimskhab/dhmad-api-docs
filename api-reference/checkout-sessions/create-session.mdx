@@ -95,9 +95,11 @@ data = response.json()
   - Targeting the wrong party returns **400** (`CANCELLATION_REQUEST_BUYER_ONLY`, `CANCEL_ESCROW_SELLER_ONLY`, or `CHECKOUT_TARGET_NOT_BUYER` / `CHECKOUT_TARGET_NOT_SELLER`).
 
   **By escrow mode:**
-  - **standard** — all actions apply when status allows (except proof actions).
-  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Use `accept_pay` then `complete`. With [Quick Escrow with Proof](/guides/quick-escrow-with-proof), use `submit_proof` (seller) and `review_proof` (buyer) while `proofInfo.phase` requires them.
+  - **standard** — all actions apply when status allows (except proof actions). `complete` works from `paid` or `delivered`; seller deliver is optional.
+  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Typical flow: `accept_pay`, then buyer `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but the buyer can `complete` directly from `paid` without deliver. With [Quick Escrow with Proof](/guides/quick-escrow-with-proof), use `submit_proof` (seller) and `review_proof` (buyer) while `proofInfo.phase` requires them; early release from `paid` is blocked until proof is accepted.
   - **instant** — only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract`, `complete`, and proof actions return 400.
+
+  **`complete` action:** Buyer releases funds. Valid when escrow status is `paid` or `delivered`. Does not require the seller to call deliver first — the buyer can release early from `paid` if they are satisfied. Returns **409** (`PROOF_NOT_ACCEPTED`) for Quick Escrow with Proof when proof is not yet accepted.
 </ParamField>
 
 <ParamField body="targetUserEmail" type="string" required>

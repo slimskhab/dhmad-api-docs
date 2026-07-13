@@ -50,7 +50,7 @@ stateDiagram-v2
   accepted_by_timeout --> [*]: seller may now deliver
 ```
 
-After `accepted` or `accepted_by_timeout`, the escrow continues through the normal **paid → delivered → completed** flow. The seller's deliver call returns **409** (`PROOF_NOT_ACCEPTED`) until proof is accepted.
+After `accepted` or `accepted_by_timeout`, the buyer may release funds with a `complete` checkout session from `paid`, or the seller may call deliver first (optional) and the buyer completes from `delivered`. The seller's deliver call returns **409** (`PROOF_NOT_ACCEPTED`) until proof is accepted.
 
 ## Step-by-step integration
 

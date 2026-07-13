@@ -7,8 +7,10 @@ description: Mark an escrow as delivered by the seller
 
 Mark an escrow as delivered. Only the **seller** can perform this action, and the escrow must be in `paid` status (i.e., the buyer has already paid).
 
-- **Standard mode:** After delivery, the escrow moves to `delivered` status and the buyer is notified. The buyer must then confirm delivery to release funds to the seller.
-- **Quick mode:** Same as standard after delivery — escrow moves to `delivered` and the buyer must confirm via checkout (`complete` action) or on dhmad.tn.
+Deliver is **supplementary** for standard and quick modes. It records that the seller marked the order as delivered, but the buyer does **not** have to wait for deliver — they can release funds earlier with a `complete` checkout session while the escrow is still `paid`.
+
+- **Standard mode:** Escrow moves to `delivered`. The buyer can then `complete` to release funds (or they may have already released from `paid`).
+- **Quick mode:** Same as standard — escrow moves to `delivered` and the buyer can `complete` from `paid` or `delivered`. Quick Escrow with Proof blocks early release from `paid` until purchase proof is accepted.
 - **Instant mode:** Calling deliver **auto-completes** the escrow and releases funds to you immediately. The escrow moves directly from `paid` to `completed`; there is no buyer confirmation step. The response message will indicate that the escrow was delivered and completed (instant mode).
 
 <RequestExample>
@@ -120,5 +122,5 @@ For **instant** mode escrows, the response is:
 </Warning>
 
 <Info>
-  **Standard and quick modes:** After delivery, the buyer receives a notification and can confirm completion to release funds. Use the checkout session with `complete` action if you need to redirect the buyer to confirm delivery on dhmad.tn. **Instant mode:** Deliver auto-completes and releases funds; no buyer confirmation or checkout session for `complete` is needed.
+  **Standard and quick modes:** Deliver is optional. The buyer can release funds with a `complete` checkout session from `paid` (early release) or from `delivered`. Use `complete` if you need to redirect the buyer to confirm on dhmad.tn. **Instant mode:** Deliver auto-completes and releases funds; no buyer confirmation or checkout session for `complete` is needed.
 </Info>

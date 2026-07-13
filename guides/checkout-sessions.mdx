@@ -213,9 +213,15 @@ Yes. Use your sandbox API key (`sk_sandbox_*`) and the sandbox base URL. The che
 
 For escrows created with `mode: "instant"` (e.g. in-app coins, AI credits), use only the **accept_pay** action. The buyer pays in one step; there is no contract to sign and no "complete" step. After the buyer pays, you receive a webhook, deliver the goods, then call the Deliver Escrow API—the escrow auto-completes and funds are released. See [Escrow Modes — Instant](/api-reference/escrows/overview#instant-mode) in the Escrows overview.
 
+### Can the buyer release funds without the seller delivering?
+
+Yes, for **standard** and **quick** escrows. After payment (`paid`), the buyer can use a `complete` checkout session to release funds without the seller calling [Deliver Escrow](/api-reference/escrows/deliver-escrow). Deliver is supplementary — it records that the seller marked delivery, but it is not a prerequisite for `complete`.
+
+**Exception:** [Quick Escrow with Proof](/guides/quick-escrow-with-proof) blocks early release from `paid` until the buyer accepts the seller's purchase proof (`409 PROOF_NOT_ACCEPTED`).
+
 ### What about quick escrows (products without a contract)?
 
-For escrows created with `mode: "quick"` (e.g. physical or digital products between two users), use **accept_pay** then **complete** after the seller delivers. There is no contract to sign — `sign_contract` returns 400. See [Escrow Modes — Quick](/api-reference/escrows/overview#quick-mode) in the Escrows overview.
+For escrows created with `mode: "quick"` (e.g. physical or digital products between two users), use **accept_pay** then **complete** to release funds. The seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but deliver is **optional** — if the buyer is already satisfied after payment, send them a `complete` checkout session while the escrow is still `paid`. There is no contract to sign — `sign_contract` returns 400. See [Escrow Modes — Quick](/api-reference/escrows/overview#quick-mode) in the Escrows overview.
 
 ### What about Quick Escrow with Proof?
 

@@ -9,8 +9,8 @@ Create a new escrow. Requires API key authentication. The platform fee (DHMAD's 
 
 Choose the escrow **mode** based on your use case — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes) for a full comparison:
 
-- **`standard`** (default) — contract + sign + pay + deliver + complete. Use with `sellerEmail` for escrows between two parties.
-- **`quick`** — no contract; pay → deliver → buyer confirms. Use with `sellerEmail` for product sales without a contract. Optionally add **`fulfillmentPolicy`** for [Quick Escrow with Proof](/guides/quick-escrow-with-proof) (seller uploads proof before delivery).
+- **`standard`** (default) — contract + sign + pay + complete. Seller deliver is optional. Use with `sellerEmail` for escrows between two parties.
+- **`quick`** — no contract; pay → buyer `complete` to release funds. Seller deliver is optional. Use with `sellerEmail` for product sales without a contract. Optionally add **`fulfillmentPolicy`** for [Quick Escrow with Proof](/guides/quick-escrow-with-proof) (seller uploads proof before delivery unlocks).
 - **`instant`** — no contract; you are the seller (omit `sellerEmail`); pay → deliver auto-completes. Use for in-app digital goods.
 
 **Developer fee** is only for when the seller is a third party (not your associated account); you can set a developer fee percentage so that a portion of the transaction is credited to your associated user account when the escrow completes.
