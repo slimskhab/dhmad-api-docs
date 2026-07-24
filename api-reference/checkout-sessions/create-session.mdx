@@ -5,7 +5,7 @@ description: Create a checkout session for critical escrow actions
 
 <Endpoint method="POST" path="/api/v1/escrows/:id/sessions" />
 
-Create a checkout session for a critical escrow action. The session allows you to redirect a specific user to dhmad.tn to perform the action (e.g., sign contract, accept & pay, complete, dispute, or handle cancellation). The user is redirected back to your `redirectUrl` after completing or abandoning the flow.
+Create a checkout session for a critical escrow action. The session allows you to redirect a specific user to dhmad.tn to perform the action (e.g., sign contract, accept & pay, complete, dispute, handle cancellation, add funds, or refund funds). The user is redirected back to your `redirectUrl` after completing or abandoning the flow.
 
 The API validates that the action is still needed before creating a session. If the action is already done (e.g. the target user has already signed the contract, or payment is already completed), the request returns **400** with a structured error (`error.code`, `error.user_message`). Use these to show a clear message in your app instead of redirecting to checkout.
 
@@ -86,7 +86,7 @@ data = response.json()
 ## Request Body
 
 <ParamField body="action" type="string" required>
-  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`, `cancel_escrow`, `submit_proof`, `review_proof`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
+  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`, `cancel_escrow`, `submit_proof`, `review_proof`, `add_funds`, `refund_funds`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
 
   **Cancellation actions (paid or delivered escrows):**
   - `request_cancellation` — **Buyer only.** Target the buyer's email. The buyer cannot cancel unilaterally after payment; they request cancellation and the seller must accept or reject.
@@ -94,10 +94,15 @@ data = response.json()
   - `reject_cancellation` / `accept_cancellation` — Target the **seller's** email (counterparty of the buyer who requested). Create these only after a pending cancellation request exists.
   - Targeting the wrong party returns **400** (`CANCELLATION_REQUEST_BUYER_ONLY`, `CANCEL_ESCROW_SELLER_ONLY`, or `CHECKOUT_TARGET_NOT_BUYER` / `CHECKOUT_TARGET_NOT_SELLER`).
 
+  **Funds adjustment actions (paid or delivered escrows):**
+  - `add_funds` — **Buyer only.** Target the buyer's email. The buyer adds more money from their DHMAD wallet into the escrow. Fees apply to the **added** amount only. Requires action step-up on checkout. Not supported for escrows paid via guest checkout.
+  - `refund_funds` — **Seller only.** Target the seller's email. The seller refunds part or all of the remaining ledger balance to the buyer's wallet. Refunding the **full** remaining balance cancels the escrow. Requires action step-up on checkout. Not supported for guest-checkout escrows.
+  - Targeting the wrong party returns **400** (`CHECKOUT_TARGET_NOT_BUYER` / `CHECKOUT_TARGET_NOT_SELLER`).
+
   **By escrow mode:**
-  - **standard** — all actions apply when status allows (except proof actions). `complete` works from `paid` or `delivered`; seller deliver is optional.
-  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Typical flow: `accept_pay`, then buyer `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but the buyer can `complete` directly from `paid` without deliver. With [Quick Escrow with Proof](/guides/quick-escrow-with-proof), use `submit_proof` (seller) and `review_proof` (buyer) while `proofInfo.phase` requires them; early release from `paid` is blocked until proof is accepted.
-  - **instant** — only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract`, `complete`, and proof actions return 400.
+  - **standard** — all actions apply when status allows (except proof actions). `complete` works from `paid` or `delivered`; seller deliver is optional. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
+  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Typical flow: `accept_pay`, then buyer `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but the buyer can `complete` directly from `paid` without deliver. With [Quick Escrow with Proof](/guides/quick-escrow-with-proof), use `submit_proof` (seller) and `review_proof` (buyer) while `proofInfo.phase` requires them; early release from `paid` is blocked until proof is accepted. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
+  - **instant** — only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract`, `complete`, proof actions, and funds adjustments return 400.
 
   **`complete` action:** Buyer releases funds. Valid when escrow status is `paid` or `delivered`. Does not require the seller to call deliver first — the buyer can release early from `paid` if they are satisfied. Returns **409** (`PROOF_NOT_ACCEPTED`) for Quick Escrow with Proof when proof is not yet accepted.
 </ParamField>
@@ -165,10 +170,15 @@ When a request is rejected because of a business rule (e.g. the action is alread
 | `CANCELLATION_REQUEST_BUYER_ONLY` | Action is `request_cancellation` but `targetUserEmail` is the seller. Use `cancel_escrow` instead. |
 | `CANCEL_ESCROW_INVALID_STATUS` | Action is `cancel_escrow` but escrow is not `paid` or `delivered`. |
 | `CANCEL_ESCROW_SELLER_ONLY` | Action is `cancel_escrow` but `targetUserEmail` is the buyer. Use `request_cancellation` instead. |
-| `CHECKOUT_TARGET_NOT_BUYER` | Action is `request_cancellation` (or another buyer-only action) but `targetUserEmail` is not the buyer. |
-| `CHECKOUT_TARGET_NOT_SELLER` | Action is `cancel_escrow` (or another seller-only action) but `targetUserEmail` is not the seller. |
+| `CHECKOUT_TARGET_NOT_BUYER` | Action is `request_cancellation`, `add_funds`, or another buyer-only action but `targetUserEmail` is not the buyer. |
+| `CHECKOUT_TARGET_NOT_SELLER` | Action is `cancel_escrow`, `refund_funds`, or another seller-only action but `targetUserEmail` is not the seller. |
 | `CANCELLATION_ALREADY_REQUESTED` | Action is `request_cancellation` but a cancellation has already been requested or processed. |
 | `NO_PENDING_CANCELLATION` | Action is `reject_cancellation` or `accept_cancellation` but there is no pending cancellation request. |
+| `FUNDS_ADJUSTMENT_INVALID_STATUS` | Action is `add_funds` or `refund_funds` but escrow is not `paid` or `delivered`. |
+| `GUEST_ESCROW_ADJUSTMENTS_NOT_SUPPORTED` | Action is `add_funds` or `refund_funds` but the escrow was paid via guest checkout. |
+| `BUYER_NOT_LINKED` | Action is a funds adjustment but the buyer account is not linked yet. |
+| `DISPUTE_OPEN` | Action is `add_funds` or `refund_funds` but a dispute is open. |
+| `CANCELLATION_PENDING` | Action is `add_funds` or `refund_funds` but a cancellation request is pending. |
 
 **Example: contract already signed**
 

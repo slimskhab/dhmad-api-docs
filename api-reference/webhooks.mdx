@@ -3,7 +3,7 @@ title: Webhooks API
 description: Manage webhooks for real-time event notifications
 ---
 
-The Webhooks API allows you to create and manage webhooks that receive real-time notifications when escrow status changes, contracts are signed, cancellation requests are created, accepted, or rejected, a buyer rejects delivery, or identity verification status changes.
+The Webhooks API allows you to create and manage webhooks that receive real-time notifications when escrow status changes, contracts are signed, cancellation requests are created, accepted, or rejected, a buyer rejects delivery, funds are added or refunded on an escrow, or identity verification status changes.
 
 <Warning>
   You can create a maximum of 2 webhooks per developer account. Choose your
@@ -28,7 +28,9 @@ Create a new webhook endpoint to receive event notifications.
   `escrow.cancellation.rejected`, `escrow.cancellation.accepted`,
   `escrow.updated`, `escrow.deposit_proof.rejected` (guest instant-escrow
   payment proof rejected by admin), `escrow.delivery.rejected` (buyer rejected
-  delivery; includes optional reason), `identity.verification.updated`
+  delivery; includes optional reason), `escrow.funds.added`,
+  `escrow.funds.refunded` (buyer add-funds / seller refund-funds adjustments),
+  `identity.verification.updated`
   (pre-account KYC approved or rejected), `identity.verification.linked`
   (KYC attached when user registers on DHMAD). Default: `["escrow.status.updated"]`
 </ParamField>
@@ -268,7 +270,7 @@ curl -X DELETE https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 
   Array of subscribed event types (e.g. "escrow.status.updated",
   "contract.signed", "escrow.cancellation.requested",
   "escrow.cancellation.rejected", "escrow.cancellation.accepted",
-  "escrow.delivery.rejected")
+  "escrow.delivery.rejected", "escrow.funds.added", "escrow.funds.refunded")
 </ParamField>
 
 <ParamField response="webhook.isActive" type="boolean">

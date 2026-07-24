@@ -192,6 +192,18 @@ You can subscribe to the following events:
     `.accepted`, `.accepted_by_timeout`, `.needs_review`, `.expired`). Payload
     includes `proof` with phase, deadlines, and time-limited `viewUrl` on attachments.
   </Card>
+  <Card title="escrow.funds.added" icon="plus">
+    Triggered when the **buyer** adds funds to a paid or delivered escrow
+    (checkout `add_funds` or wallet API). Includes `data.adjustment` with the
+    added amount and fee deltas. Escrow `amount` / `amountTnd` in the payload
+    reflect the new totals.
+  </Card>
+  <Card title="escrow.funds.refunded" icon="rotate-left">
+    Triggered when the **seller** refunds funds to the buyer (checkout
+    `refund_funds` or wallet API). Includes `data.adjustment`. When the full
+    remaining balance is refunded, `adjustment.cancelled` is `true` and an
+    `escrow.status.updated` event to `cancelled` is also fired.
+  </Card>
   <Card title="identity.verification.updated" icon="id-card">
     Triggered when a [pre-account identity verification](/guides/kyc-for-marketplaces)
     `kyc_status` becomes `approved` or `rejected` (Didit result, admin review,
@@ -507,6 +519,57 @@ Proof payloads include a `proof` object with `phase`, deadlines, `submissions` (
 }
 ```
 
+### escrow.funds.added / escrow.funds.refunded
+
+Sent when the buyer adds funds or the seller refunds funds on a paid/delivered escrow (hosted checkout `add_funds` / `refund_funds`, or the equivalent wallet APIs). The escrow object reflects the updated commercial and ledger amounts.
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440005",
+  "type": "escrow.funds.added",
+  "timestamp": "2026-07-24T12:00:00.000Z",
+  "data": {
+    "adjustment": {
+      "type": "add_funds",
+      "amountTnd": 20,
+      "amountFace": 20,
+      "currency": "TND",
+      "escrowFeeDelta": 0.6,
+      "developerFeeDelta": 0,
+      "performedByRole": "buyer"
+    },
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Wireless headphones",
+      "amount": 120,
+      "amountTnd": 120,
+      "currency": "TND",
+      "escrowFee": 3.6,
+      "status": "paid",
+      "seller": {
+        "id": "507f1f77bcf86cd799439012",
+        "email": "seller@example.com"
+      },
+      "buyer": {
+        "id": "507f1f77bcf86cd799439013",
+        "email": "buyer@example.com"
+      },
+      "createdAt": "2026-07-20T10:00:00.000Z",
+      "updatedAt": "2026-07-24T12:00:00.000Z"
+    }
+  }
+}
+```
+
+For `escrow.funds.refunded`, `adjustment.type` is `"refund_funds"` and `performedByRole` is `"seller"`. When a full refund cancels the escrow, `adjustment.cancelled` is `true` and an `escrow.status.updated` event (`→ cancelled`) is also emitted.
+
+<ParamField response="data.adjustment" type="object">
+  Present for `escrow.funds.added` and `escrow.funds.refunded`. Contains `type`
+  (`add_funds` or `refund_funds`), `amountTnd`, optional `amountFace` /
+  `currency`, fee deltas, `performedByRole`, and optional `cancelled` (full
+  refund that cancels the escrow).
+</ParamField>
+
 ## Identity verification events
 
 Subscribe to these when you use [pre-account KYC](/guides/kyc-for-marketplaces).
@@ -573,6 +636,7 @@ Sent when the user creates a DHMAD account and KYC is attached.
   "escrow.proof.required", "escrow.proof.submitted", "escrow.proof.correction_requested",
   "escrow.proof.accepted", "escrow.proof.accepted_by_timeout", "escrow.proof.needs_review",
   "escrow.proof.expired",
+  "escrow.funds.added", "escrow.funds.refunded",
   "identity.verification.updated", or "identity.verification.linked"
 </ParamField>
 

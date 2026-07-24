@@ -37,7 +37,7 @@ Before creating any checkout sessions, add your redirect URLs in the [Developer 
 
 Call `POST /api/v1/escrows/:id/sessions` with:
 
-- **action** — The action type (e.g., `sign_contract`, `accept_pay`, `submit_proof`, `review_proof`, `complete`)
+- **action** — The action type (e.g., `sign_contract`, `accept_pay`, `submit_proof`, `review_proof`, `complete`, `add_funds`, `refund_funds`)
 - **targetUserEmail** — Email of the user who will perform the action
 - **redirectUrl** — Your callback URL (must match an allowed URL)
 - **metadata** (optional) — Key-value pairs for your own tracking
@@ -238,6 +238,19 @@ After payment, **buyers cannot cancel unilaterally**. Use checkout sessions as f
 **Do not mix actions:** targeting the seller for `request_cancellation` or the buyer for `cancel_escrow` returns **400**.
 
 For escrows still in **`pending`** status (before payment), use [Cancel Escrow](/api-reference/escrows/cancel-escrow) instead — both parties can cancel via the API.
+
+### How do add funds and refund funds checkout sessions work?
+
+While an escrow is **`paid` or `delivered`** (and was **not** funded via guest checkout), parties can adjust the held amount via hosted checkout:
+
+1. **`add_funds`** — Target the **buyer's** email. The buyer adds more money from their DHMAD wallet into the escrow. Fees apply to the **added** amount only. DHMAD requires action step-up (email OTP) on the checkout page.
+2. **`refund_funds`** — Target the **seller's** email. The seller refunds part or all of the remaining ledger balance to the buyer's wallet. Refunding the **full** remaining balance cancels the escrow. Also requires action step-up.
+
+**Do not mix actions:** targeting the seller for `add_funds` or the buyer for `refund_funds` returns **400**.
+
+Subscribe to **`escrow.funds.added`** and **`escrow.funds.refunded`** webhooks to update your backend. A full refund that cancels the escrow also emits `escrow.status.updated` (to `cancelled`); the refund webhook payload includes `adjustment.cancelled: true` in that case.
+
+Guest-checkout escrows and open disputes / pending cancellation requests cannot use these actions (`GUEST_ESCROW_ADJUSTMENTS_NOT_SUPPORTED`, `DISPUTE_OPEN`, `CANCELLATION_PENDING`).
 
 ---
 
