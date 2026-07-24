@@ -115,11 +115,18 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.amount" type="number">
-  Transaction amount in TND
+  Transaction amount (face amount in `currency`). After `add_funds` / `refund_funds`
+  adjustments this reflects the current commercial amount.
 </ParamField>
 
 <ParamField response="escrow.escrowFee" type="number">
   Escrow fee
+</ParamField>
+
+<ParamField response="escrow.adjustments" type="array">
+  Optional history of post-funding monetary adjustments (`add_funds` /
+  `refund_funds`), including amounts and fee deltas. Empty or omitted when none
+  have occurred. See checkout actions `add_funds` and `refund_funds`.
 </ParamField>
 
 <ParamField response="escrow.status" type="string">
