@@ -74,7 +74,7 @@ Parse these parameters and update your UI. Optionally call `GET /api/v1/sessions
 
 ### What happens inside checkout
 
-The checkout page shows a summary of the escrow: amount, **platform service fee** (DHMAD's fee, paid by the seller), and, if the escrow was created with a developer fee, the **application / app fee** (with your app name when configured). Both fees are deducted from the seller's payout.
+The checkout page shows a summary of the escrow: amount, **platform service fee** (DHMAD's fee), and, if the escrow was created with a developer fee, the **application / app fee** (with your app name when configured). Which party pays those fees follows `feeBearer` (`"seller"` default or `"buyer"`). Use `buyerFundingTnd` for the amount the buyer actually pays.
 
 #### Instant escrows — guest payment (`accept_pay`, no DHMAD login)
 

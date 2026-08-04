@@ -51,7 +51,10 @@ data = response.json()
     "_id": "507f1f77bcf86cd799439011",
     "title": "Web Development Service",
     "amount": 1000.00,
+    "amountTnd": 1000.00,
     "escrowFee": 50.00,
+    "feeBearer": "seller",
+    "buyerFundingTnd": 1000.00,
     "status": "paid",
     "mode": "standard",
     "seller": {
@@ -66,7 +69,6 @@ data = response.json()
       "firstName": "Jane",
       "lastName": "Smith"
     },
-    "estimatedDeliveryDays": 7,
     "expiresAt": "2024-02-15T10:00:00Z",
     "paidAt": "2024-01-16T09:00:00Z",
     "deliveredAt": null,
@@ -120,7 +122,15 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.escrowFee" type="number">
-  Escrow fee
+  Platform escrow fee in TND (paid by the party in `feeBearer`)
+</ParamField>
+
+<ParamField response="escrow.feeBearer" type="string">
+  Who pays platform and developer fees: `"seller"` or `"buyer"`
+</ParamField>
+
+<ParamField response="escrow.buyerFundingTnd" type="number">
+  Amount the buyer must fund in TND. Equals deal amount when `feeBearer` is `"seller"`; deal amount plus fees when `"buyer"`.
 </ParamField>
 
 <ParamField response="escrow.adjustments" type="array">
@@ -142,7 +152,7 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.estimatedDeliveryDays" type="number">
-  Estimated delivery days
+  Legacy optional delivery estimate when present. Not used by platform enforcement; omit for new integrations.
 </ParamField>
 
 <ParamField response="escrow.paidAt" type="string|null">

@@ -47,8 +47,7 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "title": "Web Development Service",
     "amount": 1000.00,
     "contractTerms": "The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.",
-    "buyerEmail": "buyer@example.com",
-    "estimatedDeliveryDays": 7
+    "buyerEmail": "buyer@example.com"
   }'
 ```
 
@@ -61,12 +60,13 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "title": "Web Development Service",
     "amount": 1000.00,
     "escrowFee": 50.00,
+    "feeBearer": "seller",
+    "buyerFundingTnd": 1000.00,
     "status": "pending",
     "seller": "507f1f77bcf86cd799439013",
     "sellerEmail": null,
     "buyer": null,
     "buyerEmail": "buyer@example.com",
-    "estimatedDeliveryDays": 7,
     "createdAt": "2024-01-15T10:00:00Z"
   },
   "contract": {
@@ -114,7 +114,8 @@ curl -X GET https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011 \
       "lastName": "Doe"
     },
     "buyer": null,
-    "estimatedDeliveryDays": 7,
+    "feeBearer": "seller",
+    "buyerFundingTnd": 1000.00,
     "paidAt": null,
     "deliveredAt": null,
     "completedAt": null,
@@ -168,8 +169,7 @@ async function createEscrow() {
         title: 'Web Development Service',
         amount: 1000.00,
         contractTerms: 'The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.',
-        buyerEmail: 'buyer@example.com',
-        estimatedDeliveryDays: 7
+        buyerEmail: 'buyer@example.com'
       },
       {
         headers: {
@@ -227,8 +227,7 @@ escrow_data = {
     'title': 'Web Development Service',
     'amount': 1000.00,
     'contractTerms': 'The seller agrees to deliver a fully functional website within 7 days. The buyer agrees to pay the amount upon completion.',
-    'buyerEmail': 'buyer@example.com',
-    'estimatedDeliveryDays': 7
+    'buyerEmail': 'buyer@example.com'
 }
 
 response = requests.post(

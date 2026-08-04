@@ -40,16 +40,17 @@ When creating an escrow, set the `mode` field to choose the transaction flow. Al
 
 ### Standard mode
 
-- Set `mode: "standard"` (default) with `contractTerms` and `estimatedDeliveryDays`.
+- Set `mode: "standard"` (default) with `contractTerms`.
 - A contract is automatically created; both parties must sign before the buyer can pay.
 - Checkout actions: `sign_contract` → `accept_pay` → `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but it is **optional** — the buyer can `complete` directly from `paid` (early release) if they are already satisfied.
 - Provide `sellerEmail` when the seller is a third party, or omit it to use your associated user as seller.
+- Optional `feeBearer` (`"seller"` default, or `"buyer"`) controls who pays platform and developer fees — see [Create Escrow](/api-reference/escrows/create-escrow#fee-bearer-feebearer).
 
 **State flow:** `pending` → `paid` → (`delivered`, optional) → `completed`. Buyer `complete` is valid from `paid` or `delivered`.
 
 ### Quick mode
 
-- Set `mode: "quick"` with `estimatedDeliveryDays`. Do **not** send `contractTerms` or `autoSign`.
+- Set `mode: "quick"`. Do **not** send `contractTerms` or `autoSign`.
 - No contract is created; the response includes `contract: null` and `escrow.mode: "quick"`.
 - Checkout actions: `accept_pay` → `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but it is **optional** — the buyer can `complete` directly from `paid` without waiting for deliver. The `sign_contract` action returns **400** (`QUICK_ESCROW_NO_CONTRACT`).
 - Use when escrows are between two other parties (`sellerEmail` required) and you want a faster checkout without a contract — e.g. product sales, digital downloads with buyer confirmation.
@@ -73,13 +74,13 @@ See the **[Quick Escrow with Proof guide](/guides/quick-escrow-with-proof)** for
 For digital goods (e.g. in-app coins, AI credits), the full standard flow has too many steps and can hurt conversion. Use **instant** when you are the seller:
 
 - Set `mode: "instant"` and **omit** `sellerEmail` (your associated user is the seller). Do **not** send `contractTerms` or `autoSign`.
-- `estimatedDeliveryDays` is optional (defaults to 1).
 - No contract is created; the response includes `contract: null` and `escrow.mode: "instant"`.
 - Checkout action: **`accept_pay` only**. The actions `sign_contract` and `complete` return **400**.
 - When you receive the `escrow.status.updated` webhook (`pending` → `paid`), deliver the digital goods (e.g. credit the user's balance).
 - Call **[Deliver Escrow](/api-reference/escrows/deliver-escrow)** (`POST /api/v1/escrows/:id/deliver`). The escrow **auto-completes** and funds are released immediately (no buyer confirmation step).
 - Minimum internal ledger value (`amountTnd`) is **0.01 TND** after FX lock.
 - Guest checkout (buyer pays without a DHMAD account) is supported for instant escrows via `accept_pay`.
+- `feeBearer` can be set at create time; it cannot be changed via update after creation for instant escrows.
 
 **State flow:** `pending` → `paid` → `completed` (the `delivered` state is skipped; calling deliver transitions directly to completed)
 
@@ -91,13 +92,18 @@ For digital goods (e.g. in-app coins, AI credits), the full standard flow has to
 | Seller | Any user (`sellerEmail` or you) | Third party (`sellerEmail`) | You only (omit `sellerEmail`) |
 | Buyer confirms after delivery | Yes (or early release from `paid`) | Yes (or early release from `paid`) | No (auto-complete on deliver) |
 | `contractTerms` | Required | Not allowed | Not allowed |
-| `estimatedDeliveryDays` | Required | Required | Optional (default 1) |
+| `feeBearer` | Optional (default `seller`) | Optional (default `seller`) | Optional at create (default `seller`) |
+| `estimatedDeliveryDays` | Optional (legacy) | Optional (legacy) | Optional (legacy) |
 | Min `amountTnd` | 5 TND | 5 TND | 0.01 TND |
 | Checkout: `sign_contract` | Yes | No (400) | No (400) |
 | Checkout: `accept_pay` | Yes | Yes | Yes |
 | Checkout: `complete` | Yes | Yes | No (400) |
 | `fulfillmentPolicy` (proof gate) | No | Optional | No |
 | Checkout: `submit_proof` / `review_proof` | No | When proof enabled | No |
+
+<Note>
+  `estimatedDeliveryDays` is a legacy optional field. Omit it for new integrations — it is not used by platform enforcement.
+</Note>
 
 ## Escrow Statuses
 

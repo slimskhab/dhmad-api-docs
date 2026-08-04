@@ -5,7 +5,7 @@ description: Update a pending escrow transaction
 
 <Endpoint method="PUT" path="/api/v1/escrows/:id" />
 
-Update a pending escrow transaction. Only escrows in `pending` status can be updated. You can modify the title, amount, description, and estimated delivery days. At least one field must be provided in the request body. The escrow fee is recalculated automatically when the amount is updated.
+Update a pending escrow transaction. Only escrows in `pending` status can be updated. You can modify the title, amount, description, `feeBearer`, and other pending fields. At least one field must be provided in the request body. The escrow fee is recalculated automatically when the amount is updated. Changing `feeBearer`, amount, or currency clears existing contract signatures.
 
 <RequestExample>
 ```bash cURL
@@ -16,7 +16,7 @@ curl -X PUT https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011 \
     "title": "Updated Web Development Service",
     "amount": 1500.00,
     "description": "Full-stack website with admin panel",
-    "estimatedDeliveryDays": 14
+    "feeBearer": "buyer"
   }'
 ```
 
@@ -31,7 +31,7 @@ const response = await fetch('https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799
     title: 'Updated Web Development Service',
     amount: 1500.00,
     description: 'Full-stack website with admin panel',
-    estimatedDeliveryDays: 14
+    feeBearer: 'buyer'
   })
 });
 
@@ -48,9 +48,10 @@ const data = await response.json();
     "title": "Updated Web Development Service",
     "amount": 1500.00,
     "escrowFee": 75.00,
+    "feeBearer": "buyer",
+    "buyerFundingTnd": 1575.00,
     "status": "pending",
     "description": "Full-stack website with admin panel",
-    "estimatedDeliveryDays": 14,
     "createdAt": "2024-01-15T10:00:00Z",
     "updatedAt": "2024-01-15T11:30:00Z"
   }
@@ -80,8 +81,12 @@ All fields are optional, but at least one must be provided.
   Updated description (max 2000 characters)
 </ParamField>
 
+<ParamField body="feeBearer" type="string" required={false}>
+  Who pays platform + developer fees: `"seller"` or `"buyer"`. Changing this (or amount/currency) clears existing contract signatures. Not allowed for instant escrows after creation.
+</ParamField>
+
 <ParamField body="estimatedDeliveryDays" type="number" required={false}>
-  Updated estimated delivery days (must be at least 1)
+  Legacy optional delivery estimate (must be at least 1 if provided). Not used by platform enforcement; omit for new integrations.
 </ParamField>
 
 ## Response Fields
@@ -91,7 +96,7 @@ All fields are optional, but at least one must be provided.
 </ParamField>
 
 <ParamField response="escrow" type="object">
-  Updated escrow object with all current fields
+  Updated escrow object with all current fields (including `feeBearer` and `buyerFundingTnd`)
 </ParamField>
 
 ## Error Responses

@@ -5,7 +5,7 @@ description: Create an escrow via the public API
 
 <Endpoint method="POST" path="/api/v1/escrows" />
 
-Create a new escrow. Requires API key authentication. The platform fee (DHMAD's percentage) is applied automatically.
+Create a new escrow. Requires API key authentication. The platform fee (DHMAD's percentage) is applied automatically. Who pays platform and developer fees is controlled by **`feeBearer`** (default `"seller"`).
 
 Choose the escrow **mode** based on your use case — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes) for a full comparison:
 
@@ -14,6 +14,17 @@ Choose the escrow **mode** based on your use case — see [Escrow Modes](/api-re
 - **`instant`** — no contract; you are the seller (omit `sellerEmail`); pay → deliver auto-completes. Use for in-app digital goods.
 
 **Developer fee** is only for when the seller is a third party (not your associated account); you can set a developer fee percentage so that a portion of the transaction is credited to your associated user account when the escrow completes.
+
+## Fee bearer (`feeBearer`)
+
+Platform fees (and any developer fee) can be paid by either party:
+
+| Value | Buyer funds (`buyerFundingTnd`) | Seller receives on release |
+| --- | --- | --- |
+| `seller` (default) | Deal amount (`amountTnd`) | Deal amount minus platform + developer fees |
+| `buyer` | Deal amount + platform + developer fees | Full deal amount |
+
+Use `buyerFundingTnd` (returned on create/get) when sizing wallet locks, checkout amounts, and KYC thresholds — not `amountTnd` alone when `feeBearer` is `buyer`. Cancel / full refunds return the buyer’s full funding, including fees when the buyer bore them.
 
 <RequestExample>
 ```bash cURL
@@ -27,14 +38,13 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "currency": "TND",
     "buyerEmail": "buyer@example.com",
     "mode": "standard",
-    "estimatedDeliveryDays": 7,
     "contractTerms": "The seller agrees to deliver a fully functional website within 7 days.",
     "autoSign": true
   }'
 ```
 
 ```bash cURL
-# Standard mode — service between two parties (third-party seller)
+# Standard mode — service between two parties (third-party seller), buyer pays fees
 curl -X POST https://dhmad.tn/api/v1/escrows \
   -H "Authorization: Bearer sk_live_your_api_key_here" \
   -H "Content-Type: application/json" \
@@ -45,9 +55,9 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "buyerEmail": "buyer@example.com",
     "sellerEmail": "seller@example.com",
     "mode": "standard",
-    "estimatedDeliveryDays": 14,
     "contractTerms": "Full design delivery and 2 revisions.",
-    "developerFeePercentage": 5
+    "developerFeePercentage": 5,
+    "feeBearer": "buyer"
   }'
 ```
 
@@ -63,7 +73,7 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "buyerEmail": "buyer@example.com",
     "sellerEmail": "seller@example.com",
     "mode": "quick",
-    "estimatedDeliveryDays": 7,
+    "feeBearer": "seller",
     "fulfillmentPolicy": {
       "type": "purchase_proof_required",
       "proofUploadDeadlineHours": 24,
@@ -84,8 +94,7 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "currency": "TND",
     "buyerEmail": "buyer@example.com",
     "sellerEmail": "seller@example.com",
-    "mode": "quick",
-    "estimatedDeliveryDays": 3
+    "mode": "quick"
   }'
 ```
 
@@ -117,13 +126,14 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "escrowFee": 25,
     "developerFee": 25,
     "developerFeePercentage": 5,
+    "feeBearer": "buyer",
+    "buyerFundingTnd": 550,
     "status": "pending",
     "mode": "standard",
     "seller": null,
     "sellerEmail": "seller@example.com",
     "buyer": null,
     "buyerEmail": "buyer@example.com",
-    "estimatedDeliveryDays": 14,
     "createdAt": "2024-01-15T10:00:00.000Z"
   },
   "contract": {
@@ -163,13 +173,17 @@ For **quick** and **instant** modes, `contract` is `null`.
 
 <ParamField body="mode" type="string" required={false}>
   `"standard"` (default), `"quick"`, or `"instant"`. See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
-  - **standard** — requires `contractTerms` and `estimatedDeliveryDays`; creates a contract.
-  - **quick** — requires `estimatedDeliveryDays`; do not send `contractTerms` or `autoSign`.
-  - **instant** — only when you are the seller (omit `sellerEmail`); do not send `contractTerms` or `autoSign`; `estimatedDeliveryDays` optional.
+  - **standard** — requires `contractTerms`; creates a contract.
+  - **quick** — do not send `contractTerms` or `autoSign`.
+  - **instant** — only when you are the seller (omit `sellerEmail`); do not send `contractTerms` or `autoSign`.
+</ParamField>
+
+<ParamField body="feeBearer" type="string" required={false}>
+  Who pays the platform service fee (and TVA) and the developer fee. `"seller"` (default) or `"buyer"`. When `"seller"`, fees are withheld from the seller at release and the buyer funds the deal amount only. When `"buyer"`, fees are added to the buyer's funding amount and the seller receives the full deal amount.
 </ParamField>
 
 <ParamField body="estimatedDeliveryDays" type="number" required={false}>
-  Required when `mode` is `"standard"` or `"quick"`. Minimum 1 day. Optional for `"instant"` (defaults to 1).
+  Legacy optional delivery estimate (minimum 1 if provided). Not used by platform enforcement; **omit for new integrations**. Timing is driven by fulfillment deadlines, completion deadlines, and `contractTerms` prose instead.
 </ParamField>
 
 <ParamField body="contractTerms" type="string" required={false}>
@@ -181,7 +195,7 @@ For **quick** and **instant** modes, `contract` is `null`.
 </ParamField>
 
 <ParamField body="developerFeePercentage" type="number" required={false}>
-  Optional percentage (0–25) of the escrow amount, credited to your developer account's associated user when the escrow completes. **Only allowed when the seller is a third party** (not your associated user account). Not allowed when the seller is your associated account (whether you omit `sellerEmail` or pass that same email); if violated, the API returns **400**. Default is **0**. This amount is deducted from the seller's payout (in addition to the platform fee). If you set a value greater than 0, your developer account **must be associated with a user account** in the developer dashboard; otherwise the request returns **403 Forbidden**.
+  Optional percentage (0–25) of the escrow amount, credited to your developer account's associated user when the escrow completes. **Only allowed when the seller is a third party** (not your associated user account). Not allowed when the seller is your associated account (whether you omit `sellerEmail` or pass that same email); if violated, the API returns **400**. Default is **0**. When `feeBearer` is `"seller"` (default), this amount is deducted from the seller's payout (in addition to the platform fee). When `feeBearer` is `"buyer"`, it is included in the buyer's funding instead. If you set a value greater than 0, your developer account **must be associated with a user account** in the developer dashboard; otherwise the request returns **403 Forbidden**.
 </ParamField>
 
 <ParamField body="fulfillmentPolicy" type="object" required={false}>
@@ -216,7 +230,7 @@ Escrow `status` remains `paid` during the proof gate; use `proofInfo.phase` and 
 </ParamField>
 
 <ParamField response="escrowFee" type="number">
-  Platform fee in TND (deducted from seller).
+  Platform fee in TND. Paid by the party set in `feeBearer` (withheld from seller at release, or added to buyer funding).
 </ParamField>
 
 <ParamField response="developerFee" type="number">
@@ -227,9 +241,17 @@ Escrow `status` remains `paid` during the proof gate; use `proofInfo.phase` and 
   The percentage set at creation (0–25).
 </ParamField>
 
+<ParamField response="feeBearer" type="string">
+  Who pays platform and developer fees: `"seller"` or `"buyer"`.
+</ParamField>
+
+<ParamField response="buyerFundingTnd" type="number">
+  Amount the buyer must fund in TND. Equals `amountTnd` when `feeBearer` is `"seller"`; equals `amountTnd` plus platform and developer fees when `feeBearer` is `"buyer"`.
+</ParamField>
+
 ## Checkout page and fees
 
-When you redirect users to a [Checkout Session](/api-reference/checkout-sessions/create-session), the DHMAD checkout page shows the **platform service fee** (paid by seller) and, if you set `developerFeePercentage` when creating the escrow, the **application / app fee** (with your app name when configured). Sellers see the total deductions before completing the flow.
+When you redirect users to a [Checkout Session](/api-reference/checkout-sessions/create-session), the DHMAD checkout page shows the **platform service fee** and, if you set `developerFeePercentage` when creating the escrow, the **application / app fee** (with your app name when configured). Which party pays those fees follows `feeBearer`. Use `buyerFundingTnd` for the amount the buyer actually pays.
 
 ## Errors
 

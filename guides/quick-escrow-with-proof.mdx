@@ -71,8 +71,8 @@ const res = await fetch("https://sandbox.dhmad.tn/api/v1/escrows", {
     currency: "TND",
     buyerEmail: "buyer@example.com",
     sellerEmail: "traveler@example.com",
-    estimatedDeliveryDays: 5,
     mode: "quick",
+    feeBearer: "seller",
     fulfillmentPolicy: {
       type: "purchase_proof_required",
       proofUploadDeadlineHours: 24,
