@@ -1,0 +1,50 @@
+---
+title: Charges
+description: Collect a payment for your own business from whoever opens the link
+---
+
+A **charge** collects money for **your** business — selling credits, top-ups, subscriptions, or anything else where you are the merchant. It is the DHMAD equivalent of a payment link.
+
+Use a charge instead of an [escrow](/api-reference/escrows/overview) when there is no counterparty to protect: the money is yours the moment it is paid, so there is no delivery step, no contract, and no dispute window.
+
+## Charge vs escrow
+
+| | Charge | Escrow |
+|---|---|---|
+| Seller | Your business account | Your user, or your business |
+| Buyer | Unknown until someone pays | Known at creation (`buyerEmail`) |
+| Checkout URL | Public — anyone with the link can pay | Bound to the buyer's email |
+| After payment | Completes and settles immediately | Deliver, then release |
+
+## How it works
+
+<Steps>
+  <Step title="Create the charge">
+    `POST /api/v1/charges` with the amount, a title, your own `merchantReference`, and a `redirectUrl`. You get back a checkout `url`.
+  </Step>
+  <Step title="Send the payer to the URL">
+    No DHMAD account is needed. The payer enters an email for the receipt and pays by card, PayPal, or bank transfer. It does not have to be the person who will be credited on your side.
+  </Step>
+  <Step title="Credit your user from the webhook">
+    `escrow.status.updated` fires with `merchantReference` and `receiptEmail`. Look up your own record from `merchantReference` and credit it. Ignore `receiptEmail` for anything except receipts.
+  </Step>
+</Steps>
+
+## Beneficiary vs payer
+
+The person who benefits from a charge and the person who pays it are separate:
+
+- The **beneficiary** lives entirely on your side. DHMAD only sees your opaque `merchantReference`, so a manager can pay for an employee's credits without either of them sharing an account.
+- The **payer** is whoever opens the URL. DHMAD collects their email at checkout for the receipt and reports it back as `receiptEmail`.
+
+Because of this, always credit from `merchantReference`, never from `receiptEmail`.
+
+## Idempotency
+
+`merchantReference` is unique per developer and acts as the idempotency key. Creating a charge again with the same reference returns the original charge (with a fresh checkout URL if the previous one expired) instead of charging twice. That makes it safe to retry a failed request, and it is also how you resume an abandoned payment.
+
+## Requirements
+
+- Your developer account must have a business account. Funds settle into that business's DHMAD wallet.
+- In live mode, the business must pass KYB before it can take charges.
+- `redirectUrl` must match one of the allowed redirect URLs in your [Developer Dashboard](https://developer.dhmad.tn/dashboard).

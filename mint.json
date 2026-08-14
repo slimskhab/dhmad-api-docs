@@ -81,6 +81,14 @@
           ]
         },
         {
+          "group": "Charges",
+          "pages": [
+            "api-reference/charges/overview",
+            "api-reference/charges/create-charge",
+            "api-reference/charges/get-charge"
+          ]
+        },
+        {
           "group": "Checkout Sessions",
           "pages": [
             "api-reference/checkout-sessions/overview",

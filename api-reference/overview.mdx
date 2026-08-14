@@ -59,6 +59,14 @@ We provide an **interactive API Explorer** (Swagger UI) in the [Developer Portal
 - `POST /escrows/:id/reject-delivery` - [Reject delivery](/api-reference/escrows/reject-delivery-escrow) — buyer returns escrow to paid
 - `POST /escrows/:id/cancel` - [Cancel escrow](/api-reference/escrows/cancel-escrow) — cancel a pending escrow
 
+### Charges
+
+A [charge](/api-reference/charges/overview) is a public payment link for **your** business (credits, top-ups, one-off sales). There is no `buyerEmail`: anyone with the URL can pay, and payment completes and settles immediately.
+
+- **[Overview](/api-reference/charges/overview)** — Charge vs escrow, `merchantReference` vs `receiptEmail`, idempotency
+- `POST /charges` - [Create a charge](/api-reference/charges/create-charge) — returns a public checkout URL
+- `GET /charges/:id` - [Get a charge](/api-reference/charges/get-charge) — by DHMAD id or your `merchantReference`
+
 ### Checkout Sessions
 
 Checkout Sessions let you redirect users to dhmad.tn to perform critical escrow actions (sign contract, accept & pay, complete, dispute, cancellation). See the [Checkout Sessions Guide](/guides/checkout-sessions) for a full integration walkthrough.

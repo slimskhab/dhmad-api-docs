@@ -254,6 +254,28 @@ All webhook events share the same top-level structure: `id`, `type`, `timestamp`
 }
 ```
 
+#### Charges
+
+A [charge](/api-reference/charges/overview) reports through the same event, with two extra fields on `data.escrow`:
+
+```json
+{
+  "type": "escrow.status.updated",
+  "data": {
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "500 credits",
+      "status": "completed",
+      "oldStatus": "paid",
+      "merchantReference": "purchase_65f1c2a9b1",
+      "receiptEmail": "payer@example.com"
+    }
+  }
+}
+```
+
+A paid charge fires `paid` and then `completed`. Credit your user from `merchantReference`, which is the reference you sent at creation, and treat the operation as idempotent — both events may arrive, and a delivery may be retried. `receiptEmail` is whoever paid; it is for receipts only and is often not the person being credited.
+
 ### escrow.updated
 
 Sent when the escrow's title, amount, `feeBearer`, contract terms, or other pending fields are updated (via the dashboard or API). The payload includes which fields changed and the current escrow snapshot; when contract terms were updated, `data.contract` is also present.

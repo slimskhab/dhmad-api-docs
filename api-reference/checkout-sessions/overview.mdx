@@ -11,6 +11,8 @@ Checkout Sessions are short-lived, single-use sessions that direct a specific us
 
 Which checkout actions apply depends on the escrow **mode** — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes). In **standard** mode, buyers may need to sign a contract before paying; in **quick** mode there is no contract and the buyer releases funds with `complete` (seller deliver is optional); in **instant** mode only `accept_pay` is used and completion happens when you call the deliver endpoint.
 
+[Charges](/api-reference/charges/overview) are different: `POST /api/v1/charges` already returns the checkout URL. That link has no `targetUserEmail`, lasts 60 minutes, and can be paid by anyone who opens it. Do not create a separate `accept_pay` session for a charge.
+
 ## When to Use Checkout Sessions
 
 Use Checkout Sessions when your integration needs a user to perform one of these critical actions:
@@ -72,7 +74,7 @@ Use Checkout Sessions when your integration needs a user to perform one of these
     Each session can only be completed once. After completion, the session is marked as used.
   </Card>
   <Card title="User Email Validation" icon="mail">
-    Only the user whose email matches `targetUserEmail` can complete the session.
+    Escrow sessions require the signed-in user to match `targetUserEmail`. [Charge](/api-reference/charges/overview) checkout URLs have no target email — anyone with the link can pay.
   </Card>
   <Card title="HTTPS Enforcement" icon="shield">
     Redirect URLs must use HTTPS in production. `http://localhost` is allowed for development.

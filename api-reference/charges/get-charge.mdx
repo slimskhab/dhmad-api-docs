@@ -1,0 +1,72 @@
+---
+title: Get Charge
+description: Look up a charge by id or by your own reference
+---
+
+<Endpoint method="GET" path="/api/v1/charges/:id" />
+
+Fetch one of your charges. `:id` accepts either the DHMAD charge id or your `merchantReference`, so you can check a payment without storing DHMAD's id.
+
+Use this to reconcile when a webhook was missed: if `status` is `completed`, credit your user exactly as you would from the webhook.
+
+<RequestExample>
+```bash cURL
+curl https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1 \
+  -H "Authorization: Bearer sk_live_your_api_key_here"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1',
+  { headers: { 'Authorization': 'Bearer sk_live_your_api_key_here' } }
+);
+
+const { charge } = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1',
+    headers={'Authorization': 'Bearer sk_live_your_api_key_here'}
+)
+
+charge = response.json()['charge']
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "charge": {
+    "id": "507f1f77bcf86cd799439011",
+    "merchantReference": "purchase_65f1c2a9b1",
+    "status": "completed",
+    "title": "500 credits",
+    "amount": 120,
+    "currency": "TND",
+    "amountTnd": 120,
+    "receiptEmail": "payer@example.com",
+    "paidAt": "2026-01-15T10:12:00Z",
+    "completedAt": "2026-01-15T10:12:01Z",
+    "createdAt": "2026-01-15T10:00:00Z",
+    "sessionId": null,
+    "url": null,
+    "expiresAt": null
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Charge id or `merchantReference`.
+</ParamField>
+
+## Notes
+
+- `url` is only present while the charge is still `pending` and its checkout session is valid.
+- `receiptEmail` is the address the payer gave at checkout. It is for receipts only — credit your user from `merchantReference`.
+- **404** means no charge with that id or reference exists on your account.

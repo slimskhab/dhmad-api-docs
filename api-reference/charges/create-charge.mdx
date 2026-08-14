@@ -1,0 +1,157 @@
+---
+title: Create Charge
+description: Create a payment link for your own business
+---
+
+<Endpoint method="POST" path="/api/v1/charges" />
+
+Create a charge and get a public checkout URL. There is no `buyerEmail`: anyone who opens the URL can pay it, and DHMAD collects a receipt email from them at checkout.
+
+Payment completes the charge and settles the funds into your business wallet in one step — there is no deliver call.
+
+<Warning>
+  Configure allowed redirect URLs in your [Developer Dashboard](https://developer.dhmad.tn/dashboard) before creating charges. A `redirectUrl` that does not match one of them is rejected with **400**.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/charges \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "500 credits",
+    "amount": 120,
+    "currency": "TND",
+    "merchantReference": "purchase_65f1c2a9b1",
+    "redirectUrl": "https://myapp.com/billing/callback",
+    "receiptEmail": "customer@example.com",
+    "metadata": { "plan": "credits_500" }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/v1/charges', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_live_your_api_key_here',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    title: '500 credits',
+    amount: 120,
+    currency: 'TND',
+    merchantReference: 'purchase_65f1c2a9b1',
+    redirectUrl: 'https://myapp.com/billing/callback',
+    receiptEmail: 'customer@example.com'
+  })
+});
+
+const { charge } = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://dhmad.tn/api/v1/charges',
+    headers={
+        'Authorization': 'Bearer sk_live_your_api_key_here',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'title': '500 credits',
+        'amount': 120,
+        'currency': 'TND',
+        'merchantReference': 'purchase_65f1c2a9b1',
+        'redirectUrl': 'https://myapp.com/billing/callback',
+        'receiptEmail': 'customer@example.com'
+    }
+)
+
+charge = response.json()['charge']
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "charge": {
+    "id": "507f1f77bcf86cd799439011",
+    "merchantReference": "purchase_65f1c2a9b1",
+    "status": "pending",
+    "title": "500 credits",
+    "amount": 120,
+    "currency": "TND",
+    "amountTnd": 120,
+    "receiptEmail": "customer@example.com",
+    "paidAt": null,
+    "completedAt": null,
+    "createdAt": "2026-01-15T10:00:00Z",
+    "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+    "url": "https://dhmad.tn/checkout/550e8400-e29b-41d4-a716-446655440000",
+    "expiresAt": "2026-01-15T11:00:00Z"
+  }
+}
+```
+</ResponseExample>
+
+## Request Body
+
+<ParamField body="title" type="string" required>
+  What the payer is paying for. Shown on checkout and on the receipt.
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Amount in the face currency.
+</ParamField>
+
+<ParamField body="currency" type="string" required={false}>
+  `TND`, `USD`, or `EUR`. Defaults to `TND`. Non-TND charges are converted for the internal ledger; the payer is charged the face amount.
+</ParamField>
+
+<ParamField body="merchantReference" type="string" required>
+  Your own opaque identifier for what is being bought — an order id, a purchase row id, anything you can look up later. Unique per developer and used as the idempotency key. Letters, digits, and `. _ : -`, up to 200 characters.
+</ParamField>
+
+<ParamField body="redirectUrl" type="string" required>
+  Where the payer returns after paying or abandoning. Must match an allowed redirect URL and use HTTPS (except `http://localhost`).
+</ParamField>
+
+<ParamField body="receiptEmail" type="string" required={false}>
+  Prefills the receipt field on checkout. The payer can change it, so never treat it as the identity of the buyer.
+</ParamField>
+
+<ParamField body="metadata" type="object" required={false}>
+  Key-value pairs (strings only, 500 characters or less per value) carried on the checkout session.
+</ParamField>
+
+## Response Fields
+
+<ParamField response="charge.id" type="string">
+  DHMAD id for the charge. Also usable with [Get Charge](/api-reference/charges/get-charge).
+</ParamField>
+
+<ParamField response="charge.status" type="string">
+  `pending` until paid, then `paid` and `completed` (usually within the same second).
+</ParamField>
+
+<ParamField response="charge.url" type="string">
+  Public checkout URL. `null` once the charge is paid.
+</ParamField>
+
+<ParamField response="charge.expiresAt" type="string">
+  When the checkout URL expires (1 hour). Call this endpoint again with the same `merchantReference` to get a fresh one — it will not create a second charge.
+</ParamField>
+
+## Repeat requests
+
+Calling this endpoint again with a `merchantReference` you already used returns **200** with the original charge instead of **201**, so a retry after a timeout is safe. Use the same call to reissue an expired checkout URL for an abandoned payment.
+
+## Errors
+
+| Status | When |
+|---|---|
+| **400** | Invalid body, `redirectUrl` not allowed or not HTTPS, or the amount is below the minimum. |
+| **403** | The developer account has no business account, or the business has not passed KYB in live mode. |
+| **429** | Daily escrow/charge creation limit reached. |
+| **502** | Currency conversion failed. Retry, or charge in TND. |
