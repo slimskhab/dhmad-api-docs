@@ -13,6 +13,8 @@ Choose the escrow **mode** based on your use case — see [Escrow Modes](/api-re
 - **`quick`** — no contract; pay → buyer `complete` to release funds. Seller deliver is optional. Use with `sellerEmail` for product sales without a contract. Optionally add **`fulfillmentPolicy`** for [Quick Escrow with Proof](/guides/quick-escrow-with-proof) (seller uploads proof before delivery unlocks).
 - **`instant`** — no contract; you are the seller (omit `sellerEmail`); pay → deliver auto-completes. Use for in-app digital goods.
 
+For hourly or recurring work, add **`progressiveRelease`** to `standard` or `quick` mode so one funded escrow pays out per billing period — see [Progressive Release](/guides/progressive-release).
+
 **Developer fee** is only for when the seller is a third party (not your associated account); you can set a developer fee percentage so that a portion of the transaction is credited to your associated user account when the escrow completes.
 
 ## Fee bearer (`feeBearer`)
@@ -206,6 +208,28 @@ For **quick** and **instant** modes, `contract` is `null`.
   - **`buyerReviewDeadlineHours`** — hours for buyer review (same bounds; auto-accept if buyer does nothing).
   - **`allowedProofTypes`** — optional UI hints: `receipt`, `order_confirmation`, `product_photo`, `tracking_proof`, `other`. Informational only; DHMAD does not enforce uploads against this list.
 </ParamField>
+
+<ParamField body="progressiveRelease" type="object" required={false}>
+  **Hourly / recurring contracts** — allowed for `standard` and `quick` modes (returns **400** for `instant`). Lets one funded escrow pay out in slices, one per billing period. See the [Progressive Release guide](/guides/progressive-release).
+
+  - **`enabled`** (required when set) — must be `true`.
+  - **`autoApproveHours`** — how long the client has to review each payout request before it releases automatically. Must be within platform bounds (default 12–336h; returns **400** if out of range). Defaults to 48h when omitted.
+  - **`minReleaseTnd`** — smallest payout slice in TND. Clamped to at least the platform minimum (5 TND).
+
+  The client must explicitly accept automatic release when funding the escrow; otherwise payout requests are refused with `CONSENT_REQUIRED`.
+</ParamField>
+
+## Progressive release (hourly contracts)
+
+When `progressiveRelease.enabled` is `true`:
+
+1. Buyer pays via `accept_pay` and accepts automatic release.
+2. Your backend claims each period with **[POST /escrows/:id/release-requests](/api-reference/escrows/create-release-request)** — permitted on the seller's behalf, so the freelancer takes no weekly action.
+3. The client approves (`approve_release`), rejects (`reject_release`, which disputes that period only), or lets it auto-release at the deadline.
+4. Top up the same escrow with `add_funds` when the balance runs low; a zero balance keeps the escrow **open**.
+5. End the contract with **[POST /escrows/:id/close](/api-reference/escrows/close-escrow)**, which settles owed periods and refunds the remainder.
+
+Escrow `status` remains `paid` across every partial payout; track progress with `availableForReleaseTnd`, `reservedTnd`, and the `escrow.release_request.*` webhooks.
 
 ## Quick Escrow with Proof
 

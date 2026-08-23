@@ -1,0 +1,232 @@
+---
+title: Create Payout Request
+description: Claim one billing period from a progressive-release escrow
+---
+
+<Endpoint method="POST" path="/api/v1/escrows/:id/release-requests" />
+
+Claim a slice of a funded **progressive-release** escrow — one request per billing period, such as a weekly timesheet on an hourly contract. The escrow must have been created with `progressiveRelease.enabled: true`.
+
+You can call this **on the seller's behalf** when your application created the escrow, so the freelancer takes no weekly action. The amount is reserved against the escrow balance immediately, the client is notified, and the request releases automatically once `approvalDeadline` passes unless the client decides first.
+
+**What the client can do:**
+
+- **Approve** — the period is released to the seller's DHMAD balance right away (`approve_release` checkout session).
+- **Reject** — a dispute is opened for *that period only*. The amount stays reserved and protected while DHMAD reviews it; later periods keep running normally (`reject_release` checkout session).
+- **Nothing** — the request auto-approves and releases at the deadline.
+
+<Note>
+  `requestId` is your idempotency key. Repeating a request with the same `requestId` returns the existing one with `200` instead of reserving twice, so an at-least-once weekly job is safe to retry.
+</Note>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/release-requests \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requestId": "timesheet-2026-W12",
+    "amountTnd": 420.50,
+    "reference": "Week 12 (Mar 16-22)"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/release-requests',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer sk_live_your_api_key_here',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      requestId: 'timesheet-2026-W12',
+      amountTnd: 420.50,
+      reference: 'Week 12 (Mar 16-22)'
+    })
+  }
+);
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Payout request created",
+  "idempotentReplay": false,
+  "releaseRequest": {
+    "requestId": "timesheet-2026-W12",
+    "amountTnd": 420.5,
+    "approvalDeadline": "2026-03-25T09:00:00Z",
+    "status": "pending"
+  },
+  "escrow": {
+    "_id": "507f1f77bcf86cd799439011",
+    "title": "Hourly contract — React developer",
+    "status": "paid",
+    "amountTnd": 4000,
+    "reservedTnd": 420.5,
+    "availableForReleaseTnd": 3579.5,
+    "releasedTotalTnd": 0,
+    "progressiveRelease": {
+      "enabled": true,
+      "autoApproveHours": 48,
+      "minReleaseTnd": 5
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Body Parameters
+
+<ParamField body="requestId" type="string" required>
+  Your own identifier for this period, unique per escrow. Doubles as the idempotency key. Letters, numbers and `. _ : -` only (max 120 characters).
+</ParamField>
+
+<ParamField body="amountTnd" type="number">
+  The slice in ledger TND. Preferred, because `add_funds` can mix FX rates within one escrow so a face amount has no single unambiguous conversion. Required unless `amount` is provided.
+</ParamField>
+
+<ParamField body="amount" type="number">
+  The slice in the escrow's face currency. Converted pro-rata against the current balance. Ignored when `amountTnd` is present.
+</ParamField>
+
+<ParamField body="currency" type="string">
+  `TND`, `USD` or `EUR`. Defaults to the escrow's currency.
+</ParamField>
+
+<ParamField body="reference" type="string">
+  Your own period label, shown to both parties and printed on the fiscal invoice for this release (max 200 characters).
+</ParamField>
+
+<ParamField body="note" type="string">
+  Optional internal note (max 500 characters).
+</ParamField>
+
+## Response Fields
+
+<ParamField response="message" type="string">
+  Success message
+</ParamField>
+
+<ParamField response="idempotentReplay" type="boolean">
+  `true` when a request with this `requestId` already existed and was returned unchanged. The status code is `200` rather than `201`.
+</ParamField>
+
+<ParamField response="releaseRequest.requestId" type="string">
+  Your identifier for this period
+</ParamField>
+
+<ParamField response="releaseRequest.amountTnd" type="number">
+  Reserved amount in TND
+</ParamField>
+
+<ParamField response="releaseRequest.approvalDeadline" type="string">
+  ISO timestamp. The request auto-approves and releases after this instant unless decided first.
+</ParamField>
+
+<ParamField response="releaseRequest.status" type="string">
+  `pending` on creation
+</ParamField>
+
+<ParamField response="escrow.reservedTnd" type="number">
+  Total balance claimed by open payout requests (pending, approved and disputed)
+</ParamField>
+
+<ParamField response="escrow.availableForReleaseTnd" type="number">
+  What a further payout request may still claim (`amountTnd` − `reservedTnd`)
+</ParamField>
+
+## Error Responses
+
+### 400 Bad Request
+
+**Progressive release not enabled**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "PROGRESSIVE_RELEASE_NOT_ENABLED",
+  "message": "Progressive release is not enabled for this escrow."
+}
+```
+
+**Seller identity not verified**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "SELLER_IDENTITY_REQUIRED",
+  "message": "The seller must complete identity verification before payouts can be requested."
+}
+```
+
+**Amount below the minimum slice**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "AMOUNT_TOO_SMALL",
+  "message": "Release amount must be at least 5 TND."
+}
+```
+
+### 409 Conflict
+
+**Insufficient unreserved balance**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "INSUFFICIENT_AVAILABLE_BALANCE",
+  "message": "Insufficient unreserved balance for this payout request (available 120.5 TND).",
+  "availableForReleaseTnd": 120.5,
+  "reservedTnd": 3879.5
+}
+```
+
+**Client has not accepted automatic release**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "CONSENT_REQUIRED",
+  "message": "The client has not accepted automatic release for this contract."
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+---
+
+<Info>
+  Because the seller identity check runs at **creation** rather than at payout, requests never pile up unpayable. The check is idempotent, so once the freelancer is verified and linked it passes for every future period — there is no weekly friction.
+</Info>
+
+<Warning>
+  When the balance runs out the escrow stays open and DHMAD emits `escrow.balance.exhausted`. Pause tracking and prompt the client to top up with an `add_funds` checkout session; do not close the contract.
+</Warning>

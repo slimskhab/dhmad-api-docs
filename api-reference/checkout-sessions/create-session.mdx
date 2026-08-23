@@ -86,7 +86,7 @@ data = response.json()
 ## Request Body
 
 <ParamField body="action" type="string" required>
-  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`, `cancel_escrow`, `submit_proof`, `review_proof`, `add_funds`, `refund_funds`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
+  The action the user will perform. Must be one of: `sign_contract`, `accept_pay`, `complete`, `dispute`, `request_cancellation`, `reject_cancellation`, `accept_cancellation`, `cancel_escrow`, `submit_proof`, `review_proof`, `add_funds`, `refund_funds`, `approve_release`, `reject_release`. If the action is already done (e.g. contract already signed, payment already made), the API returns 400 with a business rule error—see Error Responses below.
 
   **Cancellation actions (paid or delivered escrows):**
   - `request_cancellation` — **Buyer only.** Target the buyer's email. The buyer cannot cancel unilaterally after payment; they request cancellation and the seller must accept or reject.
@@ -98,6 +98,11 @@ data = response.json()
   - `add_funds` — **Buyer only.** Target the buyer's email. The buyer adds more money from their DHMAD wallet into the escrow. Fees apply to the **added** amount only. Requires action step-up on checkout. Not supported for escrows paid via guest checkout.
   - `refund_funds` — **Seller only.** Target the seller's email. The seller refunds part or all of the remaining ledger balance to the buyer's wallet. Refunding the **full** remaining balance cancels the escrow. Requires action step-up on checkout. Not supported for guest-checkout escrows.
   - Targeting the wrong party returns **400** (`CHECKOUT_TARGET_NOT_BUYER` / `CHECKOUT_TARGET_NOT_SELLER`).
+
+  **Progressive release actions ([hourly contracts](/guides/progressive-release), paid escrows):**
+  - `approve_release` — **Client only.** Target the buyer's email and pass the payout request in `metadata.requestId`. Releases that period to the seller immediately. Requires action step-up on checkout.
+  - `reject_release` — **Client only.** Same targeting and `metadata.requestId`. Opens a dispute scoped to that period; the amount stays reserved and later periods keep running. No step-up (no money moves).
+  - Both require `progressiveRelease.enabled` on the escrow and a `pending` payout request. The seller never acts on these — payout requests are created by your backend, optionally on the seller's behalf.
 
   **By escrow mode:**
   - **standard** — all actions apply when status allows (except proof actions). `complete` works from `paid` or `delivered`; seller deliver is optional. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
@@ -179,6 +184,11 @@ When a request is rejected because of a business rule (e.g. the action is alread
 | `BUYER_NOT_LINKED` | Action is a funds adjustment but the buyer account is not linked yet. |
 | `DISPUTE_OPEN` | Action is `add_funds` or `refund_funds` but a dispute is open. |
 | `CANCELLATION_PENDING` | Action is `add_funds` or `refund_funds` but a cancellation request is pending. |
+| `PROGRESSIVE_RELEASE_NOT_ENABLED` | Action is `approve_release` or `reject_release` but the escrow does not use progressive release. |
+| `RELEASE_REVIEW_INVALID_STATUS` | Action is `approve_release` or `reject_release` but the escrow is not `paid`. |
+| `RELEASE_REQUEST_ID_REQUIRED` | Action is `approve_release` or `reject_release` but `metadata.requestId` is missing. |
+| `RELEASE_REQUEST_NOT_FOUND` | No payout request with that `requestId` exists on the escrow. |
+| `RELEASE_REQUEST_NOT_PENDING` | The named payout request has already been decided. |
 
 **Example: contract already signed**
 

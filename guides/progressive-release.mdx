@@ -1,0 +1,132 @@
+---
+title: Progressive Release (Hourly Contracts)
+description: Fund one escrow and pay it out in slices as work is delivered
+---
+
+Progressive release lets you fund **one** escrow and pay it out in slices over time — one payout per billing period. It is the primitive behind hourly and time-and-materials contracts, retainers, and any arrangement where the total is known but the work arrives incrementally.
+
+DHMAD deliberately owns only the money mechanics. Your platform owns the hours, the timesheets, and when a period closes.
+
+## How it differs from a normal escrow
+
+A normal escrow releases all-or-nothing: the buyer funds it, then `complete` pays out the whole amount and the escrow ends. A progressive escrow instead:
+
+- stays in `paid` status across many payouts,
+- decrements its balance on each release,
+- accepts top-ups with `add_funds` at any time,
+- and only reaches `completed` when you explicitly close it.
+
+## The flow
+
+<Steps>
+  <Step title="Create the escrow with progressive release enabled">
+    Set `progressiveRelease.enabled: true` on [Create Escrow](/api-reference/escrows/create-escrow). Optionally set `autoApproveHours` (the client's review window) within the platform bounds.
+
+    ```json
+    {
+      "title": "Hourly contract — React developer",
+      "amount": 4000,
+      "currency": "TND",
+      "buyerEmail": "client@example.com",
+      "sellerEmail": "freelancer@example.com",
+      "mode": "quick",
+      "progressiveRelease": { "enabled": true, "autoApproveHours": 48 }
+    }
+    ```
+  </Step>
+
+  <Step title="The client funds the escrow and accepts automatic release">
+    Send the client to an `accept_pay` checkout session. Because undisputed work is released automatically, DHMAD requires the client to **explicitly accept that term** before funding. This consent is recorded against the window they were shown, so changing `autoApproveHours` later re-prompts rather than silently altering the deal.
+  </Step>
+
+  <Step title="Claim each period as work is delivered">
+    At the end of each billing period, your backend calls [Create Payout Request](/api-reference/escrows/create-release-request) with a `requestId` and the amount. You may do this **on the seller's behalf** — the freelancer takes no weekly action.
+
+    The amount is reserved against the balance immediately, so two periods can never be backed by the same funds.
+  </Step>
+
+  <Step title="The client approves, rejects, or does nothing">
+    - **Approve** (`approve_release` checkout session) — the slice is released to the seller's DHMAD balance immediately.
+    - **Reject** (`reject_release` checkout session) — a dispute opens for *that period only*. The amount stays reserved and protected while DHMAD reviews it. Later periods keep running.
+    - **Nothing** — the request auto-approves and releases once `approvalDeadline` passes.
+
+    DHMAD notifies the client on creation and again before the deadline.
+  </Step>
+
+  <Step title="Top up when the balance runs low">
+    When no unreserved balance is left, DHMAD emits `escrow.balance.exhausted` and the escrow **stays open**. Pause tracking, prompt the client to top up with an `add_funds` checkout session, and resume. Do not close the contract.
+  </Step>
+
+  <Step title="Close the contract when the work ends">
+    [Close Escrow](/api-reference/escrows/close-escrow) settles any approved-but-unpaid periods, then refunds the genuinely unused balance and completes the escrow with `completionSource: "progressive_close"`.
+  </Step>
+</Steps>
+
+## Reservations
+
+Reservation accounting is what makes concurrent periods safe. Three figures appear on the escrow:
+
+| Field | Meaning |
+| --- | --- |
+| `amountTnd` | Balance still held in escrow, already net of prior releases |
+| `reservedTnd` | Portion claimed by open payout requests |
+| `availableForReleaseTnd` | What a new payout request may claim (`amountTnd` − `reservedTnd`) |
+
+**Pending, approved-but-unpaid, and disputed requests all hold their reservation.** Only `released` and `voided` free it. Consequently:
+
+- A refund or cancellation can never take funds a period still has a claim on.
+- Closing is refused while any period is undecided.
+
+## Disputes are scoped to one period
+
+A client rejection **always** opens a dispute. This is deliberate: if rejection merely parked the money, a client could block a freelancer's payment indefinitely with no path to resolution.
+
+That dispute is scoped to the rejected period. It does **not** freeze the escrow, so later periods, top-ups, and the auto-release timer all continue. DHMAD then awards **all, part, or none** of the claim; any unawarded remainder returns to the available balance and can fund future work or be refunded at closure.
+
+## Fees and invoicing
+
+Platform and developer fees are apportioned to each slice, so a sequence of partial releases retains exactly the fees a single full release would have. A **fiscal invoice is issued per released slice** rather than once at the end, which keeps VAT reporting correct on a long-running contract. Pass `reference` on each payout request and it appears on that period's invoice.
+
+## Webhooks
+
+Subscribe to these to keep your own records in step:
+
+<CardGroup cols={1}>
+  <Card title="escrow.release_request.created" icon="clock">
+    A payout request was created and the amount reserved. The client has been notified.
+  </Card>
+  <Card title="escrow.release_request.approved" icon="circle-check">
+    The client approved the period.
+  </Card>
+  <Card title="escrow.release_request.auto_approved" icon="hourglass-end">
+    The review window elapsed with no response, so the period was approved automatically.
+  </Card>
+  <Card title="escrow.release_request.disputed" icon="triangle-exclamation">
+    The client rejected the period. A scoped dispute is open; the amount stays reserved.
+  </Card>
+  <Card title="escrow.release_request.resolved" icon="gavel">
+    DHMAD resolved a disputed period. `awardedTnd` is what went to the seller.
+  </Card>
+  <Card title="escrow.release_request.released" icon="money-bill-transfer">
+    Funds reached the seller's DHMAD balance for this period.
+  </Card>
+  <Card title="escrow.balance.exhausted" icon="battery-empty">
+    No unreserved balance remains. Pause tracking and prompt a top-up; the escrow stays open.
+  </Card>
+</CardGroup>
+
+Every payload includes the escrow's live `reservedTnd`, `availableForReleaseTnd` and `releasedTotalTnd`, so you can reconcile without a follow-up request.
+
+## Identity requirements
+
+The seller must have completed identity verification before any payout can be requested. The check runs at **request creation**, not at payout, so you get an immediate `SELLER_IDENTITY_REQUIRED` error instead of periods silently accumulating as unpayable.
+
+Because the check is idempotent, it passes for every future period once the freelancer is verified and linked. Onboarding them to that state is your platform's responsibility — prompt for it before the first billing period, not weekly.
+
+<Warning>
+  Design your weekly job to be **at-least-once**. `requestId` is the idempotency key: a repeated call returns the existing request with `200` rather than reserving twice.
+</Warning>
+
+<Info>
+  Progressive release composes with `mode: "quick"` (no contract) or `mode: "standard"` (with a signed contract). It is not available for `instant` mode, which completes on payment.
+</Info>

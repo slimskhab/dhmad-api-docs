@@ -77,6 +77,9 @@
             "api-reference/escrows/update-escrow",
             "api-reference/escrows/deliver-escrow",
             "api-reference/escrows/reject-delivery-escrow",
+            "api-reference/escrows/create-release-request",
+            "api-reference/escrows/list-release-requests",
+            "api-reference/escrows/close-escrow",
             "api-reference/escrows/cancel-escrow"
           ]
         },
@@ -122,6 +125,7 @@
       "pages": [
         "guides/sandbox",
         "guides/quick-escrow-with-proof",
+        "guides/progressive-release",
         "guides/kyc-for-marketplaces",
         "guides/oauth-setup",
         "guides/checkout-sessions",

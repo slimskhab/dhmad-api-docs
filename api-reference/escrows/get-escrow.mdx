@@ -139,6 +139,34 @@ data = response.json()
   have occurred. See checkout actions `add_funds` and `refund_funds`.
 </ParamField>
 
+<ParamField response="escrow.progressiveRelease" type="object">
+  Present only on [progressive-release](/guides/progressive-release) escrows:
+  `enabled`, `autoApproveHours` (client review window), `minReleaseTnd`, and
+  `buyerConsentAcceptedAt` (when the client accepted automatic release).
+</ParamField>
+
+<ParamField response="escrow.reservedTnd" type="number">
+  Progressive release only. Balance claimed by open payout requests — pending,
+  approved-but-unpaid, and disputed all reserve. These funds cannot be refunded
+  or cancelled while claimed.
+</ParamField>
+
+<ParamField response="escrow.availableForReleaseTnd" type="number">
+  Progressive release only. What a new payout request may claim
+  (`amountTnd` − `reservedTnd`). Zero means the contract needs a top-up.
+</ParamField>
+
+<ParamField response="escrow.releasedTotalTnd" type="number">
+  Progressive release only. Cumulative TND paid out through partial releases.
+</ParamField>
+
+<ParamField response="escrow.releaseRequests" type="array">
+  Progressive release only. Every billing period with its status
+  (`pending`, `approved`, `disputed`, `released`, `voided`), `approvalDeadline`,
+  `sellerNetTnd`, and any admin `resolution`. See
+  [List Payout Requests](/api-reference/escrows/list-release-requests).
+</ParamField>
+
 <ParamField response="escrow.status" type="string">
   Current escrow status (`pending`, `paid`, `delivered`, `completed`, `cancelled`, `disputed`)
 </ParamField>

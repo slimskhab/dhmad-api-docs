@@ -30,7 +30,12 @@ Create a new webhook endpoint to receive event notifications.
   payment proof rejected by admin), `escrow.delivery.rejected` (buyer rejected
   delivery; includes optional reason), `escrow.funds.added`,
   `escrow.funds.refunded` (buyer add-funds / seller refund-funds adjustments),
-  `identity.verification.updated`
+  `escrow.release_request.created`, `escrow.release_request.approved`,
+  `escrow.release_request.auto_approved`, `escrow.release_request.disputed`,
+  `escrow.release_request.resolved`, `escrow.release_request.released`
+  (per-period payouts on [progressive-release](/guides/progressive-release)
+  escrows), `escrow.balance.exhausted` (no unreserved balance left; the escrow
+  stays open for a top-up), `identity.verification.updated`
   (pre-account KYC approved or rejected), `identity.verification.linked`
   (KYC attached when user registers on DHMAD). Default: `["escrow.status.updated"]`
 </ParamField>
@@ -270,7 +275,9 @@ curl -X DELETE https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 
   Array of subscribed event types (e.g. "escrow.status.updated",
   "contract.signed", "escrow.cancellation.requested",
   "escrow.cancellation.rejected", "escrow.cancellation.accepted",
-  "escrow.delivery.rejected", "escrow.funds.added", "escrow.funds.refunded")
+  "escrow.delivery.rejected", "escrow.funds.added", "escrow.funds.refunded",
+  "escrow.release_request.created", "escrow.release_request.released",
+  "escrow.balance.exhausted")
 </ParamField>
 
 <ParamField response="webhook.isActive" type="boolean">

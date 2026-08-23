@@ -1,0 +1,170 @@
+---
+title: List Payout Requests
+description: Full period history and live reservation figures for a progressive-release escrow
+---
+
+<Endpoint method="GET" path="/api/v1/escrows/:id/release-requests" />
+
+Return every payout request on a **progressive-release** escrow, with each period's status, deadline and admin resolution. The response also carries the live reservation figures, so you can size the next period without a second call.
+
+Use this to reconcile your own timesheet records — for example after a webhook delivery failure, or when rebuilding state on a scheduled job.
+
+<RequestExample>
+```bash cURL
+curl https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/release-requests \
+  -H "Authorization: Bearer sk_live_your_api_key_here"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/release-requests',
+  {
+    headers: { 'Authorization': 'Bearer sk_live_your_api_key_here' }
+  }
+);
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "releaseRequests": [
+    {
+      "requestId": "timesheet-2026-W10",
+      "reference": "Week 10 (Mar 2-8)",
+      "amountTnd": 380,
+      "status": "released",
+      "createdVia": "api",
+      "approvalDeadline": "2026-03-11T09:00:00Z",
+      "sellerNetTnd": 357.39,
+      "decidedAt": "2026-03-10T14:22:00Z",
+      "decisionSource": "buyer",
+      "releasedAt": "2026-03-10T14:22:01Z",
+      "createdAt": "2026-03-09T09:00:00Z"
+    },
+    {
+      "requestId": "timesheet-2026-W11",
+      "reference": "Week 11 (Mar 9-15)",
+      "amountTnd": 410,
+      "status": "released",
+      "createdVia": "api",
+      "approvalDeadline": "2026-03-18T09:00:00Z",
+      "sellerNetTnd": 385.6,
+      "decidedAt": "2026-03-18T09:00:04Z",
+      "decisionSource": "timeout",
+      "releasedAt": "2026-03-18T09:00:05Z",
+      "createdAt": "2026-03-16T09:00:00Z"
+    },
+    {
+      "requestId": "timesheet-2026-W12",
+      "reference": "Week 12 (Mar 16-22)",
+      "amountTnd": 420.5,
+      "status": "disputed",
+      "createdVia": "api",
+      "approvalDeadline": "2026-03-25T09:00:00Z",
+      "decidedAt": "2026-03-24T11:05:00Z",
+      "decisionSource": "buyer",
+      "disputeTicketId": "6612f1a8bcf86cd7994390aa",
+      "createdAt": "2026-03-23T09:00:00Z"
+    }
+  ],
+  "progressiveRelease": {
+    "enabled": true,
+    "autoApproveHours": 48,
+    "minReleaseTnd": 5,
+    "buyerConsentAcceptedAt": "2026-03-01T10:00:00Z"
+  },
+  "reservedTnd": 420.5,
+  "availableForReleaseTnd": 2789.5,
+  "releasedTotalTnd": 790,
+  "escrowStatus": "paid"
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Response Fields
+
+<ParamField response="releaseRequests" type="array">
+  Every payout request on the escrow, oldest first
+</ParamField>
+
+<ParamField response="releaseRequests[].requestId" type="string">
+  Your identifier for the period
+</ParamField>
+
+<ParamField response="releaseRequests[].status" type="string">
+  One of `pending`, `approved`, `disputed`, `released`, `voided`. There is no `rejected` state — a client rejection goes straight to `disputed` so the period always has a resolution path.
+</ParamField>
+
+<ParamField response="releaseRequests[].approvalDeadline" type="string">
+  When a `pending` request auto-approves
+</ParamField>
+
+<ParamField response="releaseRequests[].sellerNetTnd" type="number">
+  What the seller receives for this slice, after platform and developer fees
+</ParamField>
+
+<ParamField response="releaseRequests[].decisionSource" type="string">
+  `buyer` (client decided), `timeout` (auto-approved at the deadline), or `admin` (dispute resolution)
+</ParamField>
+
+<ParamField response="releaseRequests[].disputeTicketId" type="string">
+  Set when the period is disputed. Scoped to this period only — it does not flag the whole escrow as disputed.
+</ParamField>
+
+<ParamField response="releaseRequests[].resolution" type="object">
+  Present after a disputed period is resolved: `awardedTnd`, `resolvedAt`, and `reason`. An award below the claim returns the remainder to the available balance.
+</ParamField>
+
+<ParamField response="reservedTnd" type="number">
+  Balance claimed by open requests (pending, approved and disputed)
+</ParamField>
+
+<ParamField response="availableForReleaseTnd" type="number">
+  Balance a new payout request may claim
+</ParamField>
+
+<ParamField response="releasedTotalTnd" type="number">
+  Cumulative TND paid out through partial releases
+</ParamField>
+
+## Error Responses
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+### 403 Forbidden
+
+```json
+{
+  "error": "Forbidden",
+  "message": "Only a party on this escrow can manage payout requests"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+---
+
+<Info>
+  A non-progressive escrow returns an empty `releaseRequests` array with `progressiveRelease: null`, rather than an error.
+</Info>

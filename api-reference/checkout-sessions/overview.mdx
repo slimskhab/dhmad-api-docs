@@ -48,6 +48,12 @@ Use Checkout Sessions when your integration needs a user to perform one of these
   <Card title="Refund Funds" icon="rotate-left">
     Redirect the **seller** to refund part or all of the remaining ledger balance to the buyer's wallet. Refunding the full remaining balance cancels the escrow. Not available for guest-checkout escrows.
   </Card>
+  <Card title="Approve Release" icon="circle-check">
+    Redirect the **client** to approve a payout request on a [progressive-release](/guides/progressive-release) escrow, releasing that billing period now. Pass `metadata.requestId`.
+  </Card>
+  <Card title="Reject Release" icon="triangle-exclamation">
+    Redirect the **client** to reject a payout request. Opens a dispute for that period only; the amount stays reserved and later periods keep running. Pass `metadata.requestId`.
+  </Card>
 </CardGroup>
 
 ## How the Flow Works
@@ -86,7 +92,7 @@ Use Checkout Sessions when your integration needs a user to perform one of these
 
 ## Webhook as Source of Truth
 
-When a user completes an action via a Checkout Session, DHMAD emits webhooks for the underlying escrow events (e.g., `contract.signed`, `escrow.paid`, `escrow.completed`, `escrow.funds.added`, `escrow.funds.refunded`). Always process webhooks to update your backend state. The redirect parameters are useful for immediate UI feedback but should not be the sole basis for state changes.
+When a user completes an action via a Checkout Session, DHMAD emits webhooks for the underlying escrow events (e.g., `contract.signed`, `escrow.paid`, `escrow.completed`, `escrow.funds.added`, `escrow.funds.refunded`, `escrow.release_request.approved`, `escrow.release_request.disputed`). Always process webhooks to update your backend state. The redirect parameters are useful for immediate UI feedback but should not be the sole basis for state changes.
 
 ---
 

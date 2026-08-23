@@ -204,6 +204,35 @@ You can subscribe to the following events:
     remaining balance is refunded, `adjustment.cancelled` is `true` and an
     `escrow.status.updated` event to `cancelled` is also fired.
   </Card>
+  <Card title="escrow.release_request.created" icon="clock">
+    [Progressive release](/guides/progressive-release): a payout request was
+    created for one billing period and the amount reserved. The client has been
+    notified and has until `approvalDeadline` to respond.
+  </Card>
+  <Card title="escrow.release_request.approved" icon="circle-check">
+    The client approved a payout request. `escrow.release_request.released`
+    follows once the ledger settles.
+  </Card>
+  <Card title="escrow.release_request.auto_approved" icon="hourglass-end">
+    The client's review window elapsed with no response, so the period was
+    approved automatically.
+  </Card>
+  <Card title="escrow.release_request.disputed" icon="triangle-exclamation">
+    The client rejected a payout request. A dispute scoped to that period is
+    open; the amount stays reserved and later periods keep running.
+  </Card>
+  <Card title="escrow.release_request.resolved" icon="gavel">
+    DHMAD resolved a disputed period. `releaseRequest.awardedTnd` is what went
+    to the seller; any remainder returned to the escrow balance.
+  </Card>
+  <Card title="escrow.release_request.released" icon="money-bill-transfer">
+    Funds for this period reached the seller's DHMAD balance. The escrow stays
+    open with a reduced balance.
+  </Card>
+  <Card title="escrow.balance.exhausted" icon="battery-empty">
+    A progressive escrow has no unreserved balance left. Pause tracking and
+    prompt the client to top up with `add_funds` — the escrow is **not** closed.
+  </Card>
   <Card title="identity.verification.updated" icon="id-card">
     Triggered when a [pre-account identity verification](/guides/kyc-for-marketplaces)
     `kyc_status` becomes `approved` or `rejected` (Didit result, admin review,
@@ -588,6 +617,93 @@ For `escrow.funds.refunded`, `adjustment.type` is `"refund_funds"` and `performe
   refund that cancels the escrow).
 </ParamField>
 
+## Progressive release events
+
+Sent on [progressive-release](/guides/progressive-release) escrows, which pay out one slice per billing period. Every payload carries `data.releaseRequest` plus the escrow's live reservation figures, so you can reconcile without a follow-up request.
+
+### escrow.release_request.created
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440010",
+  "type": "escrow.release_request.created",
+  "timestamp": "2026-03-23T09:00:00.000Z",
+  "data": {
+    "releaseRequest": {
+      "requestId": "timesheet-2026-W12",
+      "reference": "Week 12 (Mar 16-22)",
+      "status": "pending",
+      "amountTnd": 420.5,
+      "sellerNetTnd": 395.47,
+      "approvalDeadline": "2026-03-25T09:00:00.000Z"
+    },
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Hourly contract — React developer",
+      "status": "paid",
+      "amountTnd": 4000,
+      "reservedTnd": 420.5,
+      "availableForReleaseTnd": 3579.5,
+      "releasedTotalTnd": 0,
+      "createdAt": "2026-03-01T10:00:00.000Z",
+      "updatedAt": "2026-03-23T09:00:00.000Z"
+    }
+  }
+}
+```
+
+### escrow.release_request.released
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440011",
+  "type": "escrow.release_request.released",
+  "timestamp": "2026-03-25T09:00:05.000Z",
+  "data": {
+    "releaseRequest": {
+      "requestId": "timesheet-2026-W12",
+      "reference": "Week 12 (Mar 16-22)",
+      "status": "released",
+      "amountTnd": 420.5,
+      "releasedTnd": 420.5,
+      "sellerNetTnd": 395.47,
+      "decisionSource": "timeout"
+    },
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "status": "paid",
+      "amountTnd": 3579.5,
+      "reservedTnd": 0,
+      "availableForReleaseTnd": 3579.5,
+      "releasedTotalTnd": 420.5
+    }
+  }
+}
+```
+
+<ParamField response="data.releaseRequest" type="object">
+  Present for every `escrow.release_request.*` event. Contains `requestId`,
+  optional `reference`, `status`, `amountTnd`, and — depending on the event —
+  `sellerNetTnd`, `approvalDeadline`, `releasedTnd`, `awardedTnd`,
+  `decisionSource` (`buyer`, `timeout` or `admin`), and `reason`.
+</ParamField>
+
+<ParamField response="data.escrow.reservedTnd" type="number">
+  Balance claimed by open payout requests at the time of the event
+</ParamField>
+
+<ParamField response="data.escrow.availableForReleaseTnd" type="number">
+  Balance a new payout request may claim. Zero means a top-up is needed.
+</ParamField>
+
+<ParamField response="data.escrow.releasedTotalTnd" type="number">
+  Cumulative TND paid out through partial releases
+</ParamField>
+
+<Warning>
+  `decisionSource: "timeout"` means the client never responded and the period auto-released. Surface this distinctly in your UI — it is not the same as an explicit approval.
+</Warning>
+
 ## Identity verification events
 
 Subscribe to these when you use [pre-account KYC](/guides/kyc-for-marketplaces).
@@ -655,6 +771,10 @@ Sent when the user creates a DHMAD account and KYC is attached.
   "escrow.proof.accepted", "escrow.proof.accepted_by_timeout", "escrow.proof.needs_review",
   "escrow.proof.expired",
   "escrow.funds.added", "escrow.funds.refunded",
+  "escrow.release_request.created", "escrow.release_request.approved",
+  "escrow.release_request.auto_approved", "escrow.release_request.disputed",
+  "escrow.release_request.resolved", "escrow.release_request.released",
+  "escrow.balance.exhausted",
   "identity.verification.updated", or "identity.verification.linked"
 </ParamField>
 

@@ -1,0 +1,173 @@
+---
+title: Close Escrow
+description: End a progressive-release contract, settling owed periods and refunding the unused balance
+---
+
+<Endpoint method="POST" path="/api/v1/escrows/:id/close" />
+
+End an hourly or recurring **progressive-release** contract. Closing settles what is owed before returning what is not:
+
+1. Approved-but-unpaid periods are released to the seller.
+2. The reservation is confirmed empty.
+3. The genuinely unused balance is refunded to the client.
+4. The escrow completes with `completionSource: "progressive_close"`.
+
+This is deliberately **not** a cancellation. A contract that ran successfully and simply has funds left over completes normally, so reporting and the client's transaction history reflect what actually happened.
+
+<Warning>
+  Closing is refused with `409` while any period is still `pending` or `disputed`. The response lists the blocking `requestId`s so you can show the client exactly what is outstanding. Resolve those periods first — a client must never be able to reclaim funds that an unresolved timesheet still has a claim on.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/close \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{ "reason": "Contract ended by mutual agreement" }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/close',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer sk_live_your_api_key_here',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ reason: 'Contract ended by mutual agreement' })
+  }
+);
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Escrow closed. Settled periods paid out and the unused balance refunded.",
+  "settledRequestIds": ["timesheet-2026-W13"],
+  "refundedTnd": 1250.75,
+  "escrow": {
+    "_id": "507f1f77bcf86cd799439011",
+    "title": "Hourly contract — React developer",
+    "status": "completed",
+    "completionSource": "progressive_close",
+    "completedAt": "2026-04-02T12:00:00Z",
+    "fundsReleased": true,
+    "releasedTotalTnd": 2749.25,
+    "reservedTnd": 0,
+    "availableForReleaseTnd": 0
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Escrow ID
+</ParamField>
+
+## Body Parameters
+
+<ParamField body="reason" type="string">
+  Optional note recorded on the audit log (max 1000 characters)
+</ParamField>
+
+## Response Fields
+
+<ParamField response="message" type="string">
+  Success message
+</ParamField>
+
+<ParamField response="settledRequestIds" type="array">
+  Periods that were approved but unpaid and were settled as part of the close
+</ParamField>
+
+<ParamField response="refundedTnd" type="number">
+  Unused balance returned to the client
+</ParamField>
+
+<ParamField response="escrow" type="object">
+  The completed escrow, with `completionSource: "progressive_close"`
+</ParamField>
+
+## Error Responses
+
+### 409 Conflict
+
+**Periods still open**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "RELEASE_REQUESTS_OPEN",
+  "message": "Resolve all pending and disputed payout requests before closing this contract.",
+  "blockingRequestIds": ["timesheet-2026-W12", "timesheet-2026-W13"],
+  "blockingRequests": [
+    { "requestId": "timesheet-2026-W12", "status": "disputed", "amountTnd": 420.5 },
+    { "requestId": "timesheet-2026-W13", "status": "pending", "amountTnd": 300 }
+  ]
+}
+```
+
+**Seller not settlement-ready**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "SELLER_IDENTITY_REQUIRED",
+  "message": "Payout for period timesheet-2026-W13 cannot be settled until the seller completes verification.",
+  "blockingRequestIds": ["timesheet-2026-W13"]
+}
+```
+
+### 400 Bad Request
+
+**Progressive release not enabled**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "PROGRESSIVE_RELEASE_NOT_ENABLED",
+  "message": "Progressive release is not enabled for this escrow."
+}
+```
+
+**Escrow not funded**
+
+```json
+{
+  "error": "Bad Request",
+  "code": "INVALID_STATUS",
+  "message": "Payout requests are only available while the escrow is paid (current status: completed)."
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": "Escrow not found"
+}
+```
+
+---
+
+<Info>
+  A disputed period blocks closure until DHMAD resolves it. Resolution awards all, part, or none of the claim; any unawarded remainder returns to the escrow balance and is then included in the refund when you retry the close.
+</Info>
+
+<Note>
+  Do not use close to handle an exhausted balance. A progressive escrow with a zero balance stays open on purpose so the client can top it up with `add_funds` and keep the contract running.
+</Note>
