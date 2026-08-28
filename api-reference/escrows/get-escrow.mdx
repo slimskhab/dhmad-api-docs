@@ -140,8 +140,9 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.progressiveRelease" type="object">
-  Present only on [progressive-release](/guides/progressive-release) escrows:
-  `enabled`, `autoApproveHours` (client review window), `minReleaseTnd`, and
+  Present only on [progressive-release](/guides/progressive-release) escrows.
+  Echoes `enabled: true` (response-only; do not send this on create),
+  `autoApproveHours` (client review window), `minReleaseTnd`, and
   `buyerConsentAcceptedAt` (when the client accepted automatic release).
 </ParamField>
 

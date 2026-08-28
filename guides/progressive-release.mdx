@@ -19,8 +19,8 @@ A normal escrow releases all-or-nothing: the buyer funds it, then `complete` pay
 ## The flow
 
 <Steps>
-  <Step title="Create the escrow with progressive release enabled">
-    Set `progressiveRelease.enabled: true` on [Create Escrow](/api-reference/escrows/create-escrow). Optionally set `autoApproveHours` (the client's review window) within the platform bounds.
+  <Step title="Create the escrow with progressive release">
+    Include a `progressiveRelease` object on [Create Escrow](/api-reference/escrows/create-escrow). Presence of the object is the opt-in — do not send `enabled`. Optionally set `autoApproveHours` (the client's review window) within the platform bounds.
 
     ```json
     {
@@ -30,7 +30,7 @@ A normal escrow releases all-or-nothing: the buyer funds it, then `complete` pay
       "buyerEmail": "client@example.com",
       "sellerEmail": "freelancer@example.com",
       "mode": "quick",
-      "progressiveRelease": { "enabled": true, "autoApproveHours": 48 }
+      "progressiveRelease": { "autoApproveHours": 48 }
     }
     ```
   </Step>

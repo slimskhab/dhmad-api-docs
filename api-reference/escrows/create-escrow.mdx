@@ -113,6 +113,22 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "mode": "instant"
   }'
 ```
+
+```bash cURL
+# Hourly contract — progressive release (presence of the object is the opt-in)
+curl -X POST https://dhmad.tn/api/v1/escrows \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Hourly contract — React developer",
+    "amount": 4000,
+    "currency": "TND",
+    "buyerEmail": "client@example.com",
+    "sellerEmail": "freelancer@example.com",
+    "mode": "quick",
+    "progressiveRelease": { "autoApproveHours": 48 }
+  }'
+```
 </RequestExample>
 
 <ResponseExample>
@@ -212,7 +228,8 @@ For **quick** and **instant** modes, `contract` is `null`.
 <ParamField body="progressiveRelease" type="object" required={false}>
   **Hourly / recurring contracts** — allowed for `standard` and `quick` modes (returns **400** for `instant`). Lets one funded escrow pay out in slices, one per billing period. See the [Progressive Release guide](/guides/progressive-release).
 
-  - **`enabled`** (required when set) — must be `true`.
+  Presence of this object is the opt-in. Do **not** send `enabled` (or any other unknown key) — the schema is strict and those requests return **400**.
+
   - **`autoApproveHours`** — how long the client has to review each payout request before it releases automatically. Must be within platform bounds (default 12–336h; returns **400** if out of range). Defaults to 48h when omitted.
   - **`minReleaseTnd`** — smallest payout slice in TND. Clamped to at least the platform minimum (5 TND).
 
@@ -221,7 +238,7 @@ For **quick** and **instant** modes, `contract` is `null`.
 
 ## Progressive release (hourly contracts)
 
-When `progressiveRelease.enabled` is `true`:
+When `progressiveRelease` is set:
 
 1. Buyer pays via `accept_pay` and accepts automatic release.
 2. Your backend claims each period with **[POST /escrows/:id/release-requests](/api-reference/escrows/create-release-request)** — permitted on the seller's behalf, so the freelancer takes no weekly action.

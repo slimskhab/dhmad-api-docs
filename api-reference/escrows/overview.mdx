@@ -73,7 +73,7 @@ See the **[Quick Escrow with Proof guide](/guides/quick-escrow-with-proof)** for
 
 Add **`progressiveRelease`** when the total is known up front but the work arrives incrementally — hourly contracts, retainers, or any arrangement billed per period.
 
-- Set `progressiveRelease.enabled: true` on creation, optionally with `autoApproveHours` (the client's review window). Composes with `standard` or `quick` mode; not available for `instant`.
+- Include a `progressiveRelease` object on creation (presence is the opt-in; do not send `enabled`), optionally with `autoApproveHours` (the client's review window). Composes with `standard` or `quick` mode; not available for `instant`.
 - The escrow stays `paid` across many payouts. Your backend claims each billing period with **[Create Payout Request](/api-reference/escrows/create-release-request)** — you may do this on the seller's behalf, so the freelancer takes no weekly action.
 - The client approves (`approve_release`), rejects (`reject_release`, which opens a dispute for that period only), or does nothing — in which case the period releases automatically at its deadline.
 - Top up the same escrow with `add_funds`; a zero balance emits `escrow.balance.exhausted` and leaves the escrow **open**.
@@ -115,7 +115,7 @@ For digital goods (e.g. in-app coins, AI credits), the full standard flow has to
 | `fulfillmentPolicy` (proof gate) | No | Optional | No |
 | Checkout: `submit_proof` / `review_proof` | No | When proof enabled | No |
 | `progressiveRelease` (partial payouts) | Optional | Optional | No |
-| Checkout: `approve_release` / `reject_release` | When progressive enabled | When progressive enabled | No |
+| Checkout: `approve_release` / `reject_release` | When `progressiveRelease` is set | When `progressiveRelease` is set | No |
 
 <Note>
   `estimatedDeliveryDays` is a legacy optional field. Omit it for new integrations — it is not used by platform enforcement.

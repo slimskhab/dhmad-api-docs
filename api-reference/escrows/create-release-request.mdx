@@ -5,7 +5,7 @@ description: Claim one billing period from a progressive-release escrow
 
 <Endpoint method="POST" path="/api/v1/escrows/:id/release-requests" />
 
-Claim a slice of a funded **progressive-release** escrow — one request per billing period, such as a weekly timesheet on an hourly contract. The escrow must have been created with `progressiveRelease.enabled: true`.
+Claim a slice of a funded **progressive-release** escrow — one request per billing period, such as a weekly timesheet on an hourly contract. The escrow must have been created with a `progressiveRelease` object.
 
 You can call this **on the seller's behalf** when your application created the escrow, so the freelancer takes no weekly action. The amount is reserved against the escrow balance immediately, the client is notified, and the request releases automatically once `approvalDeadline` passes unless the client decides first.
 

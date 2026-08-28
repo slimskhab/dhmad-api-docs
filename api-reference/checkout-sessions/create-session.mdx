@@ -102,7 +102,7 @@ data = response.json()
   **Progressive release actions ([hourly contracts](/guides/progressive-release), paid escrows):**
   - `approve_release` — **Client only.** Target the buyer's email and pass the payout request in `metadata.requestId`. Releases that period to the seller immediately. Requires action step-up on checkout.
   - `reject_release` — **Client only.** Same targeting and `metadata.requestId`. Opens a dispute scoped to that period; the amount stays reserved and later periods keep running. No step-up (no money moves).
-  - Both require `progressiveRelease.enabled` on the escrow and a `pending` payout request. The seller never acts on these — payout requests are created by your backend, optionally on the seller's behalf.
+  - Both require a progressive-release escrow (created with a `progressiveRelease` object) and a `pending` payout request. The seller never acts on these — payout requests are created by your backend, optionally on the seller's behalf.
 
   **By escrow mode:**
   - **standard** — all actions apply when status allows (except proof actions). `complete` works from `paid` or `delivered`; seller deliver is optional. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
