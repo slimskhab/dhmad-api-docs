@@ -56,9 +56,18 @@ const data = await response.json();
     "completionSource": "progressive_close",
     "completedAt": "2026-04-02T12:00:00Z",
     "fundsReleased": true,
-    "releasedTotalTnd": 2749.25,
+    "availableForRelease": 0,
+    "reserved": 0,
+    "releasedTotal": 275,
+    "availableForReleaseTnd": 0,
     "reservedTnd": 0,
-    "availableForReleaseTnd": 0
+    "releasedTotalTnd": 2749.25,
+    "fundedAmount": 400,
+    "fundedAmountTnd": 4000,
+    "remainingAmount": 0,
+    "remainingAmountTnd": 0,
+    "refundedTotal": 125,
+    "refundedTotalTnd": 1250.75
   }
 }
 ```
@@ -91,7 +100,9 @@ const data = await response.json();
 </ParamField>
 
 <ParamField response="escrow" type="object">
-  The completed escrow, with `completionSource: "progressive_close"`
+  The completed escrow, with `completionSource: "progressive_close"`. Includes the
+  progressive face + TND snapshot with emptied float (`availableForRelease*` /
+  `reserved*` / `remaining*` = `0`) and `refundedTotal*` for the unused return.
 </ParamField>
 
 ## Error Responses

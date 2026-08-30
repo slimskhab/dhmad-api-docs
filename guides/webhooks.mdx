@@ -261,6 +261,8 @@ All webhook events share the same top-level structure: `id`, `type`, `timestamp`
       "id": "507f1f77bcf86cd799439011",
       "title": "Web Development Service",
       "amount": 1000.0,
+      "currency": "TND",
+      "amountTnd": 1000.0,
       "escrowFee": 50.0,
       "status": "paid",
       "oldStatus": "pending",
@@ -282,6 +284,41 @@ All webhook events share the same top-level structure: `id`, `type`, `timestamp`
   }
 }
 ```
+
+On [progressive-release](/guides/progressive-release) escrows, `data.escrow` also includes the full face + TND progressive snapshot. On terminal `completed` / `cancelled`, float fields are emptied so partners do not need to hard-settle locally:
+
+```json
+{
+  "type": "escrow.status.updated",
+  "data": {
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "status": "completed",
+      "oldStatus": "paid",
+      "currency": "USD",
+      "amount": 25,
+      "amountTnd": 75,
+      "fxRateUsed": 3,
+      "availableForRelease": 0,
+      "reserved": 0,
+      "releasedTotal": 75,
+      "availableForReleaseTnd": 0,
+      "reservedTnd": 0,
+      "releasedTotalTnd": 225,
+      "fundedAmount": 100,
+      "fundedAmountTnd": 300,
+      "remainingAmount": 0,
+      "remainingAmountTnd": 0,
+      "refundedTotal": 25,
+      "refundedTotalTnd": 75
+    }
+  }
+}
+```
+
+<Note>
+  Live `amount` / `amountTnd` may still show leftover on the document after progressive close; trust `remainingAmount*` = `0` and `refundedTotal*` for the unused return.
+</Note>
 
 #### Charges
 
@@ -619,7 +656,7 @@ For `escrow.funds.refunded`, `adjustment.type` is `"refund_funds"` and `performe
 
 ## Progressive release events
 
-Sent on [progressive-release](/guides/progressive-release) escrows, which pay out one slice per billing period. Every payload carries `data.releaseRequest` plus the escrow's live reservation figures, so you can reconcile without a follow-up request.
+Sent on [progressive-release](/guides/progressive-release) escrows, which pay out one slice per billing period. Every payload carries `data.releaseRequest` (with `amountTnd`, `amountFace`, `currency`, and `fxRateUsed`) plus the escrow's live **face + TND** reservation snapshot, so you can reconcile without inventing FX or a follow-up GET.
 
 ### escrow.release_request.created
 
@@ -633,18 +670,33 @@ Sent on [progressive-release](/guides/progressive-release) escrows, which pay ou
       "requestId": "timesheet-2026-W12",
       "reference": "Week 12 (Mar 16-22)",
       "status": "pending",
-      "amountTnd": 420.5,
-      "sellerNetTnd": 395.47,
+      "amountTnd": 67.61,
+      "amountFace": 24,
+      "currency": "USD",
+      "fxRateUsed": 2.817,
+      "sellerNetTnd": 63.55,
       "approvalDeadline": "2026-03-25T09:00:00.000Z"
     },
     "escrow": {
       "id": "507f1f77bcf86cd799439011",
       "title": "Hourly contract — React developer",
       "status": "paid",
-      "amountTnd": 4000,
-      "reservedTnd": 420.5,
-      "availableForReleaseTnd": 3579.5,
+      "currency": "USD",
+      "amount": 296,
+      "amountTnd": 833.84,
+      "fxRateUsed": 2.817,
+      "availableForRelease": 272,
+      "reserved": 24,
+      "releasedTotal": 0,
+      "availableForReleaseTnd": 766.23,
+      "reservedTnd": 67.61,
       "releasedTotalTnd": 0,
+      "fundedAmount": 320,
+      "fundedAmountTnd": 901.45,
+      "remainingAmount": 296,
+      "remainingAmountTnd": 833.84,
+      "refundedTotal": 0,
+      "refundedTotalTnd": 0,
       "createdAt": "2026-03-01T10:00:00.000Z",
       "updatedAt": "2026-03-23T09:00:00.000Z"
     }
@@ -664,18 +716,32 @@ Sent on [progressive-release](/guides/progressive-release) escrows, which pay ou
       "requestId": "timesheet-2026-W12",
       "reference": "Week 12 (Mar 16-22)",
       "status": "released",
-      "amountTnd": 420.5,
-      "releasedTnd": 420.5,
-      "sellerNetTnd": 395.47,
+      "amountTnd": 67.61,
+      "amountFace": 24,
+      "currency": "USD",
+      "fxRateUsed": 2.817,
+      "releasedTnd": 67.61,
+      "sellerNetTnd": 63.55,
       "decisionSource": "timeout"
     },
     "escrow": {
       "id": "507f1f77bcf86cd799439011",
       "status": "paid",
-      "amountTnd": 3579.5,
+      "currency": "USD",
+      "amount": 296,
+      "amountTnd": 833.84,
+      "availableForRelease": 296,
+      "reserved": 0,
+      "releasedTotal": 24,
+      "availableForReleaseTnd": 833.84,
       "reservedTnd": 0,
-      "availableForReleaseTnd": 3579.5,
-      "releasedTotalTnd": 420.5
+      "releasedTotalTnd": 67.61,
+      "fundedAmount": 320,
+      "fundedAmountTnd": 901.45,
+      "remainingAmount": 296,
+      "remainingAmountTnd": 833.84,
+      "refundedTotal": 0,
+      "refundedTotalTnd": 0
     }
   }
 }
@@ -683,9 +749,22 @@ Sent on [progressive-release](/guides/progressive-release) escrows, which pay ou
 
 <ParamField response="data.releaseRequest" type="object">
   Present for every `escrow.release_request.*` event. Contains `requestId`,
-  optional `reference`, `status`, `amountTnd`, and — depending on the event —
+  optional `reference`, `status`, `amountTnd`, `amountFace`, `currency`,
+  `fxRateUsed` (escrow FX lock), and — depending on the event —
   `sellerNetTnd`, `approvalDeadline`, `releasedTnd`, `awardedTnd`,
   `decisionSource` (`buyer`, `timeout` or `admin`), and `reason`.
+</ParamField>
+
+<ParamField response="data.escrow.availableForRelease" type="number">
+  Claimable balance in escrow face currency
+</ParamField>
+
+<ParamField response="data.escrow.reserved" type="number">
+  Open reservations in face currency
+</ParamField>
+
+<ParamField response="data.escrow.releasedTotal" type="number">
+  Cumulative face amount paid out
 </ParamField>
 
 <ParamField response="data.escrow.reservedTnd" type="number">
@@ -693,11 +772,19 @@ Sent on [progressive-release](/guides/progressive-release) escrows, which pay ou
 </ParamField>
 
 <ParamField response="data.escrow.availableForReleaseTnd" type="number">
-  Balance a new payout request may claim. Zero means a top-up is needed.
+  Balance a new payout request may claim. Zero means a top-up is needed (or the escrow is terminal).
 </ParamField>
 
 <ParamField response="data.escrow.releasedTotalTnd" type="number">
   Cumulative TND paid out through partial releases
+</ParamField>
+
+<ParamField response="data.escrow.fundedAmount" type="number">
+  Stable funded principal in face currency
+</ParamField>
+
+<ParamField response="data.escrow.fundedAmountTnd" type="number">
+  Stable funded principal in TND
 </ParamField>
 
 <Warning>

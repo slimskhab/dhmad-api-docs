@@ -42,6 +42,8 @@ A normal escrow releases all-or-nothing: the buyer funds it, then `complete` pay
   <Step title="Claim each period as work is delivered">
     At the end of each billing period, your backend calls [Create Payout Request](/api-reference/escrows/create-release-request) with a `requestId` and the amount. You may do this **on the seller's behalf** — the freelancer takes no weekly action.
 
+    Send either ledger `amountTnd` **or** face `amount` + `currency` (e.g. `24.00` USD). DHMAD converts face claims with the escrow's locked FX — you do not need to invent TND yourself.
+
     The amount is reserved against the balance immediately, so two periods can never be backed by the same funds.
   </Step>
 
@@ -62,20 +64,45 @@ A normal escrow releases all-or-nothing: the buyer funds it, then `complete` pay
   </Step>
 </Steps>
 
-## Reservations
+## Remaining vs funded
 
-Reservation accounting is what makes concurrent periods safe. Three figures appear on the escrow:
+Live `amount` / `amountTnd` are the **remaining** float — they shrink on each release. They are **not** the original funded principal.
 
 | Field | Meaning |
 | --- | --- |
-| `amountTnd` | Balance still held in escrow, already net of prior releases |
-| `reservedTnd` | Portion claimed by open payout requests |
-| `availableForReleaseTnd` | What a new payout request may claim (`amountTnd` − `reservedTnd`) |
+| `fundedAmount` / `fundedAmountTnd` | Stable deal size (original + `add_funds` − unused refunds). **Not** decremented by releases. Use this for diaries and “how much was funded.” |
+| `remainingAmount` / `remainingAmountTnd` | Live float while open. Forced to **0** on `completed` / `cancelled`. |
+| `amount` / `amountTnd` | Same remaining float on the document (existing fields). Prefer `fundedAmount*` / `remainingAmount*` when you need an unambiguous principal. |
+| `refundedTotal` / `refundedTotalTnd` | Unused returned (`funded − remaining − released`). Clear on close / cancel. |
+
+Do **not** invent face amounts with `tnd / fxRateUsed`. DHMAD already emits face balances using the same pro-rata slice math as settlement.
+
+## Reservations (face + TND)
+
+Reservation accounting is what makes concurrent periods safe. Progressive GET and balance webhooks include **both** currencies:
+
+| Field | Meaning |
+| --- | --- |
+| `availableForRelease` / `reserved` / `releasedTotal` | Escrow **face currency** (`currency`) |
+| `availableForReleaseTnd` / `reservedTnd` / `releasedTotalTnd` | Ledger TND settlement |
+| `amountTnd` | Remaining TND still held (net of prior releases) while open |
+
+On open escrows: `availableForReleaseTnd = amountTnd − reservedTnd` (and the face pair mirrors that in `currency`).
 
 **Pending, approved-but-unpaid, and disputed requests all hold their reservation.** Only `released` and `voided` free it. Consequently:
 
 - A refund or cancellation can never take funds a period still has a claim on.
 - Closing is refused while any period is undecided.
+
+### Terminal snapshot
+
+On `completed` / `cancelled` (including `escrow.status.updated` and [Get Escrow](/api-reference/escrows/get-escrow)):
+
+- `availableForRelease*` = `0`, `reserved*` = `0`, `remaining*` = `0`
+- `releasedTotal*` = what was actually paid to the seller
+- `refundedTotal*` = unused balance returned
+
+You do not need to hard-settle float locally when those fields are present.
 
 ## Disputes are scoped to one period
 
@@ -115,7 +142,9 @@ Subscribe to these to keep your own records in step:
   </Card>
 </CardGroup>
 
-Every payload includes the escrow's live `reservedTnd`, `availableForReleaseTnd` and `releasedTotalTnd`, so you can reconcile without a follow-up request.
+Every progressive balance payload (release-request events, `escrow.balance.exhausted`, `escrow.status.updated`, `escrow.updated`, `escrow.funds.added` / `refunded`) includes the live face + TND snapshot (`availableForRelease*`, `reserved*`, `releasedTotal*`, plus `fundedAmount*` / `remainingAmount*` / `refundedTotal*` when progressive). Release-request events also carry `amountFace`, `currency`, and `fxRateUsed` on `data.releaseRequest`.
+
+Prefer [Get Escrow](/api-reference/escrows/get-escrow) when reconciling after a skinny delivery — it always returns the full progressive snapshot.
 
 ## Identity requirements
 

@@ -117,8 +117,22 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.amount" type="number">
-  Transaction amount (face amount in `currency`). After `add_funds` / `refund_funds`
-  adjustments this reflects the current commercial amount.
+  Commercial face amount in `currency`. On progressive-release escrows this is the
+  **remaining** float (decremented by releases), not the original funded
+  principal — use `fundedAmount` for the stable deal size.
+</ParamField>
+
+<ParamField response="escrow.amountTnd" type="number">
+  Ledger TND remaining (same remaining-float semantics as `amount` on progressive
+  escrows). Fees and payouts settle in TND.
+</ParamField>
+
+<ParamField response="escrow.currency" type="string">
+  Face currency: `TND`, `USD`, or `EUR`
+</ParamField>
+
+<ParamField response="escrow.fxRateUsed" type="number">
+  Locked TND-per-1-face-unit rate for this escrow (`1` when `currency` is `TND`)
 </ParamField>
 
 <ParamField response="escrow.escrowFee" type="number">
@@ -149,22 +163,68 @@ data = response.json()
 <ParamField response="escrow.reservedTnd" type="number">
   Progressive release only. Balance claimed by open payout requests — pending,
   approved-but-unpaid, and disputed all reserve. These funds cannot be refunded
-  or cancelled while claimed.
+  or cancelled while claimed. Forced to `0` on terminal status.
 </ParamField>
 
 <ParamField response="escrow.availableForReleaseTnd" type="number">
   Progressive release only. What a new payout request may claim
-  (`amountTnd` − `reservedTnd`). Zero means the contract needs a top-up.
+  (`amountTnd` − `reservedTnd` while open). Zero means the contract needs a
+  top-up, or the escrow is terminal.
 </ParamField>
 
 <ParamField response="escrow.releasedTotalTnd" type="number">
   Progressive release only. Cumulative TND paid out through partial releases.
 </ParamField>
 
+<ParamField response="escrow.reserved" type="number">
+  Progressive release only. Open reservations in escrow face currency (same as
+  `currency`). Prefer this over inventing `reservedTnd / fxRateUsed`.
+</ParamField>
+
+<ParamField response="escrow.availableForRelease" type="number">
+  Progressive release only. Claimable balance in face currency. `0` on
+  `completed` / `cancelled`.
+</ParamField>
+
+<ParamField response="escrow.releasedTotal" type="number">
+  Progressive release only. Cumulative face amount paid out through partial
+  releases (sum of slice `amountFace` values).
+</ParamField>
+
+<ParamField response="escrow.fundedAmount" type="number">
+  Progressive release only. Stable funded principal in face currency (original +
+  add_funds − unused refunds). **Not** decremented by releases.
+</ParamField>
+
+<ParamField response="escrow.fundedAmountTnd" type="number">
+  Progressive release only. Stable funded principal in TND.
+</ParamField>
+
+<ParamField response="escrow.remainingAmount" type="number">
+  Progressive release only. Live remaining float in face currency; forced to
+  `0` on `completed` / `cancelled` even if leftover still sits on the document
+  after close.
+</ParamField>
+
+<ParamField response="escrow.remainingAmountTnd" type="number">
+  Progressive release only. Live remaining float in TND; `0` on terminal status.
+</ParamField>
+
+<ParamField response="escrow.refundedTotal" type="number">
+  Progressive release only. Face amount returned unused
+  (`fundedAmount − remainingAmount − releasedTotal`).
+</ParamField>
+
+<ParamField response="escrow.refundedTotalTnd" type="number">
+  Progressive release only. TND returned unused
+  (`fundedAmountTnd − remainingAmountTnd − releasedTotalTnd`).
+</ParamField>
+
 <ParamField response="escrow.releaseRequests" type="array">
   Progressive release only. Every billing period with its status
-  (`pending`, `approved`, `disputed`, `released`, `voided`), `approvalDeadline`,
-  `sellerNetTnd`, and any admin `resolution`. See
+  (`pending`, `approved`, `disputed`, `released`, `voided`), `amountTnd`,
+  `amountFace`, `currency`, `approvalDeadline`, `sellerNetTnd`, and any admin
+  `resolution`. See
   [List Payout Requests](/api-reference/escrows/list-release-requests).
 </ParamField>
 

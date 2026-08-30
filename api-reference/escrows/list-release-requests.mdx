@@ -5,7 +5,7 @@ description: Full period history and live reservation figures for a progressive-
 
 <Endpoint method="GET" path="/api/v1/escrows/:id/release-requests" />
 
-Return every payout request on a **progressive-release** escrow, with each period's status, deadline and admin resolution. The response also carries the live reservation figures, so you can size the next period without a second call.
+Return every payout request on a **progressive-release** escrow, with each period's status, deadline and admin resolution. The response also carries the live **face + TND** reservation figures (and `fundedAmount*` / `remainingAmount*` / `refundedTotal*`), so you can size the next period and reconcile without inventing FX.
 
 Use this to reconcile your own timesheet records — for example after a webhook delivery failure, or when rebuilding state on a scheduled job.
 
@@ -34,33 +34,24 @@ const data = await response.json();
     {
       "requestId": "timesheet-2026-W10",
       "reference": "Week 10 (Mar 2-8)",
-      "amountTnd": 380,
+      "amountTnd": 67.61,
+      "amountFace": 24,
+      "currency": "USD",
       "status": "released",
       "createdVia": "api",
       "approvalDeadline": "2026-03-11T09:00:00Z",
-      "sellerNetTnd": 357.39,
+      "sellerNetTnd": 63.55,
       "decidedAt": "2026-03-10T14:22:00Z",
       "decisionSource": "buyer",
       "releasedAt": "2026-03-10T14:22:01Z",
       "createdAt": "2026-03-09T09:00:00Z"
     },
     {
-      "requestId": "timesheet-2026-W11",
-      "reference": "Week 11 (Mar 9-15)",
-      "amountTnd": 410,
-      "status": "released",
-      "createdVia": "api",
-      "approvalDeadline": "2026-03-18T09:00:00Z",
-      "sellerNetTnd": 385.6,
-      "decidedAt": "2026-03-18T09:00:04Z",
-      "decisionSource": "timeout",
-      "releasedAt": "2026-03-18T09:00:05Z",
-      "createdAt": "2026-03-16T09:00:00Z"
-    },
-    {
       "requestId": "timesheet-2026-W12",
       "reference": "Week 12 (Mar 16-22)",
-      "amountTnd": 420.5,
+      "amountTnd": 67.61,
+      "amountFace": 24,
+      "currency": "USD",
       "status": "disputed",
       "createdVia": "api",
       "approvalDeadline": "2026-03-25T09:00:00Z",
@@ -76,9 +67,18 @@ const data = await response.json();
     "minReleaseTnd": 5,
     "buyerConsentAcceptedAt": "2026-03-01T10:00:00Z"
   },
-  "reservedTnd": 420.5,
-  "availableForReleaseTnd": 2789.5,
-  "releasedTotalTnd": 790,
+  "availableForRelease": 272,
+  "reserved": 24,
+  "releasedTotal": 24,
+  "reservedTnd": 67.61,
+  "availableForReleaseTnd": 766.23,
+  "releasedTotalTnd": 67.61,
+  "fundedAmount": 320,
+  "fundedAmountTnd": 901.45,
+  "remainingAmount": 296,
+  "remainingAmountTnd": 833.84,
+  "refundedTotal": 0,
+  "refundedTotalTnd": 0,
   "escrowStatus": "paid"
 }
 ```
@@ -98,6 +98,18 @@ const data = await response.json();
 
 <ParamField response="releaseRequests[].requestId" type="string">
   Your identifier for the period
+</ParamField>
+
+<ParamField response="releaseRequests[].amountTnd" type="number">
+  Slice amount in ledger TND
+</ParamField>
+
+<ParamField response="releaseRequests[].amountFace" type="number">
+  Slice amount in escrow face currency
+</ParamField>
+
+<ParamField response="releaseRequests[].currency" type="string">
+  Face currency for `amountFace`
 </ParamField>
 
 <ParamField response="releaseRequests[].status" type="string">
@@ -124,6 +136,18 @@ const data = await response.json();
   Present after a disputed period is resolved: `awardedTnd`, `resolvedAt`, and `reason`. An award below the claim returns the remainder to the available balance.
 </ParamField>
 
+<ParamField response="availableForRelease" type="number">
+  Claimable balance in face currency
+</ParamField>
+
+<ParamField response="reserved" type="number">
+  Open reservations in face currency
+</ParamField>
+
+<ParamField response="releasedTotal" type="number">
+  Cumulative face amount paid out
+</ParamField>
+
 <ParamField response="reservedTnd" type="number">
   Balance claimed by open requests (pending, approved and disputed)
 </ParamField>
@@ -134,6 +158,30 @@ const data = await response.json();
 
 <ParamField response="releasedTotalTnd" type="number">
   Cumulative TND paid out through partial releases
+</ParamField>
+
+<ParamField response="fundedAmount" type="number">
+  Stable funded principal in face currency
+</ParamField>
+
+<ParamField response="fundedAmountTnd" type="number">
+  Stable funded principal in TND
+</ParamField>
+
+<ParamField response="remainingAmount" type="number">
+  Live remaining float in face currency (`0` when terminal)
+</ParamField>
+
+<ParamField response="remainingAmountTnd" type="number">
+  Live remaining float in TND (`0` when terminal)
+</ParamField>
+
+<ParamField response="refundedTotal" type="number">
+  Face amount returned unused
+</ParamField>
+
+<ParamField response="refundedTotalTnd" type="number">
+  TND returned unused
 </ParamField>
 
 ## Error Responses

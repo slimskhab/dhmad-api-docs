@@ -26,7 +26,8 @@ curl -X POST https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011/release-re
   -H "Content-Type: application/json" \
   -d '{
     "requestId": "timesheet-2026-W12",
-    "amountTnd": 420.50,
+    "amount": 24.00,
+    "currency": "USD",
     "reference": "Week 12 (Mar 16-22)"
   }'
 ```
@@ -42,7 +43,8 @@ const response = await fetch(
     },
     body: JSON.stringify({
       requestId: 'timesheet-2026-W12',
-      amountTnd: 420.50,
+      amount: 24.0,
+      currency: 'USD',
       reference: 'Week 12 (Mar 16-22)'
     })
   }
@@ -59,24 +61,25 @@ const data = await response.json();
   "idempotentReplay": false,
   "releaseRequest": {
     "requestId": "timesheet-2026-W12",
-    "amountTnd": 420.5,
+    "amountTnd": 67.61,
+    "amountFace": 24,
+    "currency": "USD",
     "approvalDeadline": "2026-03-25T09:00:00Z",
     "status": "pending"
   },
-  "escrow": {
-    "_id": "507f1f77bcf86cd799439011",
-    "title": "Hourly contract — React developer",
-    "status": "paid",
-    "amountTnd": 4000,
-    "reservedTnd": 420.5,
-    "availableForReleaseTnd": 3579.5,
-    "releasedTotalTnd": 0,
-    "progressiveRelease": {
-      "enabled": true,
-      "autoApproveHours": 48,
-      "minReleaseTnd": 5
-    }
-  }
+  "availableForRelease": 296,
+  "reserved": 24,
+  "releasedTotal": 0,
+  "availableForReleaseTnd": 833.84,
+  "reservedTnd": 67.61,
+  "releasedTotalTnd": 0,
+  "fundedAmount": 320,
+  "fundedAmountTnd": 901.45,
+  "remainingAmount": 320,
+  "remainingAmountTnd": 901.45,
+  "refundedTotal": 0,
+  "refundedTotalTnd": 0,
+  "escrowStatus": "paid"
 }
 ```
 </ResponseExample>
@@ -94,15 +97,18 @@ const data = await response.json();
 </ParamField>
 
 <ParamField body="amountTnd" type="number">
-  The slice in ledger TND. Preferred, because `add_funds` can mix FX rates within one escrow so a face amount has no single unambiguous conversion. Required unless `amount` is provided.
+  The slice in ledger TND. Provide this **or** face `amount`. Required unless `amount` is provided.
 </ParamField>
 
 <ParamField body="amount" type="number">
-  The slice in the escrow's face currency. Converted pro-rata against the current balance. Ignored when `amountTnd` is present.
+  The slice in the escrow's face currency (e.g. `24.00` USD). DHMAD converts with
+  the escrow's locked FX — partners need not invent TND. Ignored when `amountTnd`
+  is present.
 </ParamField>
 
 <ParamField body="currency" type="string">
-  `TND`, `USD` or `EUR`. Defaults to the escrow's currency.
+  `TND`, `USD` or `EUR`. Must match the escrow currency when sending face `amount`.
+  Defaults to the escrow's currency.
 </ParamField>
 
 <ParamField body="reference" type="string">
@@ -131,6 +137,14 @@ const data = await response.json();
   Reserved amount in TND
 </ParamField>
 
+<ParamField response="releaseRequest.amountFace" type="number">
+  Reserved amount in escrow face currency
+</ParamField>
+
+<ParamField response="releaseRequest.currency" type="string">
+  Escrow face currency for `amountFace`
+</ParamField>
+
 <ParamField response="releaseRequest.approvalDeadline" type="string">
   ISO timestamp. The request auto-approves and releases after this instant unless decided first.
 </ParamField>
@@ -139,12 +153,36 @@ const data = await response.json();
   `pending` on creation
 </ParamField>
 
-<ParamField response="escrow.reservedTnd" type="number">
+<ParamField response="availableForRelease" type="number">
+  Claimable balance in face currency after this reservation
+</ParamField>
+
+<ParamField response="reserved" type="number">
+  Open reservations in face currency
+</ParamField>
+
+<ParamField response="releasedTotal" type="number">
+  Cumulative face amount already paid out
+</ParamField>
+
+<ParamField response="reservedTnd" type="number">
   Total balance claimed by open payout requests (pending, approved and disputed)
 </ParamField>
 
-<ParamField response="escrow.availableForReleaseTnd" type="number">
+<ParamField response="availableForReleaseTnd" type="number">
   What a further payout request may still claim (`amountTnd` − `reservedTnd`)
+</ParamField>
+
+<ParamField response="releasedTotalTnd" type="number">
+  Cumulative TND paid out through partial releases
+</ParamField>
+
+<ParamField response="fundedAmount" type="number">
+  Stable funded principal in face currency
+</ParamField>
+
+<ParamField response="fundedAmountTnd" type="number">
+  Stable funded principal in TND
 </ParamField>
 
 ## Error Responses
