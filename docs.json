@@ -3,11 +3,14 @@
   "theme": "mint",
   "name": "DHMAD API Documentation",
   "colors": {
-    "primary": "#2563EB",
-    "light": "#3B82F6",
-    "dark": "#1E40AF"
+    "primary": "#1D6E8C",
+    "light": "#4FA8C7",
+    "dark": "#0B3A4A"
   },
-  "favicon": "favicon.svg",
+  "favicon": {
+    "light": "/images/favicon.png",
+    "dark": "/images/icon-white.png"
+  },
   "navigation": {
     "anchors": [
       {
@@ -169,5 +172,13 @@
         ]
       }
     ]
+  },
+  "logo": {
+    "light": "/images/logo-horizontal-color.png",
+    "dark": "/images/logo-horizontal-white.png",
+    "href": "https://dhmad.tn"
+  },
+  "fonts": {
+    "family": "Space Grotesk"
   }
 }
