@@ -105,11 +105,11 @@ data = response.json()
   - Both require a progressive-release escrow (created with a `progressiveRelease` object) and a `pending` payout request. The seller never acts on these — payout requests are created by your backend, optionally on the seller's behalf.
 
   **By escrow mode:**
-  - **standard** — all actions apply when status allows (except proof actions). `complete` works from `paid` or `delivered`; seller deliver is optional. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
-  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Typical flow: `accept_pay`, then buyer `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but the buyer can `complete` directly from `paid` without deliver. With [Quick Escrow with Proof](/guides/quick-escrow-with-proof), use `submit_proof` (seller) and `review_proof` (buyer) while `proofInfo.phase` requires them; early release from `paid` is blocked until proof is accepted. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
+  - **standard** — all actions apply when status allows (except proof actions). `complete` works from `paid` or `delivered` unless `completionPolicy` is set (then deliver is required). `add_funds` / `refund_funds` apply when `paid` or `delivered`.
+  - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Typical flow: `accept_pay`, then buyer `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first; without `completionPolicy` the buyer can `complete` from `paid`. With [delivery confirmation](/guides/completion-policy), `complete` from `paid` returns `DELIVERY_REQUIRED`. With [Quick Escrow with Proof](/guides/quick-escrow-with-proof), use `submit_proof` (seller) and `review_proof` (buyer) while `proofInfo.phase` requires them; early release from `paid` is blocked until proof is accepted. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
   - A [charge](/api-reference/charges/overview) id returns **409** `CHARGE_NOT_AN_ESCROW`. Use the checkout URL from [Create Charge](/api-reference/charges/create-charge).
 
-  **`complete` action:** Buyer releases funds. Valid when escrow status is `paid` or `delivered`. Does not require the seller to call deliver first — the buyer can release early from `paid` if they are satisfied. Returns **409** (`PROOF_NOT_ACCEPTED`) for Quick Escrow with Proof when proof is not yet accepted.
+  **`complete` action:** Buyer releases funds. Valid when escrow status is `paid` or `delivered`, except when [`completionPolicy`](/guides/completion-policy) is set — then deliver is required first (`400 DELIVERY_REQUIRED`). Without that policy the buyer can release early from `paid`. Returns **409** (`PROOF_NOT_ACCEPTED`) for Quick Escrow with Proof when proof is not yet accepted.
 </ParamField>
 
 <ParamField body="targetUserEmail" type="string" required>
@@ -168,7 +168,9 @@ When a request is rejected because of a business rule (e.g. the action is alread
 | `CONTRACT_ALREADY_SIGNED` | Action is `sign_contract` and the target user has already signed the contract. |
 | `PAYMENT_ALREADY_DONE` | Action is `accept_pay` but the escrow is already paid, delivered, or completed. |
 | `ESCROW_ALREADY_COMPLETED` | Action is `complete` but the escrow is already completed. |
+| `DELIVERY_REQUIRED` | Action is `complete` but `completionPolicy` requires the seller to deliver first. |
 | `DISPUTE_ALREADY_OPENED` | Action is `dispute` but a dispute has already been opened. |
+| `DISPUTE_WINDOW_CLOSED` | Action is `dispute` but `completionDeadline` has passed on a delivery-confirmation escrow. |
 | `CANCELLATION_REQUEST_INVALID_STATUS` | Action is `request_cancellation` but escrow is not `paid` or `delivered`. |
 | `CANCELLATION_REQUEST_BUYER_ONLY` | Action is `request_cancellation` but `targetUserEmail` is the seller. Use `cancel_escrow` instead. |
 | `CANCEL_ESCROW_INVALID_STATUS` | Action is `cancel_escrow` but escrow is not `paid` or `delivered`. |

@@ -7,11 +7,11 @@ description: Mark an escrow as delivered by the seller
 
 Mark an escrow as delivered. Only the **seller** can perform this action, and the escrow must be in `paid` status (i.e., the buyer has already paid).
 
-Deliver is **supplementary** for standard and quick modes. It records that the seller marked the order as delivered, but the buyer does **not** have to wait for deliver — they can release funds earlier with a `complete` checkout session while the escrow is still `paid`.
+Deliver is **supplementary** for standard and quick modes **unless** you set [`completionPolicy`](/guides/completion-policy). Without that policy the buyer can release earlier with a `complete` checkout session while the escrow is still `paid`. With `completionPolicy.type: "delivery_confirmation"`, deliver is required first (`DELIVERY_REQUIRED` from `paid`).
 
 - Escrow moves to `delivered`.
-- `completionDeadline` is set from the frozen `completionDeadlineDays` (default **7**, range **3–14**). The buyer must release funds, reject delivery, or open a dispute before that deadline. Silence auto-completes the escrow and releases funds.
-- Quick Escrow with Proof blocks early release from `paid` until purchase proof is accepted.
+- `completionDeadline` is set from the frozen window. Classic path: `completionDeadlineDays` (default **7**, range **3–14**). Delivery confirmation: `deliveredAt + buyerReviewDeadlineHours` (exact hours). The buyer must release funds, reject delivery, or open a dispute before that deadline. Silence auto-completes the escrow and releases funds.
+- Quick Escrow with Proof blocks deliver and early release from `paid` until purchase proof is accepted (`409 PROOF_NOT_ACCEPTED`).
 - Progressive-release escrows cannot be delivered (`409 PROGRESSIVE_DELIVER_NOT_ALLOWED`).
 - A [charge](/api-reference/charges/overview) id returns **409** `CHARGE_NOT_AN_ESCROW`. Charges complete on payment and have no deliver step.
 
@@ -121,5 +121,5 @@ Charge id (`CHARGE_NOT_AN_ESCROW`) or progressive-release deliver blocked (`PROG
 </Warning>
 
 <Info>
-  Deliver is optional. The buyer can release funds with a `complete` checkout session from `paid` (early release) or from `delivered`. After deliver, the buyer has `completionDeadlineDays` days (default 7) before auto-release.
+  Deliver is optional unless `completionPolicy` is set. Without that policy the buyer can release from `paid` (early release) or from `delivered`. After deliver, the buyer has the frozen window (`completionDeadlineDays` or `buyerReviewDeadlineHours`) before auto-release.
 </Info>

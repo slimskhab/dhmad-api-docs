@@ -10,7 +10,7 @@ Create a new escrow. Requires API key authentication. The platform fee (DHMAD's 
 Choose the escrow **mode** based on your use case — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes) for a full comparison:
 
 - **`standard`** (default) — contract + sign + pay + complete. Seller deliver is optional. Use with `sellerEmail` for escrows between two parties.
-- **`quick`** — no contract; pay → buyer `complete` to release funds. Seller deliver is optional. Use with `sellerEmail` for product sales without a contract. Optionally add **`fulfillmentPolicy`** for [Quick Escrow with Proof](/guides/quick-escrow-with-proof) (seller uploads proof before delivery unlocks).
+- **`quick`** — no contract; pay → buyer `complete` to release funds. Seller deliver is optional unless you set **`completionPolicy`**. Use with `sellerEmail` for product sales without a contract. Optionally add **`fulfillmentPolicy`** for [Quick Escrow with Proof](/guides/quick-escrow-with-proof) (seller uploads proof before delivery unlocks), and/or **`completionPolicy`** for [delivery confirmation](/guides/completion-policy).
 
 For merchant checkout (credits, top-ups, public pay links) use **[POST /charges](/api-reference/charges/create-charge)**. `mode: "instant"` is rejected.
 
@@ -103,6 +103,26 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 ```
 
 ```bash cURL
+# Quick mode — delivery confirmation (seller must deliver before buyer release)
+curl -X POST https://dhmad.tn/api/v1/escrows \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Game currency pack",
+    "amount": 80,
+    "currency": "TND",
+    "buyerEmail": "buyer@example.com",
+    "sellerEmail": "seller@example.com",
+    "mode": "quick",
+    "feeBearer": "seller",
+    "completionPolicy": {
+      "type": "delivery_confirmation",
+      "buyerReviewDeadlineHours": 72
+    }
+  }'
+```
+
+```bash cURL
 # Hourly contract — progressive release (presence of the object is the opt-in)
 curl -X POST https://dhmad.tn/api/v1/escrows \
   -H "Authorization: Bearer sk_live_your_api_key_here" \
@@ -186,7 +206,16 @@ For **quick** mode, `contract` is `null`.
 </ParamField>
 
 <ParamField body="completionDeadlineDays" type="integer" required={false}>
-  Days the buyer has after deliver to release funds, reject delivery, or open a dispute. Integer **3–14** (platform default **7** when omitted). Frozen on the escrow at creation. After deliver, silence auto-completes the escrow and releases funds. Not allowed on progressive-release creates (**400**). [Charges](/api-reference/charges/overview) do not use this field.
+  Days the buyer has after deliver to release funds, reject delivery, or open a dispute. Integer **3–14** (platform default **7** when omitted). Frozen on the escrow at creation. After deliver, silence auto-completes the escrow and releases funds. Not allowed on progressive-release creates (**400**). Cannot be combined with `completionPolicy` (**400**). [Charges](/api-reference/charges/overview) do not use this field.
+</ParamField>
+
+<ParamField body="completionPolicy" type="object" required={false}>
+  **Delivery confirmation** — post-delivery buyer protection. Presence requires the seller to mark delivered before the buyer can release. After deliver, the buyer has `buyerReviewDeadlineHours` (exact hours) to accept or dispute; silence auto-completes. See the [Completion Policy guide](/guides/completion-policy).
+
+  - **`type`** (required when set) — must be `"delivery_confirmation"`.
+  - **`buyerReviewDeadlineHours`** — hours after `deliveredAt` (live bounds default **24–336**; **400** if out of range). Omit to freeze the platform default (usually **168**). The resolved number is stored at creation.
+
+  Unknown keys (including `autoComplete`) return **400**. Cannot be combined with `completionDeadlineDays` or `progressiveRelease` (**400**). Can be combined with [Quick Escrow with Proof](/guides/quick-escrow-with-proof).
 </ParamField>
 
 <ParamField body="feeBearer" type="string" required={false}>
@@ -253,6 +282,16 @@ When `fulfillmentPolicy.type` is `purchase_proof_required`:
 
 Escrow `status` remains `paid` during the proof gate; use `proofInfo.phase` and proof webhooks for progress.
 
+## Delivery confirmation
+
+When `completionPolicy.type` is `delivery_confirmation`:
+
+1. Buyer pays via `accept_pay`. A `complete` session from `paid` returns `DELIVERY_REQUIRED`.
+2. Seller calls [Deliver Escrow](/api-reference/escrows/deliver-escrow). `completionDeadline` is `deliveredAt + buyerReviewDeadlineHours`.
+3. Buyer `complete` or `dispute` before that deadline; silence auto-completes.
+
+See the [Completion Policy guide](/guides/completion-policy).
+
 ## Response Fields (escrow object)
 
 <ParamField response="id" type="string">
@@ -264,7 +303,11 @@ Escrow `status` remains `paid` during the proof gate; use `proofInfo.phase` and 
 </ParamField>
 
 <ParamField response="completionDeadlineDays" type="number">
-  Days after deliver before silence auto-releases funds. Integer **3–14**, frozen at creation (default **7**).
+  Days after deliver before silence auto-releases funds. Integer **3–14**, frozen at creation (default **7**). Omitted when `completionPolicy` is set.
+</ParamField>
+
+<ParamField response="completionPolicy" type="object">
+  Present when created with `completionPolicy`. Echoes `type` (`delivery_confirmation`) and the frozen `buyerReviewDeadlineHours`.
 </ParamField>
 
 <ParamField response="escrowFee" type="number">
@@ -292,6 +335,10 @@ Escrow `status` remains `paid` during the proof gate; use `proofInfo.phase` and 
 When you redirect users to a [Checkout Session](/api-reference/checkout-sessions/create-session), the DHMAD checkout page shows the **platform service fee** and, if you set `developerFeePercentage` when creating the escrow, the **application / app fee** (with your app name when configured). Which party pays those fees follows `feeBearer`. Use `buyerFundingTnd` for the amount the buyer actually pays.
 
 ## Errors
+
+### 400 Bad Request – Completion policy conflicts
+
+`completionPolicy` cannot be combined with `completionDeadlineDays` or `progressiveRelease`. Extra keys (including `autoComplete`) and hours outside the live bounds also return **400**.
 
 ### 400 Bad Request – Instant mode
 

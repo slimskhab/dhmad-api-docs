@@ -100,6 +100,7 @@
               "guides/oauth-setup",
               "guides/checkout-sessions",
               "guides/quick-escrow-with-proof",
+              "guides/completion-policy",
               "guides/progressive-release",
               "guides/api-keys",
               "guides/webhooks",

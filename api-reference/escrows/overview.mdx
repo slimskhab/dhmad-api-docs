@@ -41,7 +41,7 @@ Merchant checkout (credits, top-ups, public pay links) is **[POST /charges](/api
 
 - Set `mode: "standard"` (default) with `contractTerms`.
 - A contract is automatically created; both parties must sign before the buyer can pay.
-- Checkout actions: `sign_contract` → `accept_pay` → `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but it is **optional** — the buyer can `complete` directly from `paid` (early release) if they are already satisfied.
+- Checkout actions: `sign_contract` → `accept_pay` → `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first. Without `completionPolicy` that step is **optional** — the buyer can `complete` from `paid` (early release).
 - Provide `sellerEmail` when the seller is a third party, or omit it to use your associated user as seller.
 - Optional `feeBearer` (`"seller"` default, or `"buyer"`) controls who pays platform and developer fees — see [Create Escrow](/api-reference/escrows/create-escrow#fee-bearer-feebearer).
 
@@ -51,7 +51,7 @@ Merchant checkout (credits, top-ups, public pay links) is **[POST /charges](/api
 
 - Set `mode: "quick"`. Do **not** send `contractTerms` or `autoSign`.
 - No contract is created; the response includes `contract: null` and `escrow.mode: "quick"`.
-- Checkout actions: `accept_pay` → `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but it is **optional** — the buyer can `complete` directly from `paid` without waiting for deliver. The `sign_contract` action returns **400** (`QUICK_ESCROW_NO_CONTRACT`).
+- Checkout actions: `accept_pay` → `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first. Without `completionPolicy` that step is **optional**. The `sign_contract` action returns **400** (`QUICK_ESCROW_NO_CONTRACT`).
 - Use when escrows are between two other parties (`sellerEmail` required) and you want a faster checkout without a contract — e.g. product sales, digital downloads with buyer confirmation.
 - Minimum internal ledger value (`amountTnd`) is **5 TND** after FX lock (same as standard).
 
@@ -67,6 +67,17 @@ Add **`fulfillmentPolicy`** when you need the seller to prove purchase or shipme
 - Fetch proof files with **[GET /escrows/:id/proof](/api-reference/escrows/get-escrow-proof)**; handle **`escrow.proof.*`** webhooks.
 
 See the **[Quick Escrow with Proof guide](/guides/quick-escrow-with-proof)** for the full walkthrough.
+
+### Delivery confirmation (completion policy)
+
+Add **`completionPolicy`** when the seller must deliver before the buyer can release — typical for marketplace digital goods.
+
+- Set `completionPolicy.type: "delivery_confirmation"` instead of `completionDeadlineDays`.
+- `buyerReviewDeadlineHours` is frozen at creation (default **168**, live bounds **24–336**).
+- Buyer `complete` from `paid` returns `DELIVERY_REQUIRED`. After [deliver](/api-reference/escrows/deliver-escrow) they may accept immediately or dispute before `completionDeadline`.
+- Silence auto-completes. Cannot be combined with `completionDeadlineDays` or `progressiveRelease`.
+
+See the **[Completion Policy guide](/guides/completion-policy)**.
 
 ### Progressive release (hourly / recurring contracts)
 
@@ -91,7 +102,7 @@ Optional **`completionDeadlineDays`** on [Create Escrow](/api-reference/escrows/
 - Frozen on the escrow at creation and returned on GET as `completionDeadlineDays`.
 - When the seller calls [Deliver](/api-reference/escrows/deliver-escrow), `completionDeadline` is set to `deliveredAt + completionDeadlineDays`.
 - If the buyer stays silent, the escrow auto-completes and funds are released. An open dispute pauses the timer.
-- Progressive-release creates reject the field (`400`). [Charges](/api-reference/charges/overview) never enter `delivered` and do not use this window.
+- Progressive-release creates reject the field (`400`). Cannot be combined with `completionPolicy` (`400`). [Charges](/api-reference/charges/overview) never enter `delivered` and do not use this window.
 
 ### Mode comparison
 
@@ -99,10 +110,11 @@ Optional **`completionDeadlineDays`** on [Create Escrow](/api-reference/escrows/
 |---|---|---|
 | Contract | Yes | No |
 | Seller | Any user (`sellerEmail` or you) | Third party (`sellerEmail`) |
-| Buyer confirms after delivery | Yes (or early release from `paid`) | Yes (or early release from `paid`) |
+| Buyer confirms after delivery | Yes (or early release from `paid`, unless `completionPolicy`) | Yes (or early release from `paid`, unless `completionPolicy`) |
 | `contractTerms` | Required | Not allowed |
 | `feeBearer` | Optional (default `seller`) | Optional (default `seller`) |
-| `completionDeadlineDays` | Optional (3–14, default 7) | Optional (3–14, default 7) |
+| `completionDeadlineDays` | Optional (3–14, default 7); not with `completionPolicy` | Optional (3–14, default 7); not with `completionPolicy` |
+| `completionPolicy` | Optional (delivery confirmation) | Optional (delivery confirmation) |
 | `estimatedDeliveryDays` | Optional (legacy) | Optional (legacy) |
 | Min `amountTnd` | 5 TND | 5 TND |
 | Checkout: `sign_contract` | Yes | No (400) |
@@ -126,7 +138,7 @@ Escrows progress through the following statuses:
     Escrow created, waiting for payment. The buyer needs to accept and pay.
   </Card>
   <Card title="paid" icon="check">
-    Payment received and locked in escrow. The buyer can release funds via a `complete` checkout session (early release), or the seller can call deliver first (optional). A progressive-release escrow stays here across many partial payouts.
+    Payment received and locked in escrow. The buyer can release funds via a `complete` checkout session (early release), or the seller can call deliver first (optional). With `completionPolicy`, deliver is required first. A progressive-release escrow stays here across many partial payouts.
   </Card>
   <Card title="delivered" icon="truck">
     Service/product delivered. Waiting for buyer to confirm completion, or for the auto-release deadline.
@@ -184,7 +196,7 @@ For actions that require user interaction, use [Checkout Sessions](/api-referenc
 - **Accept & Pay** — Buyer reviews and pays for the escrow (all modes)
 - **Submit proof** — Seller uploads purchase/shipment proof ([Quick Escrow with Proof](/guides/quick-escrow-with-proof) only)
 - **Review proof** — Buyer accepts proof or requests corrections (proof escrows only)
-- **Complete** — Buyer releases funds. Valid when escrow is `paid` or `delivered`; deliver is not required first. Not used on [charges](/api-reference/charges/overview).
+- **Complete** — Buyer releases funds. Valid when escrow is `paid` or `delivered`, except when [`completionPolicy`](/guides/completion-policy) is set (deliver required first). Not used on [charges](/api-reference/charges/overview).
 - **Dispute** — User opens a dispute
 - **Request cancellation** — Buyer requests cancellation (**paid** or **delivered**; buyer email only)
 - **Cancel escrow** — Seller cancels immediately (**paid** or **delivered**; seller email only)

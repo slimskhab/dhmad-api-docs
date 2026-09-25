@@ -277,11 +277,15 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.completionDeadlineDays" type="number">
-  Days after deliver before silence auto-releases funds. Integer **3–14**, frozen at creation (default **7**).
+  Days after deliver before silence auto-releases funds. Integer **3–14**, frozen at creation (default **7**). Omitted when `completionPolicy` is set.
+</ParamField>
+
+<ParamField response="escrow.completionPolicy" type="object">
+  Present when created with [delivery confirmation](/guides/completion-policy). Echoes `type` (`delivery_confirmation`) and the frozen `buyerReviewDeadlineHours`.
 </ParamField>
 
 <ParamField response="escrow.completionDeadline" type="string|null">
-  ISO 8601 deadline set when the seller delivers (`deliveredAt + completionDeadlineDays`). `null` until deliver.
+  ISO 8601 deadline set when the seller delivers. Classic path: `deliveredAt + completionDeadlineDays`. With `completionPolicy`: `deliveredAt + buyerReviewDeadlineHours` (exact hours). `null` until deliver. Authoritative for new disputes even if hourly auto-complete has not run yet.
 </ParamField>
 
 <ParamField response="escrow.expiresAt" type="string">

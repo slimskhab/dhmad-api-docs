@@ -215,9 +215,11 @@ Use **[POST /charges](/api-reference/charges/create-charge)**. That call already
 
 ### Can the buyer release funds without the seller delivering?
 
-Yes, for **standard** and **quick** escrows. After payment (`paid`), the buyer can use a `complete` checkout session to release funds without the seller calling [Deliver Escrow](/api-reference/escrows/deliver-escrow). Deliver is supplementary — it records that the seller marked delivery, but it is not a prerequisite for `complete`.
+Yes, for **standard** and **quick** escrows **unless** you set [`completionPolicy`](/guides/completion-policy). After payment (`paid`), the buyer can use a `complete` checkout session to release funds without the seller calling [Deliver Escrow](/api-reference/escrows/deliver-escrow). Deliver is supplementary — it records that the seller marked delivery, but it is not a prerequisite for `complete`.
 
-**Exception:** [Quick Escrow with Proof](/guides/quick-escrow-with-proof) blocks early release from `paid` until the buyer accepts the seller's purchase proof (`409 PROOF_NOT_ACCEPTED`).
+**Exceptions:**
+- [Delivery confirmation](/guides/completion-policy) — `complete` from `paid` returns `DELIVERY_REQUIRED`. Deliver first.
+- [Quick Escrow with Proof](/guides/quick-escrow-with-proof) — early release from `paid` is blocked until the buyer accepts the seller's purchase proof (`409 PROOF_NOT_ACCEPTED`).
 
 ### What about quick escrows (products without a contract)?
 

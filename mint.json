@@ -125,6 +125,7 @@
       "pages": [
         "guides/sandbox",
         "guides/quick-escrow-with-proof",
+        "guides/completion-policy",
         "guides/progressive-release",
         "guides/kyc-for-marketplaces",
         "guides/oauth-setup",
