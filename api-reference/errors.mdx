@@ -40,6 +40,9 @@ All error responses follow this format:
   <Card title="404 Not Found" icon="magnifying-glass">
     Resource not found
   </Card>
+  <Card title="409 Conflict" icon="ban">
+    Wrong product for this id — e.g. a [charge](/api-reference/charges/overview) on an escrow endpoint (`CHARGE_NOT_AN_ESCROW`)
+  </Card>
   <Card title="429 Too Many Requests" icon="clock">
     Rate limit exceeded
   </Card>

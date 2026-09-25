@@ -9,9 +9,11 @@ Mark an escrow as delivered. Only the **seller** can perform this action, and th
 
 Deliver is **supplementary** for standard and quick modes. It records that the seller marked the order as delivered, but the buyer does **not** have to wait for deliver — they can release funds earlier with a `complete` checkout session while the escrow is still `paid`.
 
-- **Standard mode:** Escrow moves to `delivered`. The buyer can then `complete` to release funds (or they may have already released from `paid`).
-- **Quick mode:** Same as standard — escrow moves to `delivered` and the buyer can `complete` from `paid` or `delivered`. Quick Escrow with Proof blocks early release from `paid` until purchase proof is accepted.
-- **Instant mode:** Calling deliver **auto-completes** the escrow and releases funds to you immediately. The escrow moves directly from `paid` to `completed`; there is no buyer confirmation step. The response message will indicate that the escrow was delivered and completed (instant mode).
+- Escrow moves to `delivered`.
+- `completionDeadline` is set from the frozen `completionDeadlineDays` (default **7**, range **3–14**). The buyer must release funds, reject delivery, or open a dispute before that deadline. Silence auto-completes the escrow and releases funds.
+- Quick Escrow with Proof blocks early release from `paid` until purchase proof is accepted.
+- Progressive-release escrows cannot be delivered (`409 PROGRESSIVE_DELIVER_NOT_ALLOWED`).
+- A [charge](/api-reference/charges/overview) id returns **409** `CHARGE_NOT_AN_ESCROW`. Charges complete on payment and have no deliver step.
 
 <RequestExample>
 ```bash cURL
@@ -43,21 +45,14 @@ const data = await response.json();
     "amount": 1000.00,
     "status": "delivered",
     "deliveredAt": "2024-01-20T14:00:00Z",
-    "completionDeadline": "2024-01-27T14:00:00Z",
+    "completionDeadlineDays": 10,
+    "completionDeadline": "2024-01-30T14:00:00Z",
     "createdAt": "2024-01-15T10:00:00Z",
     "updatedAt": "2024-01-20T14:00:00Z"
   }
 }
 ```
 </ResponseExample>
-
-For **instant** mode escrows, the response is:
-```json
-{
-  "message": "Escrow delivered and completed (instant mode). Funds released.",
-  "escrow": { "id": "...", "status": "completed", "deliveredAt": "...", "completedAt": "...", ... }
-}
-```
 
 ## Path Parameters
 
@@ -115,6 +110,10 @@ For **instant** mode escrows, the response is:
 }
 ```
 
+### 409 Conflict
+
+Charge id (`CHARGE_NOT_AN_ESCROW`) or progressive-release deliver blocked (`PROGRESSIVE_DELIVER_NOT_ALLOWED`).
+
 ---
 
 <Warning>
@@ -122,5 +121,5 @@ For **instant** mode escrows, the response is:
 </Warning>
 
 <Info>
-  **Standard and quick modes:** Deliver is optional. The buyer can release funds with a `complete` checkout session from `paid` (early release) or from `delivered`. Use `complete` if you need to redirect the buyer to confirm on dhmad.tn. **Instant mode:** Deliver auto-completes and releases funds; no buyer confirmation or checkout session for `complete` is needed.
+  Deliver is optional. The buyer can release funds with a `complete` checkout session from `paid` (early release) or from `delivered`. After deliver, the buyer has `completionDeadlineDays` days (default 7) before auto-release.
 </Info>

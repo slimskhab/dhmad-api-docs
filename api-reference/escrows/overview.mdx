@@ -24,19 +24,18 @@ For critical actions that require user interaction (signing contracts, paying, c
 
 ## Escrow Modes
 
-When creating an escrow, set the `mode` field to choose the transaction flow. All modes share the same statuses (`pending` → `paid` → …) but differ in whether a contract is used and how delivery completes.
+When creating an escrow, set the `mode` field to choose the transaction flow. Both modes share the same statuses (`pending` → `paid` → …) but differ in whether a contract is used.
 
-<CardGroup cols={3}>
+<CardGroup cols={2}>
   <Card title="standard" icon="file-signature">
     Full flow with a contract both parties sign before payment. Best for services and freelance work between two users.
   </Card>
   <Card title="quick" icon="bolt">
     No contract; buyer pays immediately, then releases funds via `complete`. Seller deliver is optional. Best for physical or digital products between two users.
   </Card>
-  <Card title="instant" icon="zap">
-    No contract; you are the seller (omit `sellerEmail`). Buyer pays in one step; calling deliver auto-completes and releases funds. Best for in-app purchases and digital goods.
-  </Card>
 </CardGroup>
+
+Merchant checkout (credits, top-ups, public pay links) is **[POST /charges](/api-reference/charges/overview)**, not an escrow mode. `mode: "instant"` is rejected on create.
 
 ### Standard mode
 
@@ -73,7 +72,7 @@ See the **[Quick Escrow with Proof guide](/guides/quick-escrow-with-proof)** for
 
 Add **`progressiveRelease`** when the total is known up front but the work arrives incrementally — hourly contracts, retainers, or any arrangement billed per period.
 
-- Include a `progressiveRelease` object on creation (presence is the opt-in; do not send `enabled`), optionally with `autoApproveHours` (the client's review window). Composes with `standard` or `quick` mode; not available for `instant`.
+- Include a `progressiveRelease` object on creation (presence is the opt-in; do not send `enabled`), optionally with `autoApproveHours` (the client's review window). Composes with `standard` or `quick` mode. Not available on [charges](/api-reference/charges/overview).
 - The escrow stays `paid` across many payouts. Your backend claims each billing period with **[Create Payout Request](/api-reference/escrows/create-release-request)** — send face `amount` + `currency` or ledger `amountTnd`. You may do this on the seller's behalf, so the freelancer takes no weekly action.
 - GET and balance webhooks expose **face + TND** progressive balances (`availableForRelease` / `reserved` / `releasedTotal` and `*Tnd` counterparts) plus stable `fundedAmount*` — do not invent face amounts with `tnd / fxRateUsed`. On terminal status, float fields are forced to `0`.
 - The client approves (`approve_release`), rejects (`reject_release`, which opens a dispute for that period only), or does nothing — in which case the period releases automatically at its deadline.
@@ -84,39 +83,35 @@ Add **`progressiveRelease`** when the total is known up front but the work arriv
 
 See the **[Progressive Release guide](/guides/progressive-release)** for the full walkthrough.
 
-### Instant mode
+### Auto-release after deliver
 
-For digital goods (e.g. in-app coins, AI credits), the full standard flow has too many steps and can hurt conversion. Use **instant** when you are the seller:
+Optional **`completionDeadlineDays`** on [Create Escrow](/api-reference/escrows/create-escrow) sets how long the buyer has after deliver to release funds, reject delivery, or open a dispute.
 
-- Set `mode: "instant"` and **omit** `sellerEmail` (your associated user is the seller). Do **not** send `contractTerms` or `autoSign`.
-- No contract is created; the response includes `contract: null` and `escrow.mode: "instant"`.
-- Checkout action: **`accept_pay` only**. The actions `sign_contract` and `complete` return **400**.
-- When you receive the `escrow.status.updated` webhook (`pending` → `paid`), deliver the digital goods (e.g. credit the user's balance).
-- Call **[Deliver Escrow](/api-reference/escrows/deliver-escrow)** (`POST /api/v1/escrows/:id/deliver`). The escrow **auto-completes** and funds are released immediately (no buyer confirmation step).
-- Minimum internal ledger value (`amountTnd`) is **0.01 TND** after FX lock.
-- Guest checkout (buyer pays without a DHMAD account) is supported for instant escrows via `accept_pay`.
-- `feeBearer` can be set at create time; it cannot be changed via update after creation for instant escrows.
-
-**State flow:** `pending` → `paid` → `completed` (the `delivered` state is skipped; calling deliver transitions directly to completed)
+- Integer, platform bounds **3–14** days (default **7** when omitted).
+- Frozen on the escrow at creation and returned on GET as `completionDeadlineDays`.
+- When the seller calls [Deliver](/api-reference/escrows/deliver-escrow), `completionDeadline` is set to `deliveredAt + completionDeadlineDays`.
+- If the buyer stays silent, the escrow auto-completes and funds are released. An open dispute pauses the timer.
+- Progressive-release creates reject the field (`400`). [Charges](/api-reference/charges/overview) never enter `delivered` and do not use this window.
 
 ### Mode comparison
 
-| | **standard** | **quick** | **instant** |
-|---|---|---|---|
-| Contract | Yes | No | No |
-| Seller | Any user (`sellerEmail` or you) | Third party (`sellerEmail`) | You only (omit `sellerEmail`) |
-| Buyer confirms after delivery | Yes (or early release from `paid`) | Yes (or early release from `paid`) | No (auto-complete on deliver) |
-| `contractTerms` | Required | Not allowed | Not allowed |
-| `feeBearer` | Optional (default `seller`) | Optional (default `seller`) | Optional at create (default `seller`) |
-| `estimatedDeliveryDays` | Optional (legacy) | Optional (legacy) | Optional (legacy) |
-| Min `amountTnd` | 5 TND | 5 TND | 0.01 TND |
-| Checkout: `sign_contract` | Yes | No (400) | No (400) |
-| Checkout: `accept_pay` | Yes | Yes | Yes |
-| Checkout: `complete` | Yes | Yes | No (400) |
-| `fulfillmentPolicy` (proof gate) | No | Optional | No |
-| Checkout: `submit_proof` / `review_proof` | No | When proof enabled | No |
-| `progressiveRelease` (partial payouts) | Optional | Optional | No |
-| Checkout: `approve_release` / `reject_release` | When `progressiveRelease` is set | When `progressiveRelease` is set | No |
+| | **standard** | **quick** |
+|---|---|---|
+| Contract | Yes | No |
+| Seller | Any user (`sellerEmail` or you) | Third party (`sellerEmail`) |
+| Buyer confirms after delivery | Yes (or early release from `paid`) | Yes (or early release from `paid`) |
+| `contractTerms` | Required | Not allowed |
+| `feeBearer` | Optional (default `seller`) | Optional (default `seller`) |
+| `completionDeadlineDays` | Optional (3–14, default 7) | Optional (3–14, default 7) |
+| `estimatedDeliveryDays` | Optional (legacy) | Optional (legacy) |
+| Min `amountTnd` | 5 TND | 5 TND |
+| Checkout: `sign_contract` | Yes | No (400) |
+| Checkout: `accept_pay` | Yes | Yes |
+| Checkout: `complete` | Yes | Yes |
+| `fulfillmentPolicy` (proof gate) | No | Optional |
+| Checkout: `submit_proof` / `review_proof` | No | When proof enabled |
+| `progressiveRelease` (partial payouts) | Optional | Optional |
+| Checkout: `approve_release` / `reject_release` | When `progressiveRelease` is set | When `progressiveRelease` is set |
 
 <Note>
   `estimatedDeliveryDays` is a legacy optional field. Omit it for new integrations — it is not used by platform enforcement.
@@ -134,7 +129,7 @@ Escrows progress through the following statuses:
     Payment received and locked in escrow. The buyer can release funds via a `complete` checkout session (early release), or the seller can call deliver first (optional). A progressive-release escrow stays here across many partial payouts.
   </Card>
   <Card title="delivered" icon="truck">
-    Service/product delivered. Waiting for buyer to confirm completion. Skipped in instant mode.
+    Service/product delivered. Waiting for buyer to confirm completion, or for the auto-release deadline.
   </Card>
   <Card title="completed" icon="circle-check">
     Transaction completed successfully. Funds released to seller.
@@ -189,7 +184,7 @@ For actions that require user interaction, use [Checkout Sessions](/api-referenc
 - **Accept & Pay** — Buyer reviews and pays for the escrow (all modes)
 - **Submit proof** — Seller uploads purchase/shipment proof ([Quick Escrow with Proof](/guides/quick-escrow-with-proof) only)
 - **Review proof** — Buyer accepts proof or requests corrections (proof escrows only)
-- **Complete** — Buyer releases funds (**standard** and **quick** modes; not instant). Valid when escrow is `paid` or `delivered`; deliver is not required first.
+- **Complete** — Buyer releases funds. Valid when escrow is `paid` or `delivered`; deliver is not required first. Not used on [charges](/api-reference/charges/overview).
 - **Dispute** — User opens a dispute
 - **Request cancellation** — Buyer requests cancellation (**paid** or **delivered**; buyer email only)
 - **Cancel escrow** — Seller cancels immediately (**paid** or **delivered**; seller email only)

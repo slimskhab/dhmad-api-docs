@@ -14,6 +14,8 @@ End an hourly or recurring **progressive-release** contract. Closing settles wha
 
 This is deliberately **not** a cancellation. A contract that ran successfully and simply has funds left over completes normally, so reporting and the client's transaction history reflect what actually happened.
 
+A [charge](/api-reference/charges/overview) id returns **409** `CHARGE_NOT_AN_ESCROW`. Progressive release is not available on charges.
+
 <Warning>
   Closing is refused with `409` while any period is still `pending` or `disputed`. The response lists the blocking `requestId`s so you can show the client exactly what is outstanding. Resolve those periods first — a client must never be able to reclaim funds that an unresolved timesheet still has a claim on.
 </Warning>

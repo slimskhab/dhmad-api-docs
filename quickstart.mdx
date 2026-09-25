@@ -86,7 +86,7 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
   If the buyer email corresponds to an existing user, they will receive a notification. If not, they will receive an invitation email with a registration link.
 </Info>
 
-This example creates a **standard** mode escrow (default). For product sales without a contract, use `mode: "quick"`. For in-app digital goods where you are the seller, use `mode: "instant"`. See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
+This example creates a **standard** mode escrow (default). For product sales without a contract, use `mode: "quick"`. Optionally set **`completionDeadlineDays`** (integer **3–14**, default **7**) for how long the buyer has after deliver before auto-release. For merchant checkout (credits, top-ups, public pay links), use [POST /charges](/api-reference/charges/create-charge) — do not send `mode: "instant"`. See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
 
 ## Step 3: Get Escrow Details
 

@@ -76,15 +76,15 @@ Parse these parameters and update your UI. Optionally call `GET /api/v1/sessions
 
 The checkout page shows a summary of the escrow: amount, **platform service fee** (DHMAD's fee), and, if the escrow was created with a developer fee, the **application / app fee** (with your app name when configured). Which party pays those fees follows `feeBearer` (`"seller"` default or `"buyer"`). Use `buyerFundingTnd` for the amount the buyer actually pays.
 
-#### Instant escrows — guest payment (`accept_pay`, no DHMAD login)
+#### Guest payment (no DHMAD login)
 
-For escrows created with **`mode: "instant"`** and a checkout session action **`accept_pay`**, if the buyer is **not** logged into DHMAD they can pay **without** creating an account. They pick a payment method (e.g. bank transfer, D17, Flouci, PayPal), complete the payment using the instructions shown, and upload a proof file. An **admin must approve** the proof; only then does the escrow move to `paid` and your app should rely on **`escrow.status.updated`** (and related webhooks) as usual.
+On a public checkout URL — including [charges](/api-reference/charges/overview) and guest `accept_pay` — the payer can pay **without** creating an account. They pick a payment method (e.g. bank transfer, D17, Flouci, PayPal), complete the payment using the instructions shown, and upload a proof file when the method requires it. An **admin must approve** the proof; only then does the payment move to `paid`. For charges, subscribe to **`charge.status.updated`**. For escrows, rely on **`escrow.status.updated`**.
 
 - **Funds are not held in a DHMAD buyer wallet** for this path until the proof is approved; cancellation and refunds follow DHMAD’s guest-checkout rules (your app should not assume an automatic wallet refund to the buyer).
 - **Sandbox:** the flow may complete without a proof file for faster testing.
-- **Seller cancellation before approval:** pending proofs for that escrow are closed automatically; you may receive **`escrow.deposit_proof.rejected`** (with a system reason) and **`escrow.status.updated`** when the escrow becomes `cancelled`. The checkout session may be marked `cancelled`. Treat **webhooks** as the source of truth, not only the browser redirect.
+- **Seller cancellation before approval:** pending proofs are closed automatically; you may receive **`escrow.deposit_proof.rejected`** (with a system reason) and a status webhook when the payment becomes `cancelled`. The checkout session may be marked `cancelled`. Treat **webhooks** as the source of truth, not only the browser redirect.
 
-#### Standard flow (logged-in buyer or non-instant escrow)
+#### Standard flow (logged-in buyer)
 
 When the user is on dhmad.tn/checkout and completes **Accept and pay** under the **standard** path (e.g. **standard** escrow mode, or the buyer is signed in and uses the wallet flow), DHMAD may require them to complete additional steps before the action succeeds:
 
@@ -209,9 +209,9 @@ Yes. The redirect provides immediate feedback to the user (e.g., "Payment succes
 
 Yes. Use your sandbox API key (`sk_sandbox_*`) and the sandbox base URL. The checkout URL will point to the sandbox frontend (e.g., `https://sandbox.dhmad.tn/checkout/:sessionId`).
 
-### What about instant escrows (digital goods)?
+### What about charges (credits, top-ups, public pay links)?
 
-For escrows created with `mode: "instant"` (e.g. in-app coins, AI credits), use only the **accept_pay** action. The buyer pays in one step; there is no contract to sign and no "complete" step. After the buyer pays, you receive a webhook, deliver the goods, then call the Deliver Escrow API—the escrow auto-completes and funds are released. See [Escrow Modes — Instant](/api-reference/escrows/overview#instant-mode) in the Escrows overview.
+Use **[POST /charges](/api-reference/charges/create-charge)**. That call already returns a public checkout URL — do not create an escrow checkout session on a charge id (**409** `CHARGE_NOT_AN_ESCROW`). Payment completes and settles in one step. Subscribe to **`charge.status.updated`**. See [Charges](/api-reference/charges/overview).
 
 ### Can the buyer release funds without the seller delivering?
 

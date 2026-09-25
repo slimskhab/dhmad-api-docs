@@ -107,7 +107,7 @@ data = response.json()
   **By escrow mode:**
   - **standard** — all actions apply when status allows (except proof actions). `complete` works from `paid` or `delivered`; seller deliver is optional. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
   - **quick** — no contract; `sign_contract` returns 400 (`QUICK_ESCROW_NO_CONTRACT`). Typical flow: `accept_pay`, then buyer `complete`. Seller may call [Deliver Escrow](/api-reference/escrows/deliver-escrow) first, but the buyer can `complete` directly from `paid` without deliver. With [Quick Escrow with Proof](/guides/quick-escrow-with-proof), use `submit_proof` (seller) and `review_proof` (buyer) while `proofInfo.phase` requires them; early release from `paid` is blocked until proof is accepted. `add_funds` / `refund_funds` apply when `paid` or `delivered`.
-  - **instant** — only `accept_pay` (and dispute/cancellation actions) are valid; `sign_contract`, `complete`, proof actions, and funds adjustments return 400.
+  - A [charge](/api-reference/charges/overview) id returns **409** `CHARGE_NOT_AN_ESCROW`. Use the checkout URL from [Create Charge](/api-reference/charges/create-charge).
 
   **`complete` action:** Buyer releases funds. Valid when escrow status is `paid` or `delivered`. Does not require the seller to call deliver first — the buyer can release early from `paid` if they are satisfied. Returns **409** (`PROOF_NOT_ACCEPTED`) for Quick Escrow with Proof when proof is not yet accepted.
 </ParamField>
@@ -164,8 +164,6 @@ When a request is rejected because of a business rule (e.g. the action is alread
 | `NO_REDIRECT_URLS_CONFIGURED` | Developer has no allowed redirect URLs in dashboard settings. |
 | `REDIRECT_URL_NOT_ALLOWED` | `redirectUrl` does not match any allowed redirect URL. |
 | `REDIRECT_URL_MUST_BE_HTTPS` | `redirectUrl` is not HTTPS (except `http://localhost`). |
-| `INSTANT_ESCROW_NO_CONTRACT` | Action is `sign_contract` but escrow is instant (no contract). Use `accept_pay` instead. |
-| `INSTANT_ESCROW_NO_COMPLETE_STEP` | Action is `complete` but escrow is instant; completion happens via deliver endpoint. |
 | `QUICK_ESCROW_NO_CONTRACT` | Action is `sign_contract` but escrow is quick (no contract). Use `accept_pay` instead. |
 | `CONTRACT_ALREADY_SIGNED` | Action is `sign_contract` and the target user has already signed the contract. |
 | `PAYMENT_ALREADY_DONE` | Action is `accept_pay` but the escrow is already paid, delivered, or completed. |
@@ -235,6 +233,18 @@ Handle these in your app by checking `response.error?.code` and displaying `resp
 }
 ```
 
+### 409 Conflict
+
+A [charge](/api-reference/charges/overview) id returns **409**:
+
+```json
+{
+  "error": "Conflict",
+  "code": "CHARGE_NOT_AN_ESCROW",
+  "message": "This id is a charge. Use the /v1/charges endpoints."
+}
+```
+
 ### 404 Not Found
 
 **Escrow Not Found**
@@ -259,6 +269,6 @@ Handle these in your app by checking `response.error?.code` and displaying `resp
   Sessions expire 30 minutes after creation. Ensure users complete the flow within this window, or create a new session if needed.
 </Note>
 
-<Info title="Instant escrows">
-  For escrows created with `mode: "instant"`, only the `accept_pay` action (and dispute/cancellation actions) is valid. Do not use `sign_contract` or `complete`; they will return 400. After the buyer pays, deliver the digital goods and call [Deliver Escrow](/api-reference/escrows/deliver-escrow) to auto-complete and release funds.
+<Info title="Charges">
+  Merchant checkout uses [POST /charges](/api-reference/charges/create-charge), which already returns a public checkout URL. Creating a session on a charge id returns **409** `CHARGE_NOT_AN_ESCROW`.
 </Info>

@@ -7,7 +7,9 @@ description: Look up a charge by id or by your own reference
 
 Fetch one of your charges. `:id` accepts either the DHMAD charge id or your `merchantReference`, so you can check a payment without storing DHMAD's id.
 
-Use this to reconcile when a webhook was missed: if `status` is `completed`, credit your user exactly as you would from the webhook.
+Use this to reconcile when a webhook was missed: if `status` is `completed`, credit your user exactly as you would from **`charge.status.updated`**.
+
+[Get Escrow](/api-reference/escrows/get-escrow) with this id returns **404**. Escrow lifecycle endpoints return **409** `CHARGE_NOT_AN_ESCROW`.
 
 <RequestExample>
 ```bash cURL
@@ -70,3 +72,4 @@ charge = response.json()['charge']
 - `url` is only present while the charge is still `pending` and its checkout session is valid.
 - `receiptEmail` is the address the payer gave at checkout. It is for receipts only — credit your user from `merchantReference`.
 - **404** means no charge with that id or reference exists on your account.
+- Credit from `merchantReference` when `status` is `completed`. For cash-on-delivery, `completed` can later move to `disputed` then `cancelled` — the same `charge.status.updated` event fires again.

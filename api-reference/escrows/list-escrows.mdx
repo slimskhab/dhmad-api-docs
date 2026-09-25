@@ -7,6 +7,8 @@ description: Get a paginated list of escrows
 
 Get a paginated list of escrows for the authenticated user. You can filter by status and role.
 
+[Charges](/api-reference/charges/overview) are excluded. Look those up with [Get Charge](/api-reference/charges/get-charge).
+
 <RequestExample>
 ```bash cURL
 curl -X GET "https://dhmad.tn/api/v1/escrows?status=pending&role=seller&page=1&limit=20" \
@@ -133,7 +135,7 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrows[].mode" type="string">
-  Escrow mode: `standard`, `quick`, or `instant`. See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
+  Escrow mode: `standard` or `quick`. See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
 </ParamField>
 
 <ParamField response="escrows[].seller" type="object">
@@ -189,5 +191,5 @@ Returns pending escrows where you are the buyer, first page with 10 items per pa
 ---
 
 <Info>
-  If no filters are provided, the endpoint returns all escrows where you are either the seller or buyer, sorted by creation date (newest first).
+  If no filters are provided, the endpoint returns all escrows where you are either the seller or buyer, sorted by creation date (newest first). [Charges](/api-reference/charges/overview) are not included.
 </Info>

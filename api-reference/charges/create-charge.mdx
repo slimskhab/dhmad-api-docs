@@ -7,7 +7,9 @@ description: Create a payment link for your own business
 
 Create a charge and get a public checkout URL. There is no `buyerEmail`: anyone who opens the URL can pay it, and DHMAD collects a receipt email from them at checkout.
 
-Payment completes the charge and settles the funds into your business wallet in one step — there is no deliver call.
+Payment completes the charge and settles the funds into your business wallet in one step — there is no deliver call and no `completionDeadlineDays`. Subscribe to **`charge.status.updated`** (see [Webhooks](/guides/webhooks#chargestatusupdated)).
+
+Do not pass this id to `/v1/escrows/:id` — GET returns **404**; deliver, sessions, and other escrow actions return **409** `CHARGE_NOT_AN_ESCROW`.
 
 <Warning>
   Configure allowed redirect URLs in your [Developer Dashboard](https://developer.dhmad.tn/dashboard) before creating charges. A `redirectUrl` that does not match one of them is rejected with **400**.

@@ -7,6 +7,8 @@ description: Update a pending escrow transaction
 
 Update a pending escrow transaction. Only escrows in `pending` status can be updated. You can modify the title, amount, description, `feeBearer`, and other pending fields. At least one field must be provided in the request body. The escrow fee is recalculated automatically when the amount is updated. Changing `feeBearer`, amount, or currency clears existing contract signatures.
 
+A [charge](/api-reference/charges/overview) id returns **409** `CHARGE_NOT_AN_ESCROW`.
+
 <RequestExample>
 ```bash cURL
 curl -X PUT https://dhmad.tn/api/v1/escrows/507f1f77bcf86cd799439011 \
@@ -82,7 +84,7 @@ All fields are optional, but at least one must be provided.
 </ParamField>
 
 <ParamField body="feeBearer" type="string" required={false}>
-  Who pays platform + developer fees: `"seller"` or `"buyer"`. Changing this (or amount/currency) clears existing contract signatures. Not allowed for instant escrows after creation.
+  Who pays platform + developer fees: `"seller"` or `"buyer"`. Changing this (or amount/currency) clears existing contract signatures.
 </ParamField>
 
 <ParamField body="estimatedDeliveryDays" type="number" required={false}>
@@ -143,6 +145,16 @@ All fields are optional, but at least one must be provided.
 ```json
 {
   "error": "Escrow not found"
+}
+```
+
+### 409 Conflict
+
+```json
+{
+  "error": "Conflict",
+  "code": "CHARGE_NOT_AN_ESCROW",
+  "message": "This id is a charge. Use the /v1/charges endpoints."
 }
 ```
 

@@ -9,7 +9,7 @@ Checkout Sessions provide a Stripe Checkout-style redirect flow for critical esc
 
 Checkout Sessions are short-lived, single-use sessions that direct a specific user to dhmad.tn to perform a critical escrow action. The user is authenticated on DHMAD, completes the action (e.g., signing a contract, accepting payment, completing delivery), and is then redirected back to your application with the result.
 
-Which checkout actions apply depends on the escrow **mode** — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes). In **standard** mode, buyers may need to sign a contract before paying; in **quick** mode there is no contract and the buyer releases funds with `complete` (seller deliver is optional); in **instant** mode only `accept_pay` is used and completion happens when you call the deliver endpoint.
+Which checkout actions apply depends on the escrow **mode** — see [Escrow Modes](/api-reference/escrows/overview#escrow-modes). In **standard** mode, buyers may need to sign a contract before paying; in **quick** mode there is no contract and the buyer releases funds with `complete` (seller deliver is optional).
 
 [Charges](/api-reference/charges/overview) are different: `POST /api/v1/charges` already returns the checkout URL. That link has no `targetUserEmail`, lasts 60 minutes, and can be paid by anyone who opens it. Do not create a separate `accept_pay` session for a charge.
 
@@ -25,7 +25,7 @@ Use Checkout Sessions when your integration needs a user to perform one of these
     Redirect the buyer to accept the contract and complete payment.
   </Card>
   <Card title="Complete" icon="check-circle">
-    Redirect the buyer to release funds to the seller. Valid from `paid` or `delivered` — deliver is not required first. **Standard and quick modes** (not instant).
+    Redirect the buyer to release funds to the seller. Valid from `paid` or `delivered` — deliver is not required first. **Standard and quick modes.**
   </Card>
   <Card title="Dispute" icon="alert-triangle">
     Redirect either party to open a dispute on the escrow.

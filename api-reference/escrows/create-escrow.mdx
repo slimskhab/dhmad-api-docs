@@ -11,7 +11,8 @@ Choose the escrow **mode** based on your use case — see [Escrow Modes](/api-re
 
 - **`standard`** (default) — contract + sign + pay + complete. Seller deliver is optional. Use with `sellerEmail` for escrows between two parties.
 - **`quick`** — no contract; pay → buyer `complete` to release funds. Seller deliver is optional. Use with `sellerEmail` for product sales without a contract. Optionally add **`fulfillmentPolicy`** for [Quick Escrow with Proof](/guides/quick-escrow-with-proof) (seller uploads proof before delivery unlocks).
-- **`instant`** — no contract; you are the seller (omit `sellerEmail`); pay → deliver auto-completes. Use for in-app digital goods.
+
+For merchant checkout (credits, top-ups, public pay links) use **[POST /charges](/api-reference/charges/create-charge)**. `mode: "instant"` is rejected.
 
 For hourly or recurring work, add **`progressiveRelease`** to `standard` or `quick` mode so one funded escrow pays out per billing period — see [Progressive Release](/guides/progressive-release).
 
@@ -41,7 +42,8 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "buyerEmail": "buyer@example.com",
     "mode": "standard",
     "contractTerms": "The seller agrees to deliver a fully functional website within 7 days.",
-    "autoSign": true
+    "autoSign": true,
+    "completionDeadlineDays": 10
   }'
 ```
 
@@ -101,20 +103,6 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 ```
 
 ```bash cURL
-# Instant mode — you are the seller (in-app purchase)
-curl -X POST https://dhmad.tn/api/v1/escrows \
-  -H "Authorization: Bearer sk_live_your_api_key_here" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "100 AI credits",
-    "amount": 25,
-    "currency": "TND",
-    "buyerEmail": "buyer@example.com",
-    "mode": "instant"
-  }'
-```
-
-```bash cURL
 # Hourly contract — progressive release (presence of the object is the opt-in)
 curl -X POST https://dhmad.tn/api/v1/escrows \
   -H "Authorization: Bearer sk_live_your_api_key_here" \
@@ -148,6 +136,7 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
     "buyerFundingTnd": 550,
     "status": "pending",
     "mode": "standard",
+    "completionDeadlineDays": 10,
     "seller": null,
     "sellerEmail": "seller@example.com",
     "buyer": null,
@@ -165,7 +154,7 @@ curl -X POST https://dhmad.tn/api/v1/escrows \
 ```
 </ResponseExample>
 
-For **quick** and **instant** modes, `contract` is `null`.
+For **quick** mode, `contract` is `null`.
 
 ## Request Body
 
@@ -174,7 +163,7 @@ For **quick** and **instant** modes, `contract` is `null`.
 </ParamField>
 
 <ParamField body="amount" type="number" required>
-  Commercial face amount in `currency`. After FX lock, standard and quick modes require internal ledger value (`amountTnd`) of at least **5 TND**; instant mode requires at least **0.01 TND**.
+  Commercial face amount in `currency`. After FX lock, standard and quick modes require internal ledger value (`amountTnd`) of at least **5 TND**.
 </ParamField>
 
 <ParamField body="currency" type="string" required={false}>
@@ -186,14 +175,18 @@ For **quick** and **instant** modes, `contract` is `null`.
 </ParamField>
 
 <ParamField body="sellerEmail" type="string" required={false}>
-  Email of the seller. If omitted, your developer account's associated user account is used as the seller (**required for instant mode**). If provided, the seller is that user or an invite. Use **standard** or **quick** mode for escrows between two other parties.
+  Email of the seller. If omitted, your developer account's associated user account is used as the seller. If provided, the seller is that user or an invite.
 </ParamField>
 
 <ParamField body="mode" type="string" required={false}>
-  `"standard"` (default), `"quick"`, or `"instant"`. See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
+  `"standard"` (default) or `"quick"`. See [Escrow Modes](/api-reference/escrows/overview#escrow-modes).
   - **standard** — requires `contractTerms`; creates a contract.
   - **quick** — do not send `contractTerms` or `autoSign`.
-  - **instant** — only when you are the seller (omit `sellerEmail`); do not send `contractTerms` or `autoSign`.
+  Merchant checkout is [POST /charges](/api-reference/charges/create-charge); `mode: "instant"` returns **400**.
+</ParamField>
+
+<ParamField body="completionDeadlineDays" type="integer" required={false}>
+  Days the buyer has after deliver to release funds, reject delivery, or open a dispute. Integer **3–14** (platform default **7** when omitted). Frozen on the escrow at creation. After deliver, silence auto-completes the escrow and releases funds. Not allowed on progressive-release creates (**400**). [Charges](/api-reference/charges/overview) do not use this field.
 </ParamField>
 
 <ParamField body="feeBearer" type="string" required={false}>
@@ -205,11 +198,11 @@ For **quick** and **instant** modes, `contract` is `null`.
 </ParamField>
 
 <ParamField body="contractTerms" type="string" required={false}>
-  Required when `mode` is `"standard"`. Contract text (max 10,000 characters). Not allowed for `"quick"` or `"instant"`.
+  Required when `mode` is `"standard"`. Contract text (max 10,000 characters). Not allowed for `"quick"`.
 </ParamField>
 
 <ParamField body="autoSign" type="boolean" required={false}>
-  Default `false`. If true, the contract is automatically signed by the seller using the signature configured in the developer dashboard. Requires a signature to be set up first. Auto-sign is only available when you are the seller (**omit** `sellerEmail` so your associated user account is used). Do not combine `autoSign: true` with `sellerEmail`. Not applicable for `"quick"` or `"instant"` modes.
+  Default `false`. If true, the contract is automatically signed by the seller using the signature configured in the developer dashboard. Requires a signature to be set up first. Auto-sign is only available when you are the seller (**omit** `sellerEmail` so your associated user account is used). Do not combine `autoSign: true` with `sellerEmail`. Not applicable for `"quick"` mode.
 </ParamField>
 
 <ParamField body="developerFeePercentage" type="number" required={false}>
@@ -226,7 +219,7 @@ For **quick** and **instant** modes, `contract` is `null`.
 </ParamField>
 
 <ParamField body="progressiveRelease" type="object" required={false}>
-  **Hourly / recurring contracts** — allowed for `standard` and `quick` modes (returns **400** for `instant`). Lets one funded escrow pay out in slices, one per billing period. See the [Progressive Release guide](/guides/progressive-release).
+  **Hourly / recurring contracts** — allowed for `standard` and `quick` modes. Lets one funded escrow pay out in slices, one per billing period. See the [Progressive Release guide](/guides/progressive-release).
 
   Presence of this object is the opt-in. Do **not** send `enabled` (or any other unknown key) — the schema is strict and those requests return **400**.
 
@@ -267,7 +260,11 @@ Escrow `status` remains `paid` during the proof gate; use `proofInfo.phase` and 
 </ParamField>
 
 <ParamField response="mode" type="string">
-  Escrow mode: `standard`, `quick`, or `instant`.
+  Escrow mode: `standard` or `quick`.
+</ParamField>
+
+<ParamField response="completionDeadlineDays" type="number">
+  Days after deliver before silence auto-releases funds. Integer **3–14**, frozen at creation (default **7**).
 </ParamField>
 
 <ParamField response="escrowFee" type="number">
@@ -296,22 +293,13 @@ When you redirect users to a [Checkout Session](/api-reference/checkout-sessions
 
 ## Errors
 
-### 400 Bad Request – Instant mode with third-party seller
+### 400 Bad Request – Instant mode
 
-When `mode` is `"instant"` and `sellerEmail` is provided:
+`mode: "instant"` is no longer creatable. Use [POST /charges](/api-reference/charges/create-charge) for merchant checkout.
 
-```json
-{
-  "error": "Bad Request",
-  "message": "Instant mode is only available when you are the seller (omit sellerEmail). For escrows between two other parties, use mode: standard (with a contract) or mode: quick (no contract)."
-}
-```
+### 400 Bad Request – Contract terms on quick mode
 
-Use **standard** or **quick** mode and provide `sellerEmail` for escrows between two other parties.
-
-### 400 Bad Request – Contract terms on quick/instant mode
-
-When `mode` is `"quick"` or `"instant"` and `contractTerms` is provided:
+When `mode` is `"quick"` and `contractTerms` is provided:
 
 ```json
 {

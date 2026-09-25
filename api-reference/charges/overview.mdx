@@ -14,7 +14,9 @@ Use a charge instead of an [escrow](/api-reference/escrows/overview) when there 
 | Seller | Your business account | Your user, or your business |
 | Buyer | Unknown until someone pays | Known at creation (`buyerEmail`) |
 | Checkout URL | Public — anyone with the link can pay | Bound to the buyer's email |
-| After payment | Completes and settles immediately | Deliver, then release |
+| After payment | Completes and settles immediately | Deliver, then buyer release (or auto-release after `completionDeadlineDays`) |
+| API | `POST /v1/charges`, `GET /v1/charges/:id` | `POST /v1/escrows`, `GET /v1/escrows/:id` |
+| Escrow endpoints | **404** on GET; **409** `CHARGE_NOT_AN_ESCROW` on deliver / reject / update / sessions / contract | Charge ids are hidden from list and get |
 
 ## How it works
 
@@ -26,7 +28,7 @@ Use a charge instead of an [escrow](/api-reference/escrows/overview) when there 
     No DHMAD account is needed. The payer enters an email for the receipt and pays by card, PayPal, or bank transfer. It does not have to be the person who will be credited on your side.
   </Step>
   <Step title="Credit your user from the webhook">
-    `escrow.status.updated` fires with `merchantReference` and `receiptEmail`. Look up your own record from `merchantReference` and credit it. Ignore `receiptEmail` for anything except receipts.
+    Subscribe to **`charge.status.updated`**. The payload includes `merchantReference` and `receiptEmail`. Look up your own record from `merchantReference` and credit it. Ignore `receiptEmail` for anything except receipts. `escrow.status.updated` may still fire for the same payment — treat `charge.status.updated` as the charge event.
   </Step>
 </Steps>
 
@@ -48,3 +50,11 @@ Because of this, always credit from `merchantReference`, never from `receiptEmai
 - Your developer account must have a business account. Funds settle into that business's DHMAD wallet.
 - In live mode, the business must pass KYB before it can take charges.
 - `redirectUrl` must match one of the allowed redirect URLs in your [Developer Dashboard](https://developer.dhmad.tn/dashboard).
+
+## Not an escrow
+
+A charge is a separate product. Do not create `mode: "instant"` on `POST /v1/escrows` — that is rejected. Do not send a charge id to escrow lifecycle endpoints:
+
+- [Get Escrow](/api-reference/escrows/get-escrow) and [List Escrows](/api-reference/escrows/list-escrows) hide charges (GET returns **404**).
+- Deliver, reject-delivery, update, contract, progressive release, and [checkout sessions](/api-reference/checkout-sessions/create-session) on a charge id return **409** `CHARGE_NOT_AN_ESCROW`.
+- Charges do not use `completionDeadlineDays`. Payment completes and settles in one step.

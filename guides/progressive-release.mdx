@@ -157,5 +157,5 @@ Because the check is idempotent, it passes for every future period once the free
 </Warning>
 
 <Info>
-  Progressive release composes with `mode: "quick"` (no contract) or `mode: "standard"` (with a signed contract). It is not available for `instant` mode, which completes on payment.
+  Progressive release composes with `mode: "quick"` (no contract) or `mode: "standard"` (with a signed contract). It is not available on [charges](/api-reference/charges/overview), which complete on payment. Do not send `completionDeadlineDays` on a progressive-release create (**400**).
 </Info>

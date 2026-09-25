@@ -124,7 +124,7 @@ class WebhookController extends Controller
 2. Navigate to the "Webhooks" section
 3. Click "Create Webhook"
 4. Enter your webhook URL (must be HTTPS in production)
-5. The webhook will automatically subscribe to `escrow.status.updated` events
+5. The webhook will automatically subscribe to `escrow.status.updated` events. For [charges](/api-reference/charges/overview), also subscribe to `charge.status.updated`.
 
 <Warning>
   You can create a maximum of 2 webhooks per developer account. Choose your
@@ -144,6 +144,12 @@ You can subscribe to the following events:
   <Card title="escrow.status.updated" icon="refresh">
     Triggered when an escrow status changes (pending → paid → delivered →
     completed → cancelled)
+  </Card>
+  <Card title="charge.status.updated" icon="credit-card">
+    Triggered when a [charge](/api-reference/charges/overview) status changes.
+    Credit your user from `data.charge.merchantReference` when `status` is
+    `completed`. `escrow.status.updated` may fire for the same payment —
+    subscribe to this event for charge integrations.
   </Card>
   <Card title="contract.signed" icon="file-signature">
     Triggered when the escrow contract is signed by the seller or the buyer.
@@ -171,13 +177,13 @@ You can subscribe to the following events:
     instead of in your app.
   </Card>
   <Card title="escrow.deposit_proof.rejected" icon="ban">
-    Triggered when a **guest** instant-escrow payment proof is rejected: either
-    an admin rejected it, or DHMAD **auto-rejected** it because the escrow was
+    Triggered when a **guest** checkout payment proof is rejected: either
+    an admin rejected it, or DHMAD **auto-rejected** it because the payment was
     **cancelled** while the proof was still pending. Check `data.depositProof.reason`
-    and `data.escrow.status`: if the escrow is still `pending`, the buyer can
-    usually submit a new proof from the same checkout link; if the escrow is
+    and `data.escrow.status`: if the payment is still `pending`, the buyer can
+    usually submit a new proof from the same checkout link; if it is
     `cancelled`, treat the payment attempt as closed. Subscribe if you use guest
-    checkout for instant escrows.
+    checkout (including [charges](/api-reference/charges/overview)).
   </Card>
   <Card title="escrow.delivery.rejected" icon="rotate-left">
     Triggered when the **buyer** rejects the seller's delivery. The escrow
@@ -320,27 +326,36 @@ On [progressive-release](/guides/progressive-release) escrows, `data.escrow` als
   Live `amount` / `amountTnd` may still show leftover on the document after progressive close; trust `remainingAmount*` = `0` and `refundedTotal*` for the unused return.
 </Note>
 
-#### Charges
+A [charge](/api-reference/charges/overview) may still emit this event (with `merchantReference` and `receiptEmail` on `data.escrow`). Prefer **`charge.status.updated`** for charge integrations.
 
-A [charge](/api-reference/charges/overview) reports through the same event, with two extra fields on `data.escrow`:
+### charge.status.updated
+
+Sent when a [charge](/api-reference/charges/overview) status changes. Credit from `data.charge.merchantReference`, not `receiptEmail`. For cash-on-delivery, `completed` can later become `disputed` then `cancelled` — the same event fires again.
 
 ```json
 {
-  "type": "escrow.status.updated",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "type": "charge.status.updated",
+  "timestamp": "2026-01-15T10:12:01Z",
   "data": {
-    "escrow": {
+    "charge": {
       "id": "507f1f77bcf86cd799439011",
-      "title": "500 credits",
-      "status": "completed",
-      "oldStatus": "paid",
       "merchantReference": "purchase_65f1c2a9b1",
-      "receiptEmail": "payer@example.com"
+      "status": "completed",
+      "title": "500 credits",
+      "amount": 120,
+      "currency": "TND",
+      "amountTnd": 120,
+      "receiptEmail": "payer@example.com",
+      "paidAt": "2026-01-15T10:12:00Z",
+      "completedAt": "2026-01-15T10:12:01Z",
+      "createdAt": "2026-01-15T10:00:00Z"
     }
   }
 }
 ```
 
-A paid charge fires `paid` and then `completed`. Credit your user from `merchantReference`, which is the reference you sent at creation, and treat the operation as idempotent — both events may arrive, and a delivery may be retried. `receiptEmail` is whoever paid; it is for receipts only and is often not the person being credited.
+A paid charge fires `paid` and then `completed`. Treat the operation as idempotent — both events may arrive, and a delivery may be retried.
 
 ### escrow.updated
 
@@ -384,7 +399,7 @@ When contract terms are updated, `data` also includes a `contract` object with `
 
 ### escrow.deposit_proof.rejected
 
-Sent when a guest instant-escrow payment proof is rejected—by an **admin** (optional reason in `depositProof.reason`) or **automatically** when the **escrow is cancelled** while a proof was still pending (reason explains that the escrow was cancelled before review). Always inspect **`data.escrow.status`**: only when the escrow remains `pending` should you expect the buyer to upload another proof from the same checkout session.
+Sent when a guest-checkout payment proof is rejected—by an **admin** (optional reason in `depositProof.reason`) or **automatically** when the **payment is cancelled** while a proof was still pending (reason explains that it was cancelled before review). Always inspect **`data.escrow.status`**: only when the payment remains `pending` should you expect the buyer to upload another proof from the same checkout session.
 
 ```json
 {
@@ -850,7 +865,7 @@ Sent when the user creates a DHMAD account and KYC is attached.
 </ParamField>
 
 <ParamField response="type" type="string">
-  Event type: "escrow.status.updated", "contract.signed",
+  Event type: "escrow.status.updated", "charge.status.updated", "contract.signed",
   "escrow.cancellation.requested", "escrow.cancellation.rejected",
   "escrow.cancellation.accepted", "escrow.delivery.rejected",
   "escrow.updated", "escrow.deposit_proof.rejected",

@@ -7,7 +7,7 @@ description: Buyer rejects delivery and returns the escrow to paid status
 
 Buyer rejects the seller's delivery. The escrow reverts from `delivered` to `paid` so the seller can fix issues and deliver again. **Funds stay locked** — this does not release or move money.
 
-Only the **buyer** can perform this action, and the escrow must be in `delivered` status. Not applicable to **instant** mode escrows (which skip the `delivered` status).
+Only the **buyer** can perform this action, and the escrow must be in `delivered` status. A [charge](/api-reference/charges/overview) id returns **409** `CHARGE_NOT_AN_ESCROW`.
 
 <RequestExample>
 ```bash cURL
@@ -126,6 +126,16 @@ const data = await response.json();
 ```json
 {
   "error": "Escrow not found"
+}
+```
+
+### 409 Conflict
+
+```json
+{
+  "error": "Conflict",
+  "code": "CHARGE_NOT_AN_ESCROW",
+  "message": "This id is a charge. Use the /v1/charges endpoints."
 }
 ```
 
