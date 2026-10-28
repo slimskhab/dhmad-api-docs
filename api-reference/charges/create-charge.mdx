@@ -27,7 +27,8 @@ curl -X POST https://dhmad.tn/api/v1/charges \
     "merchantReference": "purchase_65f1c2a9b1",
     "redirectUrl": "https://myapp.com/billing/callback",
     "receiptEmail": "customer@example.com",
-    "metadata": { "plan": "credits_500" }
+    "metadata": { "plan": "credits_500" },
+    "enabledPaymentMethods": ["paypal_card", "d17", "virement_bancaire"]
   }'
 ```
 
@@ -44,7 +45,8 @@ const response = await fetch('https://dhmad.tn/api/v1/charges', {
     currency: 'TND',
     merchantReference: 'purchase_65f1c2a9b1',
     redirectUrl: 'https://myapp.com/billing/callback',
-    receiptEmail: 'customer@example.com'
+    receiptEmail: 'customer@example.com',
+    enabledPaymentMethods: ['paypal_card', 'd17', 'virement_bancaire']
   })
 });
 
@@ -66,7 +68,8 @@ response = requests.post(
         'currency': 'TND',
         'merchantReference': 'purchase_65f1c2a9b1',
         'redirectUrl': 'https://myapp.com/billing/callback',
-        'receiptEmail': 'customer@example.com'
+        'receiptEmail': 'customer@example.com',
+        'enabledPaymentMethods': ['paypal_card', 'd17', 'virement_bancaire']
     }
 )
 
@@ -126,6 +129,30 @@ charge = response.json()['charge']
 <ParamField body="metadata" type="object" required={false}>
   Key-value pairs (strings only, 500 characters or less per value) carried on the checkout session.
 </ParamField>
+
+<ParamField body="feeBearer" type="string" required={false}>
+  Who pays the DHMAD fees: `seller` (default) or `buyer`. With `seller`, the payer pays `amount` and the fees come out of what you receive. With `buyer`, the fees are added on top of `amount` and the payer pays both.
+</ParamField>
+
+<ParamField body="enabledPaymentMethods" type="array" required={false}>
+  The payment methods the checkout offers for this charge. Omit it, or send an empty array, to offer every method. Allowed values:
+
+  - `paypal_card`: debit or credit card, processed by PayPal
+  - `paypal`: PayPal account
+  - `apple_pay`: Apple Pay
+  - `d17`: D17 transfer, with a proof of payment
+  - `flouci`: Flouci transfer, with a proof of payment
+  - `virement_bancaire`: bank transfer, with a proof of payment
+  - `cash_collection`: cash handed to a courier at the payer's address
+
+  Any other value is rejected with **400**.
+
+  The list only narrows what checkout would offer anyway. Card, PayPal and Apple Pay need the charge to reach the PayPal minimum, and Apple Pay also needs a supported device and browser. Cash collection is only for TND charges paid from Tunisia, within the courier's amount limits. A payer who is signed in to DHMAD can always pay from their DHMAD wallet.
+</ParamField>
+
+<Tip>
+  If none of the methods you list can be offered for a charge (for example only `paypal` on a charge below the PayPal minimum), a payer without DHMAD wallet funds has no way to pay. Keep a transfer method such as `virement_bancaire` in the list.
+</Tip>
 
 ## Response Fields
 
