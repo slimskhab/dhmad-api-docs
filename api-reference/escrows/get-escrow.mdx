@@ -121,14 +121,16 @@ data = response.json()
 </ParamField>
 
 <ParamField response="escrow.amount" type="number">
-  Commercial face amount in `currency`. On progressive-release escrows this is the
-  **remaining** float (decremented by releases), not the original funded
-  principal — use `fundedAmount` for the stable deal size.
+  Commercial face amount in `currency`. On progressive-release escrows, and on
+  fixed-price escrows after the buyer released part of the balance early, this
+  is the **remaining** balance (decremented by each release), not what was paid
+  in — use `fundedAmount` for the stable deal size and `releasedTotal` for what
+  the seller received.
 </ParamField>
 
 <ParamField response="escrow.amountTnd" type="number">
-  Ledger TND remaining (same remaining-float semantics as `amount` on progressive
-  escrows). Fees and payouts settle in TND.
+  Ledger TND remaining (same remaining-balance semantics as `amount` after any
+  partial release). Fees and payouts settle in TND.
 </ParamField>
 
 <ParamField response="escrow.currency" type="string">
@@ -164,63 +166,72 @@ data = response.json()
   `buyerConsentAcceptedAt` (when the client accepted automatic release).
 </ParamField>
 
+<Note>
+  The balance fields below (`reservedTnd` through `refundedTotalTnd`) are
+  present on progressive-release escrows **and** on fixed-price (`quick` /
+  `standard`) escrows once the buyer has released part of the balance early.
+  They are omitted on every other escrow. On a fixed-price escrow they always
+  satisfy `fundedAmountTnd = releasedTotalTnd + remainingAmountTnd + refundedTotalTnd`.
+</Note>
+
 <ParamField response="escrow.reservedTnd" type="number">
-  Progressive release only. Balance claimed by open payout requests — pending,
-  approved-but-unpaid, and disputed all reserve. These funds cannot be refunded
-  or cancelled while claimed. Forced to `0` on terminal status.
+  Balance claimed by open payout requests — pending, approved-but-unpaid, and
+  disputed all reserve. These funds cannot be refunded or cancelled while
+  claimed. Forced to `0` on terminal status.
 </ParamField>
 
 <ParamField response="escrow.availableForReleaseTnd" type="number">
-  Progressive release only. What a new payout request may claim
-  (`amountTnd` − `reservedTnd` while open). Zero means the contract needs a
-  top-up, or the escrow is terminal.
+  What can still be released (`amountTnd` − `reservedTnd` while open). On a
+  progressive escrow, zero means the contract needs a top-up, or the escrow is
+  terminal.
 </ParamField>
 
 <ParamField response="escrow.releasedTotalTnd" type="number">
-  Progressive release only. Cumulative TND paid out through partial releases.
+  Cumulative TND paid out to the seller. On a completed fixed-price escrow this
+  includes the remainder released at completion, so it equals everything the
+  seller was paid for the deal.
 </ParamField>
 
 <ParamField response="escrow.reserved" type="number">
-  Progressive release only. Open reservations in escrow face currency (same as
-  `currency`). Prefer this over inventing `reservedTnd / fxRateUsed`.
+  Open reservations in escrow face currency (same as `currency`). Prefer this
+  over inventing `reservedTnd / fxRateUsed`.
 </ParamField>
 
 <ParamField response="escrow.availableForRelease" type="number">
-  Progressive release only. Claimable balance in face currency. `0` on
-  `completed` / `cancelled`.
+  Releasable balance in face currency. `0` on `completed` / `cancelled`.
 </ParamField>
 
 <ParamField response="escrow.releasedTotal" type="number">
-  Progressive release only. Cumulative face amount paid out through partial
-  releases (sum of slice `amountFace` values).
+  Cumulative face amount paid out to the seller (see `releasedTotalTnd`).
 </ParamField>
 
 <ParamField response="escrow.fundedAmount" type="number">
-  Progressive release only. Stable funded principal in face currency (original +
-  add_funds − unused refunds). **Not** decremented by releases.
+  Stable funded principal in face currency. **Not** decremented by releases. On
+  a fixed-price escrow it is everything the buyer paid in, including `add_funds`
+  top-ups.
 </ParamField>
 
 <ParamField response="escrow.fundedAmountTnd" type="number">
-  Progressive release only. Stable funded principal in TND.
+  Stable funded principal in TND.
 </ParamField>
 
 <ParamField response="escrow.remainingAmount" type="number">
-  Progressive release only. Live remaining float in face currency; forced to
-  `0` on `completed` / `cancelled` even if leftover still sits on the document
-  after close.
+  Live balance still held, in face currency; forced to `0` on `completed` /
+  `cancelled` even if leftover still sits in `amount` after close.
 </ParamField>
 
 <ParamField response="escrow.remainingAmountTnd" type="number">
-  Progressive release only. Live remaining float in TND; `0` on terminal status.
+  Live balance still held, in TND; `0` on terminal status.
 </ParamField>
 
 <ParamField response="escrow.refundedTotal" type="number">
-  Progressive release only. Face amount returned unused
-  (`fundedAmount − remainingAmount − releasedTotal`).
+  Face amount returned to the buyer (`fundedAmount − remainingAmount −
+  releasedTotal`): unused progressive float, `refund_funds`, the remainder of a
+  cancelled escrow, or the buyer share of an admin split.
 </ParamField>
 
 <ParamField response="escrow.refundedTotalTnd" type="number">
-  Progressive release only. TND returned unused
+  TND returned to the buyer
   (`fundedAmountTnd − remainingAmountTnd − releasedTotalTnd`).
 </ParamField>
 

@@ -226,6 +226,12 @@ You can subscribe to the following events:
     remaining balance is refunded, `adjustment.cancelled` is `true` and an
     `escrow.status.updated` event to `cancelled` is also fired.
   </Card>
+  <Card title="escrow.funds.partially_released" icon="money-bill-wave">
+    The **buyer** released part of a fixed-price escrow and kept the rest
+    protected. Not terminal: the escrow stays `paid` / `delivered` with a
+    reduced `amount`. Includes `data.partialRelease` and the escrow's
+    `fundedAmount*` / `releasedTotal*` / `remainingAmount*` totals.
+  </Card>
   <Card title="escrow.release_request.created" icon="clock">
     [Progressive release](/guides/progressive-release): a payout request was
     created for one billing period and the amount reserved. The client has been
@@ -341,6 +347,38 @@ On [progressive-release](/guides/progressive-release) escrows, `data.escrow` als
 <Note>
   Live `amount` / `amountTnd` may still show leftover on the document after progressive close; trust `remainingAmount*` = `0` and `refundedTotal*` for the unused return.
 </Note>
+
+The same totals are included on a fixed-price (`quick` / `standard`) escrow once the buyer has released part of the balance early (see `escrow.funds.partially_released` below). Each early release shrinks `amount`, so on completion `amount` is only the remainder. Credit the seller from `releasedTotal*` (everything paid out, including that remainder) and use `fundedAmount*` for what the buyer paid in. For a 580 TND escrow with 290 released early:
+
+```json
+{
+  "type": "escrow.status.updated",
+  "data": {
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "status": "completed",
+      "oldStatus": "paid",
+      "currency": "TND",
+      "amount": 290,
+      "amountTnd": 290,
+      "availableForRelease": 0,
+      "reserved": 0,
+      "releasedTotal": 580,
+      "availableForReleaseTnd": 0,
+      "reservedTnd": 0,
+      "releasedTotalTnd": 580,
+      "fundedAmount": 580,
+      "fundedAmountTnd": 580,
+      "remainingAmount": 0,
+      "remainingAmountTnd": 0,
+      "refundedTotal": 0,
+      "refundedTotalTnd": 0
+    }
+  }
+}
+```
+
+On a fixed-price escrow, `fundedAmountTnd = releasedTotalTnd + remainingAmountTnd + refundedTotalTnd` always holds. Escrows without an early release keep the payload above, without these fields.
 
 A [charge](/api-reference/charges/overview) may still emit this event (with `merchantReference` and `receiptEmail` on `data.escrow`). Prefer **`charge.status.updated`** for charge integrations.
 
@@ -838,6 +876,73 @@ For `escrow.funds.refunded`, `adjustment.type` is `"refund_funds"` and `performe
   refund that cancels the escrow).
 </ParamField>
 
+### escrow.funds.partially_released
+
+Sent when the buyer releases part of a fixed-price escrow (a `complete` checkout session for less than the remaining balance). The escrow is **not** closed: it stays `paid` / `delivered`, `amount` / `amountTnd` drop by the released slice, and `escrow.status.updated` (`→ completed`) follows only when the rest is released. Treat a completed `complete` checkout session as "the buyer acted", not "the escrow closed".
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440007",
+  "type": "escrow.funds.partially_released",
+  "timestamp": "2026-09-28T11:23:05.000Z",
+  "data": {
+    "partialRelease": {
+      "requestId": "buyer-20260928112302-7sx74m",
+      "releasedTnd": 290,
+      "sellerNetTnd": 262.88,
+      "remainingBalanceTnd": 290,
+      "escrowClosed": false
+    },
+    "escrow": {
+      "id": "507f1f77bcf86cd799439011",
+      "title": "Landing page",
+      "amount": 290,
+      "amountTnd": 290,
+      "currency": "TND",
+      "status": "paid",
+      "availableForRelease": 290,
+      "reserved": 0,
+      "releasedTotal": 290,
+      "availableForReleaseTnd": 290,
+      "reservedTnd": 0,
+      "releasedTotalTnd": 290,
+      "fundedAmount": 580,
+      "fundedAmountTnd": 580,
+      "remainingAmount": 290,
+      "remainingAmountTnd": 290,
+      "refundedTotal": 0,
+      "refundedTotalTnd": 0
+    }
+  }
+}
+```
+
+<ParamField response="data.partialRelease" type="object">
+  The slice just released: `requestId` (also its fiscal-invoice key),
+  `releasedTnd`, `sellerNetTnd` (after fees), `remainingBalanceTnd` still held,
+  and `escrowClosed` (always `false`; releasing the whole balance completes the
+  escrow instead).
+</ParamField>
+
+<ParamField response="data.escrow.fundedAmountTnd" type="number">
+  Everything the buyer paid in (including `add_funds` top-ups). Not decremented
+  by releases, unlike `amountTnd`.
+</ParamField>
+
+<ParamField response="data.escrow.releasedTotalTnd" type="number">
+  Cumulative TND released to the seller across all early releases.
+</ParamField>
+
+<ParamField response="data.escrow.remainingAmountTnd" type="number">
+  Balance still held in escrow (same as `amountTnd` while open).
+</ParamField>
+
+<ParamField response="data.escrow.refundedTotalTnd" type="number">
+  TND returned to the buyer through `refund_funds`.
+</ParamField>
+
+Face-currency counterparts (`fundedAmount`, `releasedTotal`, `remainingAmount`, `refundedTotal`, `availableForRelease`, `reserved`) use the escrow `currency`.
+
 ## Progressive release events
 
 Sent on [progressive-release](/guides/progressive-release) escrows, which pay out one slice per billing period. Every payload carries `data.releaseRequest` (with `amountTnd`, `amountFace`, `currency`, and `fxRateUsed`) plus the escrow's live **face + TND** reservation snapshot, so you can reconcile without inventing FX or a follow-up GET.
@@ -1043,7 +1148,7 @@ Sent when the user creates a DHMAD account and KYC is attached.
   "escrow.proof.required", "escrow.proof.submitted", "escrow.proof.correction_requested",
   "escrow.proof.accepted", "escrow.proof.accepted_by_timeout", "escrow.proof.needs_review",
   "escrow.proof.expired",
-  "escrow.funds.added", "escrow.funds.refunded",
+  "escrow.funds.added", "escrow.funds.refunded", "escrow.funds.partially_released",
   "escrow.release_request.created", "escrow.release_request.approved",
   "escrow.release_request.auto_approved", "escrow.release_request.disputed",
   "escrow.release_request.resolved", "escrow.release_request.released",

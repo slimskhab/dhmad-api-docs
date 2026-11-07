@@ -1,17 +1,17 @@
 {
   "name": "DHMAD API Documentation",
   "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
+    "dark": "/logo/dark.png",
+    "light": "/logo/light.png"
   },
-  "favicon": "favicon.svg",
+  "favicon": "favicon.png",
   "colors": {
-    "primary": "#2563EB",
-    "light": "#3B82F6",
-    "dark": "#1E40AF",
+    "primary": "#1D6E8C",
+    "light": "#4FA8C7",
+    "dark": "#0B3A4A",
     "anchors": {
-      "from": "#2563EB",
-      "to": "#3B82F6"
+      "from": "#1D6E8C",
+      "to": "#4FA8C7"
     }
   },
   "topbarLinks": [
