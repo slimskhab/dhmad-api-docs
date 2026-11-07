@@ -67,7 +67,9 @@ charge = response.json()['charge']
       "reportedBy": { "email": "payer@example.com", "name": null },
       "reason": "I paid twice for the same credits.",
       "openedAt": "2026-01-15T18:40:00.000Z",
-      "ticketNumber": "DH-2026-01234"
+      "ticketNumber": "DH-2026-01234",
+      "waitingOn": "merchant",
+      "respondBy": "2026-01-22T18:40:00.000Z"
     }
   }
 }
@@ -110,5 +112,5 @@ charge = response.json()['charge']
 </ParamField>
 
 <ParamField response="charge.dispute" type="object">
-  Present once the payer has opened a dispute (and after it is resolved): `reportedBy` (`email`, and `name` — `null` when the payer has no DHMAD account), `reason` (the payer's first message), `openedAt` and `ticketNumber`. Settle an open dispute with [Accept Dispute](/api-reference/charges/accept-dispute).
+  Present once the payer has opened a dispute (and after it is resolved): `reportedBy` (`email`, and `name` — `null` when the payer has no DHMAD account), `reason` (the payer's first message), `openedAt`, `ticketNumber`, and while it is open `waitingOn` (`merchant`, `payer` or `support`) and `respondBy`, the deadline after which the silent side loses. Settle an open dispute with [Accept Dispute](/api-reference/charges/accept-dispute) or reply on it before `respondBy` (see [Reply deadline](/api-reference/charges/accept-dispute#reply-deadline)).
 </ParamField>

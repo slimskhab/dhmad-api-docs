@@ -7,7 +7,18 @@ description: Accept the payer's dispute and refund the charge in full
 
 During the 72-hour hold, the payer can open a dispute on a charge. While it is open, the charge has `fundsStatus: "disputed"`, its release to your wallet waits, and [Refund Charge](/api-reference/charges/create-refund) returns **409** `CHARGE_DISPUTED`.
 
-Accept the dispute to settle it yourself: DHMAD refunds the payer everything still refundable, with reason `dispute_accepted`, and closes the dispute. There is no `amount` — accepting always refunds what is left (a partial refund you made earlier is not refunded again). If you do nothing, DHMAD support reviews the dispute and either refunds the payer or releases the payment to you.
+Accept the dispute to settle it yourself: DHMAD refunds the payer everything still refundable, with reason `dispute_accepted`, and closes the dispute. There is no `amount` — accepting always refunds what is left (a partial refund you made earlier is not refunded again).
+
+## Reply deadline
+
+Disputes work like PayPal's Resolution Center: each side has **7 days** to answer the other, and staying silent loses the dispute.
+
+1. When the payer opens a dispute, you have 7 days to reply on the dispute thread (dhmad.tn → Support, or the DHMAD app) or to accept it. Your business's owner and admins get an email and a notification with the deadline, then reminders 3 days and 1 day before it.
+2. Your reply gives the payer 7 days to answer you. Each reply from the side the dispute waits on hands it to the other side with a fresh 7 days.
+3. If you don't reply in time, DHMAD refunds the payer in full: the refund has `reason: "dispute_unanswered"` and `initiatedBy: "dispute_timeout"`, and you receive `charge.refunded`.
+4. If the payer doesn't reply in time, the dispute closes and the payment is released to your wallet: you receive `charge.funds.released`.
+
+DHMAD support can step in at any time: it can decide the dispute, ask one side for a reply (with a fresh 7 days), or review it with no deadline running. `charge.dispute.waitingOn` and `charge.dispute.respondBy` say where the dispute stands.
 
 `:id` accepts the DHMAD charge id or your `merchantReference`. Accepting from the dashboard does the same thing.
 
@@ -39,6 +50,14 @@ The refund comes out of the held payment, so DHMAD's fee on it is waived, and th
 
 <ParamField response="charge.dispute.ticketNumber" type="string">
   The DHMAD support ticket for the dispute (for example `DH-2026-01234`).
+</ParamField>
+
+<ParamField response="charge.dispute.waitingOn" type="string | null">
+  Whose reply the open dispute waits on: `merchant` (you), `payer`, or `support` (DHMAD is reviewing it and no deadline runs). `null` once the dispute is settled.
+</ParamField>
+
+<ParamField response="charge.dispute.respondBy" type="string | null">
+  When `waitingOn` loses by staying silent (ISO 8601): if it is you, the payer is refunded; if it is the payer, the payment is released to you. `null` while support reviews the dispute and once it is settled.
 </ParamField>
 
 ## Idempotency
