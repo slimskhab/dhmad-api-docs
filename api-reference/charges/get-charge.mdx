@@ -46,16 +46,29 @@ charge = response.json()['charge']
     "merchantReference": "purchase_65f1c2a9b1",
     "status": "completed",
     "title": "500 credits",
-    "amount": 120,
     "currency": "TND",
+    "amount": 120,
+    "amountRefunded": 0,
+    "amountRefundable": 120,
+    "refundStatus": "none",
     "amountTnd": 120,
     "receiptEmail": "payer@example.com",
     "paidAt": "2026-01-15T10:12:00Z",
     "completedAt": "2026-01-15T10:12:01Z",
     "createdAt": "2026-01-15T10:00:00Z",
+    "fundsStatus": "disputed",
+    "protectionUntil": "2026-01-18T10:12:00Z",
+    "fundsReleased": false,
+    "fundsReleasedAt": null,
     "sessionId": null,
     "url": null,
-    "expiresAt": null
+    "expiresAt": null,
+    "dispute": {
+      "reportedBy": { "email": "payer@example.com", "name": null },
+      "reason": "I paid twice for the same credits.",
+      "openedAt": "2026-01-15T18:40:00.000Z",
+      "ticketNumber": "DH-2026-01234"
+    }
   }
 }
 ```
@@ -73,3 +86,29 @@ charge = response.json()['charge']
 - `receiptEmail` is the address the payer gave at checkout. It is for receipts only — credit your user from `merchantReference`.
 - **404** means no charge with that id or reference exists on your account.
 - Credit from `merchantReference` when `status` is `completed`. For cash-on-delivery, `completed` can later move to `disputed` then `cancelled` — the same `charge.status.updated` event fires again.
+
+## Funds, refunds and disputes
+
+<ParamField response="charge.fundsStatus" type="string">
+  Where the payment is: `held` (the 72-hour hold, until `protectionUntil`), `releasing`, `released` (in your wallet), `disputed` (the payer opened a dispute; the release waits), or `refunded` (fully refunded during the hold).
+</ParamField>
+
+<ParamField response="charge.amount" type="number">
+  The amount originally paid. It does not go down when you refund.
+</ParamField>
+
+<ParamField response="charge.amountRefunded" type="number">
+  Total refunded so far, in the charge currency.
+</ParamField>
+
+<ParamField response="charge.amountRefundable" type="number">
+  What [Refund Charge](/api-reference/charges/create-refund) can still refund.
+</ParamField>
+
+<ParamField response="charge.refundStatus" type="string">
+  `none`, `partial`, or `full`. See [List Refunds](/api-reference/charges/list-refunds) for each refund.
+</ParamField>
+
+<ParamField response="charge.dispute" type="object">
+  Present once the payer has opened a dispute (and after it is resolved): `reportedBy` (`email`, and `name` — `null` when the payer has no DHMAD account), `reason` (the payer's first message), `openedAt` and `ticketNumber`. Settle an open dispute with [Accept Dispute](/api-reference/charges/accept-dispute).
+</ParamField>

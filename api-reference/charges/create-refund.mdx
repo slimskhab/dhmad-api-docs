@@ -1,0 +1,165 @@
+---
+title: Refund Charge
+description: Refund a charge in full or in part
+---
+
+<Endpoint method="POST" path="/api/v1/charges/:id/refunds" />
+
+Refund the payer of a charge. `:id` accepts the DHMAD charge id or your `merchantReference`. Omit `amount` to refund everything still refundable; send a smaller `amount` for a partial refund. You can refund a charge several times until nothing is left.
+
+## Where the money comes from
+
+| When you refund | Taken from | DHMAD fee |
+|---|---|---|
+| During the 72-hour hold (`fundsStatus: "held"`) | The held payment — nothing has reached your wallet yet | Waived on the refunded part |
+| After release (`fundsStatus: "released"`) | Your business's available balance | Kept |
+
+If your available balance cannot cover a refund after release, the request fails with **400** `REFUND_AMOUNT_EXCEEDS_BALANCE` (it includes `availableTnd` and `shortfallTnd`). Charges can be refunded up to **90 days** after payment.
+
+While the payer has an open dispute (`fundsStatus: "disputed"`), refunds return **409** `CHARGE_DISPUTED`. Accept the dispute with [Accept Dispute](/api-reference/charges/accept-dispute) (or from the dashboard), which refunds the full amount, or let DHMAD resolve it.
+
+## How the payer gets the money back
+
+Each refund lists its `destinations`:
+
+- **`wallet`** — credited to the payer's DHMAD wallet immediately: the part they paid from their wallet, and everything else too when they paid while logged in to DHMAD (except card / PayPal, which goes back to the card).
+- **`paypal`** — card, PayPal and Apple Pay payments are refunded automatically through PayPal. Banks can take 5–10 business days to show it.
+- **`manual`** — D17, Flouci, bank transfer and cash payments by a guest payer: DHMAD emails them to choose where to receive the refund (D17, Flouci or bank transfer, confirmed with an emailed code), then sends it. Any transfer fee is deducted from what the payer receives. A payer whose email has a verified DHMAD account can instead log in and take it into their wallet instantly (the destination then becomes `wallet`).
+- **`sandbox`** — sandbox charges refund instantly.
+
+The refund `status` is `pending`, `awaiting_payer_details`, `awaiting_manual_payout`, `succeeded`, or `failed` (DHMAD follows up on failed payouts). Subscribe to **`charge.refunded`** and **`charge.refund.updated`** to follow it — see [Webhooks](/guides/webhooks).
+
+## Refunds during a chargeback
+
+While a [chargeback](/api-reference/charges/overview#chargebacks) is open on the payment (after `charge.chargeback.opened`, before `charge.chargeback.resolved`), the refund is still created (**201**) and booked, but its `paypal` part is not sent, because the payer's bank may pay them back too. That destination stays `pending` with `chargebackHold`:
+
+```json
+{ "type": "paypal", "amountTnd": 20, "status": "pending",
+  "chargebackHold": { "caseId": "PP-R-OYQ-650374456", "heldAt": "2026-01-16T09:00:00.000Z", "endedAt": null, "result": null } }
+```
+
+- **Case won** — the refund goes to the card (`result: "sent"`).
+- **Case lost** — the bank already paid the payer, so the destination becomes `succeeded` with `result: "covered"`: your refund pays the chargeback instead and you are not charged twice (after release, the reserve the chargeback held on your balance comes back).
+
+A refund made before the case opened whose card / PayPal part had not gone out yet is held the same way when the case opens, and the case amount includes it. If PayPal then confirms that the earlier attempt reached the card after all, that destination becomes `succeeded` with `result: "sent"` while the case is still open, and the case amount no longer includes it. Each change sends `charge.refund.updated`. `chargebackHold` is `null` on destinations no chargeback held.
+
+## Idempotency
+
+Send an `Idempotency-Key` header, or your own `merchantRefundReference` (unique per charge). Retrying with the same key returns the original refund with `"idempotentReplay": true` and **200**; reusing a key for a different request returns **409** `IDEMPOTENCY_KEY_REUSED`.
+
+## Request body
+
+<ParamField body="amount" type="number">
+  Amount to refund in the charge currency. Omit for a full refund. Partial refunds are at least 1 TND (or the equivalent); the full remaining amount is always allowed.
+</ParamField>
+
+<ParamField body="currency" type="string">
+  Optional. Must match the charge currency.
+</ParamField>
+
+<ParamField body="reason" type="string" default="requested_by_customer">
+  One of `requested_by_customer`, `duplicate`, `fraudulent`, `other`.
+</ParamField>
+
+<ParamField body="note" type="string">
+  Internal note kept with the refund (max 500 characters).
+</ParamField>
+
+<ParamField body="merchantRefundReference" type="string">
+  Your own refund id, unique per charge. Also makes retries safe.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1/refunds \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 9c6b0d2e-refund-1" \
+  -d '{ "amount": 20, "reason": "requested_by_customer", "merchantRefundReference": "refund_1042" }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1/refunds',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer sk_live_your_api_key_here',
+      'Content-Type': 'application/json',
+      'Idempotency-Key': '9c6b0d2e-refund-1'
+    },
+    body: JSON.stringify({ amount: 20, merchantRefundReference: 'refund_1042' })
+  }
+);
+
+const { refund, charge } = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "refund": {
+    "id": "6650a1f2c3d4e5f6a7b8c9d0",
+    "chargeId": "507f1f77bcf86cd799439011",
+    "amount": 20,
+    "currency": "TND",
+    "amountTnd": 20,
+    "payerAmountTnd": 20,
+    "feeRefundedTnd": 0,
+    "source": "hold",
+    "isFull": false,
+    "reason": "requested_by_customer",
+    "status": "awaiting_payer_details",
+    "initiatedBy": "api",
+    "merchantRefundReference": "refund_1042",
+    "destinations": [
+      { "type": "manual", "amountTnd": 20, "status": "awaiting_payer_details", "chargebackHold": null }
+    ],
+    "createdAt": "2026-01-16T09:00:00.000Z",
+    "updatedAt": "2026-01-16T09:00:00.000Z"
+  },
+  "charge": {
+    "id": "507f1f77bcf86cd799439011",
+    "merchantReference": "purchase_65f1c2a9b1",
+    "status": "completed",
+    "amount": 120,
+    "amountRefunded": 20,
+    "amountRefundable": 100,
+    "refundStatus": "partial",
+    "fundsStatus": "held"
+  }
+}
+```
+</ResponseExample>
+
+## Errors
+
+Errors carry the code in `error` and `code`, with a readable `message` and any details:
+
+```json
+{
+  "error": "REFUND_AMOUNT_EXCEEDS_BALANCE",
+  "code": "REFUND_AMOUNT_EXCEEDS_BALANCE",
+  "message": "The refund is more than your available balance.",
+  "availableTnd": 12.5,
+  "shortfallTnd": 7.5
+}
+```
+
+| Status | Code | Meaning |
+|---|---|---|
+| 400 | `REFUND_AMOUNT_INVALID` | Amount missing, zero, or currency mismatch |
+| 400 | `REFUND_AMOUNT_TOO_SMALL` | Partial refund under the minimum |
+| 400 | `REFUND_AMOUNT_EXCEEDS_REFUNDABLE` | More than what is left to refund |
+| 400 | `REFUND_AMOUNT_EXCEEDS_BALANCE` | After release: more than your available balance |
+| 404 | `CHARGE_NOT_FOUND` | No charge with this id / reference for your account |
+| 409 | `CHARGE_NOT_PAID` | The charge was never paid |
+| 409 | `CHARGE_FULLY_REFUNDED` | Nothing left to refund |
+| 409 | `CHARGE_DISPUTED` | The payer has an open dispute — [accept it](/api-reference/charges/accept-dispute) to refund in full |
+| 409 | `CHARGE_RELEASE_IN_PROGRESS` | Funds are moving to your wallet; retry in a minute |
+| 409 | `CHARGE_UNDER_REVIEW` / `CHARGE_SETTLEMENT_PENDING` | Contact DHMAD support |
+| 409 | `CHARGE_REFUND_WINDOW_EXPIRED` | More than 90 days after payment |
+| 409 | `MERCHANT_BALANCE_INSUFFICIENT` | After release: your balance cannot fund even the minimum refund |
+| 409 | `CHARGE_STATE_CHANGED` | The charge changed during the request; fetch it and retry |
+| 409 | `IDEMPOTENCY_KEY_REUSED` | Key reused with a different request |

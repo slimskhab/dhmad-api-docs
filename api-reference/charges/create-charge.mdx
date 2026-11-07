@@ -7,7 +7,7 @@ description: Create a payment link for your own business
 
 Create a charge and get a public checkout URL. There is no `buyerEmail`: anyone who opens the URL can pay it, and DHMAD collects a receipt email from them at checkout.
 
-Payment completes the charge and settles the funds into your business wallet in one step — there is no deliver call and no `completionDeadlineDays`. Subscribe to **`charge.status.updated`** (see [Webhooks](/guides/webhooks#chargestatusupdated)).
+Payment completes the charge in one step — there is no deliver call and no `completionDeadlineDays`. The funds are held for 72 hours (the payer can dispute during that time) and then released into your business wallet. You can [refund](/api-reference/charges/create-refund) a charge in full or in part. Subscribe to **`charge.status.updated`** (see [Webhooks](/guides/webhooks#chargestatusupdated)).
 
 Do not pass this id to `/v1/escrows/:id` — GET returns **404**; deliver, sessions, and other escrow actions return **409** `CHARGE_NOT_AN_ESCROW`.
 

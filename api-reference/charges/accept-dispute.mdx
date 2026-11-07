@@ -1,0 +1,163 @@
+---
+title: Accept Dispute
+description: Accept the payer's dispute and refund the charge in full
+---
+
+<Endpoint method="POST" path="/api/v1/charges/:id/dispute/accept" />
+
+During the 72-hour hold, the payer can open a dispute on a charge. While it is open, the charge has `fundsStatus: "disputed"`, its release to your wallet waits, and [Refund Charge](/api-reference/charges/create-refund) returns **409** `CHARGE_DISPUTED`.
+
+Accept the dispute to settle it yourself: DHMAD refunds the payer everything still refundable, with reason `dispute_accepted`, and closes the dispute. There is no `amount` — accepting always refunds what is left (a partial refund you made earlier is not refunded again). If you do nothing, DHMAD support reviews the dispute and either refunds the payer or releases the payment to you.
+
+`:id` accepts the DHMAD charge id or your `merchantReference`. Accepting from the dashboard does the same thing.
+
+The refund comes out of the held payment, so DHMAD's fee on it is waived, and the payer gets the money back the same way as any refund (see [How the payer gets the money back](/api-reference/charges/create-refund#how-the-payer-gets-the-money-back)). You receive the **`charge.refunded`** webhook, then **`charge.refund.updated`** as the refund completes.
+
+<Note>
+  This is the dispute the payer opens with DHMAD. A dispute the payer opens with PayPal or their bank is a **chargeback**, which PayPal decides — see [Chargebacks](/api-reference/charges/overview#chargebacks).
+</Note>
+
+## Who opened the dispute
+
+`charge.dispute` says who reported it, what they wrote, and when. The same object is on [Get Charge](/api-reference/charges/get-charge) and on the **`charge.dispute.opened`** [webhook](/guides/webhooks#chargedisputeopened), so you can show it before deciding.
+
+<ParamField response="charge.dispute.reportedBy.email" type="string">
+  The payer's email: their DHMAD account email, or the email a guest payer gave when opening the dispute.
+</ParamField>
+
+<ParamField response="charge.dispute.reportedBy.name" type="string | null">
+  The payer's name when they have a DHMAD account; `null` for a guest payer.
+</ParamField>
+
+<ParamField response="charge.dispute.reason" type="string | null">
+  The payer's first message on the dispute.
+</ParamField>
+
+<ParamField response="charge.dispute.openedAt" type="string">
+  When the dispute was opened (ISO 8601).
+</ParamField>
+
+<ParamField response="charge.dispute.ticketNumber" type="string">
+  The DHMAD support ticket for the dispute (for example `DH-2026-01234`).
+</ParamField>
+
+## Idempotency
+
+Send an `Idempotency-Key` header so a retried request returns the original refund with **200** and `"idempotentReplay": true`. Without one, DHMAD uses a single key per charge — the one the dashboard uses too — so a retry, or an accept from both the dashboard and the API, never refunds twice. A retry with a different `note` returns **409** `IDEMPOTENCY_KEY_REUSED`.
+
+## Request body
+
+The body is optional; an empty body accepts the dispute.
+
+<ParamField body="note" type="string">
+  Message posted on the dispute for the payer (max 500 characters). Also kept with the refund.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1/dispute/accept \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 9c6b0d2e-dispute-1" \
+  -d '{ "note": "Sorry about that, we have refunded you in full." }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1/dispute/accept',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer sk_live_your_api_key_here',
+      'Content-Type': 'application/json',
+      'Idempotency-Key': '9c6b0d2e-dispute-1'
+    },
+    body: JSON.stringify({ note: 'Sorry about that, we have refunded you in full.' })
+  }
+);
+
+const { refund, charge } = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1/dispute/accept',
+    headers={
+        'Authorization': 'Bearer sk_live_your_api_key_here',
+        'Idempotency-Key': '9c6b0d2e-dispute-1',
+    },
+    json={'note': 'Sorry about that, we have refunded you in full.'},
+)
+
+refund = response.json()['refund']
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "refund": {
+    "id": "6650a1f2c3d4e5f6a7b8c9e1",
+    "chargeId": "507f1f77bcf86cd799439011",
+    "amount": 120,
+    "currency": "TND",
+    "amountTnd": 120,
+    "payerAmountTnd": 120,
+    "feeRefundedTnd": 0,
+    "source": "hold",
+    "isFull": true,
+    "reason": "dispute_accepted",
+    "status": "pending",
+    "initiatedBy": "dispute_accept",
+    "merchantRefundReference": null,
+    "destinations": [
+      { "type": "paypal", "amountTnd": 120, "status": "pending", "chargebackHold": null }
+    ],
+    "createdAt": "2026-01-16T09:00:00.000Z",
+    "updatedAt": "2026-01-16T09:00:00.000Z"
+  },
+  "charge": {
+    "id": "507f1f77bcf86cd799439011",
+    "merchantReference": "purchase_65f1c2a9b1",
+    "status": "cancelled",
+    "amount": 120,
+    "amountRefunded": 120,
+    "amountRefundable": 0,
+    "refundStatus": "full",
+    "fundsStatus": "refunded",
+    "dispute": {
+      "reportedBy": { "email": "payer@example.com", "name": "Sami Ben Ali" },
+      "reason": "I paid twice for the same credits.",
+      "openedAt": "2026-01-15T18:40:00.000Z",
+      "ticketNumber": "DH-2026-01234"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Charge id or `merchantReference`.
+</ParamField>
+
+## Errors
+
+Errors carry the code in `error` and `code`, with a readable `message`:
+
+```json
+{ "error": "DISPUTE_NOT_OPEN", "code": "DISPUTE_NOT_OPEN", "message": "This charge has no open dispute" }
+```
+
+| Status | Code | Meaning |
+|---|---|---|
+| 404 | `CHARGE_NOT_FOUND` | No charge with this id / reference for your account |
+| 409 | `DISPUTE_NOT_OPEN` | The charge has no open dispute (none was opened, it was already resolved, or the funds were released) |
+| 409 | `CHARGE_NOT_PAID` | The charge was never paid |
+| 409 | `CHARGE_FULLY_REFUNDED` | Nothing left to refund |
+| 409 | `CHARGE_UNDER_REVIEW` / `CHARGE_SETTLEMENT_PENDING` | Contact DHMAD support |
+| 409 | `CHARGE_STATE_CHANGED` | The charge changed during the request; fetch it and retry |
+| 409 | `IDEMPOTENCY_KEY_REUSED` | Key reused with a different request |

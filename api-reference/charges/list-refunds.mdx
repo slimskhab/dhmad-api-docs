@@ -1,0 +1,67 @@
+---
+title: List Refunds
+description: List the refunds of a charge, or get one
+---
+
+<Endpoint method="GET" path="/api/v1/charges/:id/refunds" />
+
+Returns every refund of a charge, newest first. `:id` accepts the charge id or your `merchantReference`. Each refund has the same fields as the `refund` returned by [Refund Charge](/api-reference/charges/create-refund), including refunds made from the dashboard or by [accepting a dispute](/api-reference/charges/accept-dispute) (`initiatedBy: "dispute_accept"`).
+
+`GET /api/v1/charges/:id/refunds/:refundId` returns a single refund as `{ "refund": { … } }`, or **404** when the charge has no refund with that id.
+
+[Get Charge](/api-reference/charges/get-charge) also reports the totals: `amount` (originally paid), `amountRefunded`, `amountRefundable`, and `refundStatus` (`none`, `partial`, or `full`). A charge fully refunded during the hold has `status: "cancelled"`; one refunded after release keeps `status: "completed"` with `refundStatus: "full"`.
+
+<RequestExample>
+```bash cURL
+curl https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1/refunds \
+  -H "Authorization: Bearer sk_live_your_api_key_here"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/charges/purchase_65f1c2a9b1/refunds',
+  { headers: { 'Authorization': 'Bearer sk_live_your_api_key_here' } }
+);
+
+const { refunds } = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "refunds": [
+    {
+      "id": "6650a1f2c3d4e5f6a7b8c9d0",
+      "chargeId": "507f1f77bcf86cd799439011",
+      "amount": 20,
+      "currency": "TND",
+      "amountTnd": 20,
+      "payerAmountTnd": 20,
+      "feeRefundedTnd": 0,
+      "source": "hold",
+      "isFull": false,
+      "reason": "requested_by_customer",
+      "status": "succeeded",
+      "initiatedBy": "api",
+      "merchantRefundReference": "refund_1042",
+      "destinations": [
+        { "type": "paypal", "amountTnd": 20, "status": "succeeded", "chargebackHold": null }
+      ],
+      "createdAt": "2026-01-16T09:00:00.000Z",
+      "updatedAt": "2026-01-16T09:05:00.000Z"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Charge id or `merchantReference`.
+</ParamField>
+
+<ParamField path="refundId" type="string">
+  Refund id, for `GET /api/v1/charges/:id/refunds/:refundId`.
+</ParamField>

@@ -88,7 +88,10 @@
           "pages": [
             "api-reference/charges/overview",
             "api-reference/charges/create-charge",
-            "api-reference/charges/get-charge"
+            "api-reference/charges/get-charge",
+            "api-reference/charges/create-refund",
+            "api-reference/charges/list-refunds",
+            "api-reference/charges/accept-dispute"
           ]
         },
         {

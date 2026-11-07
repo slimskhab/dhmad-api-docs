@@ -151,6 +151,22 @@ You can subscribe to the following events:
     `completed`. `escrow.status.updated` may fire for the same payment —
     subscribe to this event for charge integrations.
   </Card>
+  <Card title="charge.dispute.opened" icon="flag">
+    The payer opened a dispute on a charge during the 72-hour hold.
+    `data.charge.dispute` says who reported it and why. Accept it with
+    [Accept Dispute](/api-reference/charges/accept-dispute) or let DHMAD
+    resolve it.
+  </Card>
+  <Card title="charge.refunded / charge.refund.updated" icon="rotate-left">
+    A charge was refunded (by you, by accepting a dispute, or by DHMAD), and
+    later when that refund's payout completes or fails.
+  </Card>
+  <Card title="charge.chargeback.opened / charge.chargeback.resolved" icon="scale-balanced">
+    The payer disputed a payment you created through the API with PayPal or
+    their card issuer (a chargeback). `opened` says what DHMAD is holding back
+    and when it needs your evidence; `resolved` says whether you won or lost,
+    what was taken back, and PayPal's fee.
+  </Card>
   <Card title="contract.signed" icon="file-signature">
     Triggered when the escrow contract is signed by the seller or the buyer.
     Each signature triggers one event; `data.contract.signedBy` indicates who
@@ -356,6 +372,159 @@ Sent when a [charge](/api-reference/charges/overview) status changes. Credit fro
 ```
 
 A paid charge fires `paid` and then `completed`. Treat the operation as idempotent — both events may arrive, and a delivery may be retried.
+
+### charge.dispute.opened
+
+Sent when the payer opens a dispute on a [charge](/api-reference/charges/overview) during the 72-hour hold. The release waits until the dispute is settled, and [refunds](/api-reference/charges/create-refund) return **409** `CHARGE_DISPUTED`. `data.charge.dispute` says who reported it (`reportedBy.email`, and `reportedBy.name` when the payer has a DHMAD account), what they wrote (`reason`), when (`openedAt`) and the support ticket (`ticketNumber`).
+
+Refund the payer in full with [Accept Dispute](/api-reference/charges/accept-dispute) — you then receive `charge.refunded` — or let DHMAD support review it.
+
+```json
+{
+  "id": "3f9d2b7a-1c84-4e6b-9a0d-5e2c7b1f8a43",
+  "type": "charge.dispute.opened",
+  "timestamp": "2026-01-15T18:40:01Z",
+  "data": {
+    "charge": {
+      "id": "507f1f77bcf86cd799439011",
+      "merchantReference": "purchase_65f1c2a9b1",
+      "status": "completed",
+      "title": "500 credits",
+      "currency": "TND",
+      "amount": 120,
+      "amountRefunded": 0,
+      "amountRefundable": 120,
+      "refundStatus": "none",
+      "fundsStatus": "disputed",
+      "protectionUntil": "2026-01-18T10:12:00Z",
+      "dispute": {
+        "reportedBy": { "email": "payer@example.com", "name": null },
+        "reason": "I paid twice for the same credits.",
+        "openedAt": "2026-01-15T18:40:00.000Z",
+        "ticketNumber": "DH-2026-01234"
+      }
+    },
+    "escrow": { "id": "507f1f77bcf86cd799439011", "status": "paid" }
+  }
+}
+```
+
+### charge.refunded / charge.refund.updated
+
+`charge.refunded` fires when a charge is refunded — by you (dashboard or [Refund Charge](/api-reference/charges/create-refund)), when you accept a payer's dispute, or when DHMAD resolves a dispute for the payer. `charge.refund.updated` fires when the refund's payout finishes or fails (for example, the PayPal refund completed, or DHMAD sent a bank transfer). Refunds never send `charge.status.updated`.
+
+`data.charge` carries the totals (`amountRefunded`, `amountRefundable`, `refundStatus`) and `data.refund` the refund itself. Debit your user's credits from `data.refund.amount` on `charge.refunded`, keyed by `data.refund.id` so retried deliveries are ignored.
+
+```json
+{
+  "id": "6a0b9a3e-6f43-4d6a-9d5b-9c2f6a1b7e10",
+  "type": "charge.refunded",
+  "timestamp": "2026-01-16T09:00:01Z",
+  "data": {
+    "charge": {
+      "id": "507f1f77bcf86cd799439011",
+      "merchantReference": "purchase_65f1c2a9b1",
+      "status": "completed",
+      "amount": 120,
+      "amountRefunded": 20,
+      "amountRefundable": 100,
+      "refundStatus": "partial",
+      "fundsStatus": "held"
+    },
+    "refund": {
+      "id": "6650a1f2c3d4e5f6a7b8c9d0",
+      "amount": 20,
+      "currency": "TND",
+      "status": "pending",
+      "source": "hold",
+      "isFull": false,
+      "reason": "requested_by_customer",
+      "merchantRefundReference": "refund_1042",
+      "destinations": [{ "type": "paypal", "amountTnd": 20, "status": "pending" }]
+    }
+  }
+}
+```
+
+### charge.chargeback.opened / charge.chargeback.resolved
+
+Sent for payments you created through the API (charges and escrows) when the payer disputes the payment with PayPal or their card issuer — a chargeback. DHMAD also opens an urgent support ticket with you on dhmad.tn: reply there with your evidence (proof of delivery, conversation with the payer, terms they accepted) before `merchantDueAt`, or accept the claim.
+
+`charge.chargeback.opened` fires once DHMAD has secured the disputed amount (`amountTnd`, the part of the payment paid through PayPal):
+
+- `fundsAction: "release_blocked"` — DHMAD still held the payment; its release waits for the outcome.
+- `fundsAction: "balance_reserved"` — the payment was already released to you; `reservedTnd` moved from your available balance into a hold, and `shortfallTnd` is what your balance could not cover. Until the shortfall is covered, money that reaches your balance later (your next sales, for example) is held for the case too. The event shows the amounts when the case opened; your dashboard shows them as they grow.
+
+`charge.chargeback.resolved` fires once PayPal has decided and the money has moved:
+
+- `outcome: "won"` — the hold goes back to your available balance, or the payment's release goes ahead. `recoveredTnd` is `0`.
+- `outcome: "lost"` — the payer keeps the money. `recoveredTnd` is what DHMAD took back from the held payment or your balance, and `unrecoveredTnd` what it could not (DHMAD follows up on the ticket). A payment DHMAD still held is cancelled (`status: "cancelled"` on `data.charge` and `data.escrow`). `feeTnd` is PayPal's chargeback fee, which you pay; it is `null` when PayPal has not charged it yet, in which case it is recorded later on the ticket.
+
+Each event is sent once per case; key on `data.chargeback.caseId` so a retried delivery is ignored. `reason` is PayPal's reason code (for example `UNAUTHORISED` or `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`), and `disputedAmount` the payer's claim in PayPal's currency (or `null`). `data.charge` is only present for [charges](/api-reference/charges/overview); `data.escrow` always is.
+
+```json
+{
+  "id": "0d6f4a2e-1b7c-4c39-9a51-3f1e2b8c7d90",
+  "type": "charge.chargeback.opened",
+  "timestamp": "2026-10-22T10:00:02Z",
+  "data": {
+    "chargeback": {
+      "caseId": "PP-R-OYQ-650374456",
+      "provider": "paypal",
+      "reason": "UNAUTHORISED",
+      "status": "open",
+      "amountTnd": 100,
+      "disputedAmount": { "value": 34.5, "currency": "USD" },
+      "merchantDueAt": "2026-10-28T23:59:59.000Z",
+      "fundsAction": "balance_reserved",
+      "reservedTnd": 100,
+      "shortfallTnd": 0,
+      "openedAt": "2026-10-22T10:00:01.000Z"
+    },
+    "charge": {
+      "id": "507f1f77bcf86cd799439011",
+      "merchantReference": "purchase_65f1c2a9b1",
+      "status": "completed",
+      "fundsStatus": "released"
+    },
+    "escrow": { "id": "507f1f77bcf86cd799439011", "status": "completed" }
+  }
+}
+```
+
+`charge.chargeback.resolved` carries the same `data.chargeback` fields plus the outcome:
+
+```json
+{
+  "id": "5c2e8f1a-7d34-4b0e-8f61-2a9d4c3b1e07",
+  "type": "charge.chargeback.resolved",
+  "timestamp": "2026-11-20T09:00:01Z",
+  "data": {
+    "chargeback": {
+      "caseId": "PP-R-OYQ-650374456",
+      "provider": "paypal",
+      "reason": "UNAUTHORISED",
+      "status": "lost",
+      "amountTnd": 100,
+      "fundsAction": "balance_reserved",
+      "reservedTnd": 100,
+      "shortfallTnd": 0,
+      "outcome": "lost",
+      "recoveredTnd": 100,
+      "unrecoveredTnd": 0,
+      "feeTnd": 20,
+      "resolvedAt": "2026-11-20T09:00:00.000Z"
+    },
+    "charge": {
+      "id": "507f1f77bcf86cd799439011",
+      "merchantReference": "purchase_65f1c2a9b1",
+      "status": "completed",
+      "fundsStatus": "released"
+    },
+    "escrow": { "id": "507f1f77bcf86cd799439011", "status": "completed" }
+  }
+}
+```
 
 ### escrow.updated
 
@@ -865,7 +1034,9 @@ Sent when the user creates a DHMAD account and KYC is attached.
 </ParamField>
 
 <ParamField response="type" type="string">
-  Event type: "escrow.status.updated", "charge.status.updated", "contract.signed",
+  Event type: "escrow.status.updated", "charge.status.updated",
+  "charge.dispute.opened", "charge.refunded", "charge.refund.updated",
+  "charge.chargeback.opened", "charge.chargeback.resolved", "contract.signed",
   "escrow.cancellation.requested", "escrow.cancellation.rejected",
   "escrow.cancellation.accepted", "escrow.delivery.rejected",
   "escrow.updated", "escrow.deposit_proof.rejected",

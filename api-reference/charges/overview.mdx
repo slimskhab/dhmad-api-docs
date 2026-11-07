@@ -5,7 +5,7 @@ description: Collect a payment for your own business from whoever opens the link
 
 A **charge** collects money for **your** business — selling credits, top-ups, subscriptions, or anything else where you are the merchant. It is the DHMAD equivalent of a payment link.
 
-Use a charge instead of an [escrow](/api-reference/escrows/overview) when there is no counterparty to protect: the money is yours the moment it is paid, so there is no delivery step, no contract, and no dispute window.
+Use a charge instead of an [escrow](/api-reference/escrows/overview) when you are the merchant: there is no delivery step and no contract. The payment is held for 72 hours, during which the payer can open a dispute, and then released to your wallet.
 
 ## Charge vs escrow
 
@@ -14,8 +14,9 @@ Use a charge instead of an [escrow](/api-reference/escrows/overview) when there 
 | Seller | Your business account | Your user, or your business |
 | Buyer | Unknown until someone pays | Known at creation (`buyerEmail`) |
 | Checkout URL | Public — anyone with the link can pay | Bound to the buyer's email |
-| After payment | Completes and settles immediately | Deliver, then buyer release (or auto-release after `completionDeadlineDays`) |
-| API | `POST /v1/charges`, `GET /v1/charges/:id` | `POST /v1/escrows`, `GET /v1/escrows/:id` |
+| After payment | Completes immediately; funds held 72h, then released to your wallet | Deliver, then buyer release (or auto-release after `completionDeadlineDays`) |
+| Refunds | `POST /v1/charges/:id/refunds` (full or partial); `POST /v1/charges/:id/dispute/accept` for a disputed charge | Seller refund via checkout session `refund_funds` |
+| API | `POST /v1/charges`, `GET /v1/charges/:id`, `GET /v1/charges/:id/refunds` | `POST /v1/escrows`, `GET /v1/escrows/:id` |
 | Escrow endpoints | **404** on GET; **409** `CHARGE_NOT_AN_ESCROW` on deliver / reject / update / sessions / contract | Charge ids are hidden from list and get |
 
 ## How it works
@@ -57,4 +58,16 @@ A charge is a separate product. Do not create `mode: "instant"` on `POST /v1/esc
 
 - [Get Escrow](/api-reference/escrows/get-escrow) and [List Escrows](/api-reference/escrows/list-escrows) hide charges (GET returns **404**).
 - Deliver, reject-delivery, update, contract, progressive release, and [checkout sessions](/api-reference/checkout-sessions/create-session) on a charge id return **409** `CHARGE_NOT_AN_ESCROW`.
-- Charges do not use `completionDeadlineDays`. Payment completes and settles in one step.
+- Charges do not use `completionDeadlineDays`. Payment completes in one step; funds settle to your wallet after the 72-hour hold.
+
+## Refunds
+
+Refund a charge in full or in part with [Refund Charge](/api-reference/charges/create-refund). During the 72-hour hold the refund comes out of the held payment and DHMAD's fee on the refunded part is waived; after release it comes out of your available balance and DHMAD keeps its fee. Follow refunds with the `charge.refunded` and `charge.refund.updated` webhooks, and list them with [List Refunds](/api-reference/charges/list-refunds).
+
+## Disputes
+
+During the 72-hour hold the payer can open a dispute with DHMAD. The release then waits (`fundsStatus: "disputed"`), you receive the `charge.dispute.opened` webhook, and [Get Charge](/api-reference/charges/get-charge) shows who opened it and why in `dispute`. Refunds return **409** `CHARGE_DISPUTED` while it is open. Settle it yourself with [Accept Dispute](/api-reference/charges/accept-dispute), which refunds the payer in full, or let DHMAD support review it and either refund the payer or release the payment to you.
+
+## Chargebacks
+
+When a payer disputes a PayPal or card payment with PayPal or their bank, DHMAD holds back the disputed amount — by blocking the release during the hold, or from your available balance after it — and opens an urgent support ticket asking for your evidence. If your balance does not cover it, money that reaches your balance later is held too, until the disputed amount is covered or the case is decided; all of it comes back if you win. If PayPal sides with the payer, the amount is taken back and PayPal's chargeback fee is passed on to you. Follow cases with the `charge.chargeback.opened` and `charge.chargeback.resolved` [webhooks](/guides/webhooks).
