@@ -141,11 +141,10 @@ charge = response.json()['charge']
   - `paypal`: PayPal account
   - `apple_pay`: Apple Pay
   - `d17`: D17 transfer, with a proof of payment
-  - `flouci`: Flouci transfer, with a proof of payment
   - `virement_bancaire`: bank transfer, with a proof of payment
   - `cash_collection`: cash handed to a courier at the payer's address
 
-  Any other value is rejected with **400**.
+  Any other value is rejected with **400**, except `flouci`: Flouci is no longer offered, but the value is still accepted so older integrations keep creating charges. It is ignored, and a list that names only `flouci` offers `d17` and `virement_bancaire` instead.
 
   The list only narrows what checkout would offer anyway. Card, PayPal and Apple Pay need the charge to reach the PayPal minimum, and Apple Pay also needs a supported device and browser. Cash collection is only for TND charges paid from Tunisia, within the courier's amount limits. A payer who is signed in to DHMAD can always pay from their DHMAD wallet.
 </ParamField>

@@ -78,7 +78,7 @@ The checkout page shows a summary of the escrow: amount, **platform service fee*
 
 #### Guest payment (no DHMAD login)
 
-On a public checkout URL — including [charges](/api-reference/charges/overview) and guest `accept_pay` — the payer can pay **without** creating an account. They pick a payment method (e.g. bank transfer, D17, Flouci, PayPal), complete the payment using the instructions shown, and upload a proof file when the method requires it. An **admin must approve** the proof; only then does the payment move to `paid`. For charges, subscribe to **`charge.status.updated`**. For escrows, rely on **`escrow.status.updated`**.
+On a public checkout URL — including [charges](/api-reference/charges/overview) and guest `accept_pay` — the payer can pay **without** creating an account. They pick a payment method (e.g. bank transfer, D17, PayPal), complete the payment using the instructions shown, and upload a proof file when the method requires it. An **admin must approve** the proof; only then does the payment move to `paid`. For charges, subscribe to **`charge.status.updated`**. For escrows, rely on **`escrow.status.updated`**.
 
 - **Funds are not held in a DHMAD buyer wallet** for this path until the proof is approved; cancellation and refunds follow DHMAD’s guest-checkout rules (your app should not assume an automatic wallet refund to the buyer).
 - **Sandbox:** the flow may complete without a proof file for faster testing.

@@ -634,11 +634,13 @@ Sent when a guest-checkout payment proof is rejected—by an **admin** (optional
       "buyerEmail": "buyer@example.com",
       "reason": "Amount mismatch",
       "amount": 50.0,
-      "method": "flouci"
+      "method": "d17"
     }
   }
 }
 ```
+
+`depositProof.method` is `d17` or `virement_bancaire`. Flouci is no longer offered, but a proof for an escrow paid before Flouci was retired may still report `"method": "flouci"`.
 
 ### contract.signed
 

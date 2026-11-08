@@ -24,7 +24,7 @@ Each refund lists its `destinations`:
 
 - **`wallet`** — credited to the payer's DHMAD wallet immediately: the part they paid from their wallet, and everything else too when they paid while logged in to DHMAD (except card / PayPal, which goes back to the card).
 - **`paypal`** — card, PayPal and Apple Pay payments are refunded automatically through PayPal. Banks can take 5–10 business days to show it.
-- **`manual`** — D17, Flouci, bank transfer and cash payments by a guest payer: DHMAD emails them to choose where to receive the refund (D17, Flouci or bank transfer, confirmed with an emailed code), then sends it. Any transfer fee is deducted from what the payer receives. A payer whose email has a verified DHMAD account can instead log in and take it into their wallet instantly (the destination then becomes `wallet`).
+- **`manual`** — D17, bank transfer and cash payments by a guest payer (and Flouci payments made before Flouci was retired): DHMAD emails them to choose where to receive the refund (D17 or bank transfer, confirmed with an emailed code), then sends it. Flouci is no longer a refund destination: a destination that names it is refused with **400** `PAYMENT_METHOD_RETIRED`. Any transfer fee is deducted from what the payer receives. A payer whose email has a verified DHMAD account can instead log in and take it into their wallet instantly (the destination then becomes `wallet`).
 - **`sandbox`** — sandbox charges refund instantly.
 
 The refund `status` is `pending`, `awaiting_payer_details`, `awaiting_manual_payout`, `succeeded`, or `failed` (DHMAD follows up on failed payouts). Subscribe to **`charge.refunded`** and **`charge.refund.updated`** to follow it — see [Webhooks](/guides/webhooks).
