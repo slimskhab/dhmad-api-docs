@@ -9,16 +9,15 @@ During the 72-hour hold, the payer can open a dispute on a charge. While it is o
 
 Accept the dispute to settle it yourself: DHMAD refunds the payer everything still refundable, with reason `dispute_accepted`, and closes the dispute. There is no `amount` — accepting always refunds what is left (a partial refund you made earlier is not refunded again).
 
-## Reply deadline
+## Dispute deadline
 
-Disputes work like PayPal's Resolution Center: each side has **7 days** to answer the other, and staying silent loses the dispute.
+Disputes work like PayPal's: the payment stays held, you and the payer talk it out, and DHMAD decides only if one of you asks.
 
-1. When the payer opens a dispute, you have 7 days to reply on the dispute thread (dhmad.tn → Support, or the DHMAD app) or to accept it. Your business's owner and admins get an email and a notification with the deadline, then reminders 3 days and 1 day before it.
-2. Your reply gives the payer 7 days to answer you. Each reply from the side the dispute waits on hands it to the other side with a fresh 7 days.
-3. If you don't reply in time, DHMAD refunds the payer in full: the refund has `reason: "dispute_unanswered"` and `initiatedBy: "dispute_timeout"`, and you receive `charge.refunded`.
-4. If the payer doesn't reply in time, the dispute closes and the payment is released to your wallet: you receive `charge.funds.released`.
+1. When the payer opens a dispute, the two of you have **20 days** to settle it on the dispute thread (dhmad.tn → Support, or the DHMAD app). Messages on the thread never move or reset this deadline. You can accept the dispute, or refund, at any time. Your business's owner and admins get an email and a notification with the closing date; the payer gets reminders 3 days and 1 day before it.
+2. Before the 20 days end, either side can **ask DHMAD to decide** (a button on the dispute thread and on the payer's protect page). You then have **7 days** to send DHMAD your side on the thread. If you don't, DHMAD refunds the payer in full: the refund has `reason: "dispute_unanswered"` and `initiatedBy: "dispute_timeout"`, and you receive `charge.refunded`. Once your side is in, DHMAD decides and either refunds the payer or releases the payment to you.
+3. If nobody asks DHMAD to decide within the 20 days, the dispute closes and the payment is released to your wallet: you receive `charge.funds.released`.
 
-DHMAD support can step in at any time: it can decide the dispute, ask one side for a reply (with a fresh 7 days), or review it with no deadline running. `charge.dispute.waitingOn` and `charge.dispute.respondBy` say where the dispute stands.
+DHMAD can also take a dispute for review at any time. `charge.dispute.stage`, `closesAt`, `escalatedBy` and `merchantReplyBy` say where the dispute stands.
 
 `:id` accepts the DHMAD charge id or your `merchantReference`. Accepting from the dashboard does the same thing.
 
@@ -52,12 +51,20 @@ The refund comes out of the held payment, so DHMAD's fee on it is waived, and th
   The DHMAD support ticket for the dispute (for example `DH-2026-01234`).
 </ParamField>
 
-<ParamField response="charge.dispute.waitingOn" type="string | null">
-  Whose reply the open dispute waits on: `merchant` (you), `payer`, or `support` (DHMAD is reviewing it and no deadline runs). `null` once the dispute is settled.
+<ParamField response="charge.dispute.stage" type="string | null">
+  `open`: you and the payer talk it out until `closesAt`. `review`: someone asked DHMAD to decide, and DHMAD decides. `null` once the dispute is settled.
 </ParamField>
 
-<ParamField response="charge.dispute.respondBy" type="string | null">
-  When `waitingOn` loses by staying silent (ISO 8601): if it is you, the payer is refunded; if it is the payer, the payment is released to you. `null` while support reviews the dispute and once it is settled.
+<ParamField response="charge.dispute.closesAt" type="string | null">
+  While `open` (ISO 8601): unless you or the payer ask DHMAD to decide by then, the dispute closes and the payment is released to you. `null` in review and once settled.
+</ParamField>
+
+<ParamField response="charge.dispute.escalatedBy" type="string | null">
+  In review: who asked DHMAD to decide, `merchant` (you), `payer`, or `support` (DHMAD took it). `null` while open and once settled.
+</ParamField>
+
+<ParamField response="charge.dispute.merchantReplyBy" type="string | null">
+  In review (ISO 8601): send DHMAD your side on the dispute thread by then, or the payer is refunded in full. `null` once your side is in, when DHMAD did not ask for it, and once settled.
 </ParamField>
 
 ## Idempotency

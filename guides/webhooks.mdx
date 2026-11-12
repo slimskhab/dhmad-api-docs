@@ -153,14 +153,15 @@ You can subscribe to the following events:
   </Card>
   <Card title="charge.dispute.opened" icon="flag">
     The payer opened a dispute on a charge during the 72-hour hold.
-    `data.charge.dispute` says who reported it, why, and by when you must
-    reply (`respondBy`). Accept it with
-    [Accept Dispute](/api-reference/charges/accept-dispute) or reply on the
-    dispute thread: if you don't, the payer is refunded.
+    `data.charge.dispute` says who reported it, why, and when it closes
+    (`closesAt`). Accept it with
+    [Accept Dispute](/api-reference/charges/accept-dispute) or talk it out on
+    the dispute thread: unless someone asks DHMAD to decide, it closes in
+    20 days and the payment is released to you.
   </Card>
   <Card title="charge.refunded / charge.refund.updated" icon="rotate-left">
     A charge was refunded (by you, by accepting a dispute, by DHMAD, or because
-    a dispute went unanswered), and
+    you did not send DHMAD your side of a dispute in time), and
     later when that refund's payout completes or fails.
   </Card>
   <Card title="charge.chargeback.opened / charge.chargeback.resolved" icon="scale-balanced">
@@ -417,7 +418,7 @@ A paid charge fires `paid` and then `completed`. Treat the operation as idempote
 
 Sent when the payer opens a dispute on a [charge](/api-reference/charges/overview) during the 72-hour hold. The release waits until the dispute is settled, and [refunds](/api-reference/charges/create-refund) return **409** `CHARGE_DISPUTED`. `data.charge.dispute` says who reported it (`reportedBy.email`, and `reportedBy.name` when the payer has a DHMAD account), what they wrote (`reason`), when (`openedAt`) and the support ticket (`ticketNumber`).
 
-You have 7 days to reply on the dispute thread or accept it: `data.charge.dispute.respondBy` is the deadline, and if you stay silent the payer is refunded in full. Refund the payer yourself with [Accept Dispute](/api-reference/charges/accept-dispute) — you then receive `charge.refunded`. See [Reply deadline](/api-reference/charges/accept-dispute#reply-deadline) for how the turns work.
+You and the payer have 20 days to settle it on the dispute thread: `data.charge.dispute.closesAt` is the deadline, and messages never move it. Unless one of you asks DHMAD to decide by then, the dispute closes and the payment is released to you. If someone asks DHMAD, you have 7 days to send DHMAD your side, or the payer is refunded in full. Refund the payer yourself with [Accept Dispute](/api-reference/charges/accept-dispute) — you then receive `charge.refunded`. See [Dispute deadline](/api-reference/charges/accept-dispute#dispute-deadline).
 
 ```json
 {
@@ -442,8 +443,10 @@ You have 7 days to reply on the dispute thread or accept it: `data.charge.disput
         "reason": "I paid twice for the same credits.",
         "openedAt": "2026-01-15T18:40:00.000Z",
         "ticketNumber": "DH-2026-01234",
-        "waitingOn": "merchant",
-        "respondBy": "2026-01-22T18:40:00.000Z"
+        "stage": "open",
+        "closesAt": "2026-02-04T18:40:00.000Z",
+        "escalatedBy": null,
+        "merchantReplyBy": null
       }
     },
     "escrow": { "id": "507f1f77bcf86cd799439011", "status": "paid" }
@@ -453,7 +456,7 @@ You have 7 days to reply on the dispute thread or accept it: `data.charge.disput
 
 ### charge.refunded / charge.refund.updated
 
-`charge.refunded` fires when a charge is refunded — by you (dashboard or [Refund Charge](/api-reference/charges/create-refund)), when you accept a payer's dispute, when DHMAD resolves a dispute for the payer, or when you did not reply to a dispute by its deadline (`data.refund.reason` is then `dispute_unanswered`). `charge.refund.updated` fires when the refund's payout finishes or fails (for example, the PayPal refund completed, or DHMAD sent a bank transfer). Refunds never send `charge.status.updated`.
+`charge.refunded` fires when a charge is refunded — by you (dashboard or [Refund Charge](/api-reference/charges/create-refund)), when you accept a payer's dispute, when DHMAD resolves a dispute for the payer, or when a dispute was sent to DHMAD and you did not send DHMAD your side within 7 days (`data.refund.reason` is then `dispute_unanswered`). `charge.refund.updated` fires when the refund's payout finishes or fails (for example, the PayPal refund completed, or DHMAD sent a bank transfer). Refunds never send `charge.status.updated`.
 
 `data.charge` carries the totals (`amountRefunded`, `amountRefundable`, `refundStatus`) and `data.refund` the refund itself. Debit your user's credits from `data.refund.amount` on `charge.refunded`, keyed by `data.refund.id` so retried deliveries are ignored.
 

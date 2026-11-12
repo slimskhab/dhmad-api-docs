@@ -68,8 +68,10 @@ charge = response.json()['charge']
       "reason": "I paid twice for the same credits.",
       "openedAt": "2026-01-15T18:40:00.000Z",
       "ticketNumber": "DH-2026-01234",
-      "waitingOn": "merchant",
-      "respondBy": "2026-01-22T18:40:00.000Z"
+      "stage": "open",
+      "closesAt": "2026-02-04T18:40:00.000Z",
+      "escalatedBy": null,
+      "merchantReplyBy": null
     }
   }
 }
@@ -112,5 +114,5 @@ charge = response.json()['charge']
 </ParamField>
 
 <ParamField response="charge.dispute" type="object">
-  Present once the payer has opened a dispute (and after it is resolved): `reportedBy` (`email`, and `name` — `null` when the payer has no DHMAD account), `reason` (the payer's first message), `openedAt`, `ticketNumber`, and while it is open `waitingOn` (`merchant`, `payer` or `support`) and `respondBy`, the deadline after which the silent side loses. Settle an open dispute with [Accept Dispute](/api-reference/charges/accept-dispute) or reply on it before `respondBy` (see [Reply deadline](/api-reference/charges/accept-dispute#reply-deadline)).
+  Present once the payer has opened a dispute (and after it is resolved): `reportedBy` (`email`, and `name` — `null` when the payer has no DHMAD account), `reason` (the payer's first message), `openedAt`, `ticketNumber`, and while it is open `stage` (`open`, or `review` once someone asked DHMAD to decide), `closesAt` (when an open dispute closes and the payment is released to you), `escalatedBy` and `merchantReplyBy` (in review, when your side is due or the payer is refunded). Settle an open dispute with [Accept Dispute](/api-reference/charges/accept-dispute) or on the dispute thread (see [Dispute deadline](/api-reference/charges/accept-dispute#dispute-deadline)).
 </ParamField>
