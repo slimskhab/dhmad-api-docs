@@ -10,6 +10,15 @@ The Webhooks API allows you to create and manage webhooks that receive real-time
   endpoints carefully.
 </Warning>
 
+<Note>
+  On the live API, adding a webhook, changing its URL and regenerating its secret
+  need a fresh confirmation by the DHMAD account that owns your developer
+  account: a 6-digit code sent to its email, or the code from its authenticator
+  app when that is on. The [developer portal](https://developer.dhmad.tn/dashboard/webhooks) asks
+  for it. Changing only `events` or `isActive` does not, and the sandbox never
+  does. See [Confirming a change](#confirming-a-change).
+</Note>
+
 ## Create Webhook
 
 Create a new webhook endpoint to receive event notifications.
@@ -303,6 +312,35 @@ curl -X DELETE https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 
   Number of consecutive delivery failures
 </ParamField>
 
+## Confirming a change
+
+Live only. Before `POST /api/developer/webhooks`, a `PUT` that sets a new `url`,
+or `POST .../regenerate-secret`, start the check for that exact change:
+
+```bash
+curl -X POST https://dhmad.tn/api/developer/step-up/request \
+  -H "Authorization: Bearer your_developer_token" \
+  -H "Content-Type: application/json" \
+  -d '{ "operation": "webhook_url", "resourceId": "507f1f77bcf86cd799439011", "url": "https://example.com/webhooks/new" }'
+```
+
+`operation` is `webhook_create` (with `url`), `webhook_url` (with `resourceId` and
+the new `url`) or `webhook_secret` (with `resourceId`). The answer carries
+`challengeId`, `challengeToken` and `method` (`email` or `totp`), or
+`"required": false` when no check applies. Then send the change itself with
+`stepUpChallengeId`, `stepUpChallengeToken` and `stepUpCode` (the code from the
+email or the authenticator app) in its body. A code confirms only the change it
+was asked for and works once; asking again after 60 seconds sends a new one.
+
+```json
+{
+  "url": "https://example.com/webhooks/new",
+  "stepUpChallengeId": "6560c1f2a4b3c2d1e0f9a8b7",
+  "stepUpChallengeToken": "f3a9…",
+  "stepUpCode": "482913"
+}
+```
+
 ## Error Responses
 
 ### 400 Bad Request
@@ -328,6 +366,26 @@ curl -X DELETE https://dhmad.tn/api/developer/webhooks/507f1f77bcf86cd799439011 
 ```json
 {
   "error": "Only HTTPS URLs are allowed in production"
+}
+```
+
+### 403 Forbidden
+
+**Confirmation needed** (live: the change was sent without a check)
+
+```json
+{
+  "code": "DEVELOPER_STEP_UP_REQUIRED",
+  "message": "Confirm this change with the code we send you."
+}
+```
+
+**Wrong or used code** (`ACTION_STEP_UP_LOCKED` after 5 wrong codes: ask for a new one)
+
+```json
+{
+  "code": "ACTION_STEP_UP_INVALID",
+  "message": "Invalid verification code."
 }
 ```
 
