@@ -13,6 +13,7 @@ Webhooks are HTTP callbacks that notify your application when escrow, contract, 
 - Escrows are cancelled
 - A contract is signed by the seller or buyer
 - Pre-account KYC status changes or links to a DHMAD user account
+- A dispute on your sales opens, gets a message, or changes (charge disputes, chargebacks and escrow disputes)
 - Any status update occurs
 
 ## Setting Up Webhooks
@@ -169,6 +170,21 @@ You can subscribe to the following events:
     their card issuer (a chargeback). `opened` says what DHMAD is holding back
     and when it needs your evidence; `resolved` says whether you won or lost,
     what was taken back, and PayPal's fee.
+  </Card>
+  <Card title="dispute.opened" icon="comments">
+    A dispute opened on your sales: a charge dispute, a chargeback or an
+    escrow dispute. `data.dispute` is the [dispute object](/api-reference/disputes/get-dispute#the-dispute-object)
+    with its thread. Part of the [Disputes API](/api-reference/disputes/overview);
+    subscribing through the API needs a key with Disputes access.
+  </Card>
+  <Card title="dispute.message.created" icon="message">
+    A new message on one of your disputes, from anyone: the payer, DHMAD, your
+    staff, or your own integration (`data.message.source: "api"`). Includes
+    `data.dispute` and `data.message`.
+  </Card>
+  <Card title="dispute.updated" icon="arrows-rotate">
+    A dispute's `status`, `stage`, `outcome` or deadlines changed, or a
+    chargeback's status or your answer to it. Includes `data.dispute`.
   </Card>
   <Card title="contract.signed" icon="file-signature">
     Triggered when the escrow contract is signed by the seller or the buyer.
@@ -567,6 +583,183 @@ Each event is sent once per case; key on `data.chargeback.caseId` so a retried d
       "fundsStatus": "released"
     },
     "escrow": { "id": "507f1f77bcf86cd799439011", "status": "completed" }
+  }
+}
+```
+
+### dispute.opened
+
+The three `dispute.*` events belong to the [Disputes API](/api-reference/disputes/overview). They cover every kind of dispute on your sales: charge disputes, chargebacks and escrow disputes (see [Which disputes you see](/api-reference/disputes/overview#which-disputes-you-see)). `data.dispute` is the [dispute object](/api-reference/disputes/get-dispute#the-dispute-object), the same as `GET /api/v1/disputes/:id` returns. The envelope, headers and signature are the same as every other event.
+
+- **Subscribing.** On the [Developer Dashboard](https://developer.dhmad.tn/dashboard/webhooks)'s Webhooks page, choose them like any other event. Through `POST /api/v1/webhooks` with an API key, the key needs Disputes access (Read is enough), or the request is refused with **403** `API_KEY_PERMISSION_REQUIRED`. See [Permissions](/guides/api-keys#permissions).
+- **Timing.** DHMAD checks for dispute changes every minute, so an event arrives up to about a minute after the change. Deliveries are not ordered: key on `data.dispute.id` and `data.message.id`, and fetch the dispute when you need its latest state.
+- **Attachment links** in these events last 7 days (`urlExpiresAt`).
+- **Older disputes.** Disputes opened before these events were switched on never send `dispute.opened`; their later messages and changes are sent as usual. Import them once with [List Disputes](/api-reference/disputes/list-disputes).
+
+`dispute.opened` is sent once per dispute, when it opens. `data.dispute` includes `messages`, the thread so far. For a charge dispute you also receive [`charge.dispute.opened`](#chargedisputeopened), and for a chargeback on a payment you created through the API, `charge.chargeback.opened`.
+
+```json
+{
+  "id": "8c1f3e2a-5b7d-4a9e-b2c4-1d6f8e0a3b57",
+  "type": "dispute.opened",
+  "timestamp": "2026-11-12T10:20:41Z",
+  "data": {
+    "dispute": {
+      "id": "6735a1b2c3d4e5f6a7b8c9d0",
+      "ticketNumber": "DH-2026-00042",
+      "kind": "charge_dispute",
+      "status": "open",
+      "stage": "open",
+      "outcome": null,
+      "charge": {
+        "id": "6731f0a2b4c5d6e7f8a9b0c1",
+        "merchantReference": "order_10482",
+        "title": "500 credits",
+        "amountTnd": 120,
+        "currency": "TND",
+        "status": "completed"
+      },
+      "escrow": null,
+      "reason": "I paid on 11 November and the credits never reached my account.",
+      "reasonCode": "not_received",
+      "merchantContact": "no_reply",
+      "reportedBy": { "email": "payer@example.com", "name": null },
+      "messagesBeforeDispute": [
+        {
+          "sentAt": "2026-11-11T09:12:00.000Z",
+          "body": "Hello, I paid for 500 credits this morning and I still don't have them."
+        }
+      ],
+      "deadlines": {
+        "closesAt": "2026-12-02T10:20:00.000Z",
+        "merchantReplyBy": null,
+        "merchantRepliedAt": null,
+        "escalatedBy": null,
+        "escalatedAt": null
+      },
+      "chargeback": null,
+      "actions": {
+        "reply": true,
+        "escalate": true,
+        "accept": true,
+        "respondToChargeback": false
+      },
+      "openedAt": "2026-11-12T10:20:00.000Z",
+      "lastActivityAt": "2026-11-12T10:20:00.000Z",
+      "lastMessageAt": "2026-11-12T10:20:00.000Z",
+      "closedAt": null,
+      "messageCount": 1,
+      "messages": [
+        {
+          "id": "6735a1b2c3d4e5f6a7b8c9d1",
+          "author": { "type": "payer", "name": null },
+          "source": "dhmad",
+          "body": "I paid on 11 November and the credits never reached my account.",
+          "event": null,
+          "attachments": [],
+          "createdAt": "2026-11-12T10:20:00.000Z",
+          "edited": false,
+          "editedAt": null
+        }
+      ]
+    }
+  }
+}
+```
+
+### dispute.message.created
+
+Sent for each new message on one of your disputes, whoever wrote it: the payer, DHMAD's team, your staff on dhmad.tn, or your own integration. `data.message` is the [message object](/api-reference/disputes/get-dispute#the-message-object) and `data.dispute` the dispute after it, without `messages`. Your integration's own replies have `data.message.source: "api"`: skip them, or match them by the `message.id` that [Create Message](/api-reference/disputes/create-message) returned. The lines DHMAD adds to the thread when something happens (`author.type: "system"`) do not send this event; the change itself sends `dispute.updated`.
+
+```json
+{
+  "id": "2e7b9c41-0f3a-4d58-8a6e-5c1b7d9f0e23",
+  "type": "dispute.message.created",
+  "timestamp": "2026-11-14T17:02:38Z",
+  "data": {
+    "dispute": {
+      "id": "6735a1b2c3d4e5f6a7b8c9d0",
+      "ticketNumber": "DH-2026-00042",
+      "kind": "charge_dispute",
+      "status": "under_review",
+      "stage": "review",
+      "outcome": null,
+      "charge": { "id": "6731f0a2b4c5d6e7f8a9b0c1", "merchantReference": "order_10482", "title": "500 credits", "amountTnd": 120, "currency": "TND", "status": "completed" },
+      "escrow": null,
+      "reason": "I paid on 11 November and the credits never reached my account.",
+      "reasonCode": "not_received",
+      "merchantContact": "no_reply",
+      "reportedBy": { "email": "payer@example.com", "name": null },
+      "messagesBeforeDispute": [],
+      "deadlines": {
+        "closesAt": null,
+        "merchantReplyBy": "2026-11-21T16:30:00.000Z",
+        "merchantRepliedAt": null,
+        "escalatedBy": "payer",
+        "escalatedAt": "2026-11-14T16:30:00.000Z"
+      },
+      "chargeback": null,
+      "actions": { "reply": true, "escalate": false, "accept": true, "respondToChargeback": false },
+      "openedAt": "2026-11-12T10:20:00.000Z",
+      "lastActivityAt": "2026-11-14T17:02:00.000Z",
+      "lastMessageAt": "2026-11-14T17:02:00.000Z",
+      "closedAt": null,
+      "messageCount": 2
+    },
+    "message": {
+      "id": "6737c8a0b1c2d3e4f5a6b7c8",
+      "author": { "type": "dhmad", "name": "DHMAD" },
+      "source": "dhmad",
+      "body": "Hello, we are looking into this. Could you send us the delivery log for this order?",
+      "event": null,
+      "attachments": [],
+      "createdAt": "2026-11-14T17:02:00.000Z",
+      "edited": false,
+      "editedAt": null
+    }
+  }
+}
+```
+
+### dispute.updated
+
+Sent when a dispute's `status`, `stage`, `outcome` or `deadlines` change, or for a chargeback, `chargeback.status`, `chargeback.merchantDueAt` or your answer (`chargeback.merchantDecision`). For example: someone asked DHMAD to decide, your side arrived (`deadlines.merchantRepliedAt`), DHMAD sent your chargeback evidence to PayPal, or the dispute closed. `data.dispute` is the dispute after the change, without `messages`. New messages alone send `dispute.message.created` instead.
+
+```json
+{
+  "id": "f4a0c6d2-9e1b-4b73-a5d8-0c2e7f1b9a64",
+  "type": "dispute.updated",
+  "timestamp": "2026-12-02T10:21:05Z",
+  "data": {
+    "dispute": {
+      "id": "6738f1a2b3c4d5e6f7a8b9c0",
+      "ticketNumber": "DH-2026-00051",
+      "kind": "charge_dispute",
+      "status": "closed",
+      "stage": null,
+      "outcome": "released",
+      "charge": { "id": "6738e0f1a2b3c4d5e6f7a8b9", "merchantReference": "order_10602", "title": "200 credits", "amountTnd": 50, "currency": "TND", "status": "completed" },
+      "escrow": null,
+      "reason": "Not what I expected.",
+      "reasonCode": "not_as_described",
+      "merchantContact": "not_resolved",
+      "reportedBy": { "email": "karim.jaziri@example.com", "name": "Karim Jaziri" },
+      "messagesBeforeDispute": [],
+      "deadlines": {
+        "closesAt": null,
+        "merchantReplyBy": null,
+        "merchantRepliedAt": null,
+        "escalatedBy": null,
+        "escalatedAt": null
+      },
+      "chargeback": null,
+      "actions": { "reply": true, "escalate": false, "accept": false, "respondToChargeback": false },
+      "openedAt": "2026-11-12T10:20:00.000Z",
+      "lastActivityAt": "2026-12-02T10:20:31.000Z",
+      "lastMessageAt": "2026-12-02T10:20:31.000Z",
+      "closedAt": "2026-12-02T10:20:31.000Z",
+      "messageCount": 4
+    }
   }
 }
 ```
@@ -1150,7 +1343,8 @@ Sent when the user creates a DHMAD account and KYC is attached.
 <ParamField response="type" type="string">
   Event type: "escrow.status.updated", "charge.status.updated",
   "charge.dispute.opened", "charge.refunded", "charge.refund.updated",
-  "charge.chargeback.opened", "charge.chargeback.resolved", "contract.signed",
+  "charge.chargeback.opened", "charge.chargeback.resolved", "dispute.opened",
+  "dispute.message.created", "dispute.updated", "contract.signed",
   "escrow.cancellation.requested", "escrow.cancellation.rejected",
   "escrow.cancellation.accepted", "escrow.delivery.rejected",
   "escrow.updated", "escrow.deposit_proof.rejected",

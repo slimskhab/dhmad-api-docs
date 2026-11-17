@@ -13,6 +13,7 @@ API keys are the primary method of authenticating with the DHMAD API. This guide
 4. Provide:
    - **Key Name**: Descriptive name (e.g., "Production App", "Staging Environment")
    - **Environment**: Choose between "Live (Production)" or "Sandbox (Testing)"
+   - **Disputes access** (optional): leave it on "No access" unless the key needs the [Disputes API](/api-reference/disputes/overview). See [Permissions](#permissions)
 5. Copy your key immediately - it won't be shown again!
 
 <Warning>
@@ -62,6 +63,46 @@ To permanently delete a key:
 <Warning>
   Deleting a key is permanent and cannot be undone. Make sure you have a backup key before deleting.
 </Warning>
+
+## Permissions
+
+A new key can use the API as soon as you create it: charges, escrows, checkout sessions, identity verifications, webhooks. Some data needs a permission you turn on per key, so a key you paste into a store plugin (WooCommerce, PrestaShop…) only reaches what it needs.
+
+### Disputes access
+
+The [Disputes API](/api-reference/disputes/overview) returns your payers' names, emails, messages and documents. Keys have **No access** by default.
+
+| Disputes access | Permission | What the key can do |
+|---|---|---|
+| **No access** (default) | none | Nothing on `/v1/disputes`. Subscribing to `dispute.*` events through `POST /api/v1/webhooks` is refused |
+| **Read** | `disputes:read` | List disputes, read their messages and documents, subscribe to the `dispute.*` webhooks |
+| **Read & reply** | `disputes:write` (includes `disputes:read`) | Also reply and send evidence, ask DHMAD to decide, and answer chargebacks |
+
+To set it:
+
+1. Log into the [Developer Dashboard](https://developer.dhmad.tn/dashboard) and open **API Keys**
+2. Edit the key (or choose the access when you create it) and set **Disputes access**
+3. On a **live** key, giving access the key did not have needs a fresh confirmation by the DHMAD account that owns your developer account: a 6-digit code sent to its email, or the code from its authenticator app when that is on. Lowering or removing access needs none, and **sandbox** keys never do
+
+The change applies from the key's next request; the key itself stays the same. `GET /api/v1/me` shows what a key has in `apiKey.permissions` (for example `["disputes:read", "disputes:write"]` for Read & reply).
+
+Webhooks you subscribe to on the dashboard's Webhooks page are not tied to a key: `dispute.*` events you choose there reach you whatever your keys' access.
+
+### When a key lacks a permission
+
+The request is refused with **403** `API_KEY_PERMISSION_REQUIRED`. `permission` names what is missing, and `message` says how to fix it:
+
+```json
+{
+  "error": "API_KEY_PERMISSION_REQUIRED",
+  "code": "API_KEY_PERMISSION_REQUIRED",
+  "permission": "disputes:write",
+  "message": "This API key can read disputes but not answer them. In the DHMAD developer portal, open API keys, edit this key and set Disputes access to Read & reply.",
+  "docs": "https://docs.dhmad.tn/guides/api-keys#permissions"
+}
+```
+
+Raise the key's Disputes access as above (Read for `disputes:read`, Read & reply for `disputes:write`), then send the request again.
 
 ## Best Practices
 
@@ -136,6 +177,10 @@ export DHMAD_API_KEY=sk_live_abc123...
 - Verify the key hasn't been regenerated
 - Check the key hasn't been deleted
 - Ensure your developer account is associated with a user account
+
+### "API_KEY_PERMISSION_REQUIRED" Error
+
+- The key has not been given the access this endpoint needs. See [Permissions](#permissions)
 
 ---
 

@@ -67,6 +67,17 @@ A [charge](/api-reference/charges/overview) is a public payment link for **your*
 - `POST /charges` - [Create a charge](/api-reference/charges/create-charge) — returns a public checkout URL
 - `GET /charges/:id` - [Get a charge](/api-reference/charges/get-charge) — by DHMAD id or your `merchantReference`
 
+### Disputes
+
+Read and answer the disputes on your sales (charge disputes, card chargebacks, escrow disputes) from your own tools. Needs an API key with [Disputes access](/guides/api-keys#permissions).
+
+- **[Overview](/api-reference/disputes/overview)** — Kinds of dispute, who decides, statuses, permissions, syncing to a helpdesk
+- `GET /disputes` - [List disputes](/api-reference/disputes/list-disputes)
+- `GET /disputes/:id` - [Get a dispute](/api-reference/disputes/get-dispute) — with its whole thread
+- `POST /disputes/:id/messages` - [Reply on a dispute](/api-reference/disputes/create-message) — with files as evidence
+- `POST /disputes/:id/escalate` - [Ask DHMAD to decide](/api-reference/disputes/escalate-dispute) — charge disputes
+- `POST /disputes/:id/chargeback-response` - [Contest or accept a chargeback](/api-reference/disputes/chargeback-response)
+
 ### Checkout Sessions
 
 Checkout Sessions let you redirect users to dhmad.tn to perform critical escrow actions (sign contract, accept & pay, complete, dispute, cancellation). See the [Checkout Sessions Guide](/guides/checkout-sessions) for a full integration walkthrough.

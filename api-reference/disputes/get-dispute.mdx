@@ -1,0 +1,311 @@
+---
+title: Get Dispute
+description: One dispute with its deadlines, what you can do now, and the whole thread
+---
+
+<Endpoint method="GET" path="/api/v1/disputes/:id" />
+
+Returns one dispute: what it is about, where it stands, its deadlines, what you can do now (`actions`), and every message of the thread you see on dhmad.tn, including the lines DHMAD adds when something happens (for example "The payer asked DHMAD to decide this dispute."). DHMAD's internal notes are never included.
+
+`:id` is the dispute `id`, or its ticket number (for example `DH-2026-00042`). Needs an API key with Disputes access (Read). See [Permissions](/guides/api-keys#permissions).
+
+<RequestExample>
+```bash cURL
+curl https://dhmad.tn/api/v1/disputes/DH-2026-00042 \
+  -H "Authorization: Bearer sk_live_your_api_key_here"
+```
+
+```javascript JavaScript
+const response = await fetch('https://dhmad.tn/api/v1/disputes/DH-2026-00042', {
+  headers: { 'Authorization': 'Bearer sk_live_your_api_key_here' }
+});
+
+const { dispute } = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://dhmad.tn/api/v1/disputes/DH-2026-00042',
+    headers={'Authorization': 'Bearer sk_live_your_api_key_here'},
+)
+
+dispute = response.json()['dispute']
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "dispute": {
+    "id": "6735a1b2c3d4e5f6a7b8c9d0",
+    "ticketNumber": "DH-2026-00042",
+    "kind": "charge_dispute",
+    "status": "under_review",
+    "stage": "review",
+    "outcome": null,
+    "charge": {
+      "id": "6731f0a2b4c5d6e7f8a9b0c1",
+      "merchantReference": "order_10482",
+      "title": "500 credits",
+      "amountTnd": 120,
+      "currency": "TND",
+      "status": "completed"
+    },
+    "escrow": null,
+    "reason": "I paid on 11 November and the credits never reached my account.",
+    "reasonCode": "not_received",
+    "merchantContact": "no_reply",
+    "reportedBy": { "email": "payer@example.com", "name": null },
+    "messagesBeforeDispute": [
+      {
+        "sentAt": "2026-11-11T09:12:00.000Z",
+        "body": "Hello, I paid for 500 credits this morning and I still don't have them."
+      }
+    ],
+    "deadlines": {
+      "closesAt": null,
+      "merchantReplyBy": "2026-11-21T16:30:00.000Z",
+      "merchantRepliedAt": null,
+      "escalatedBy": "payer",
+      "escalatedAt": "2026-11-14T16:30:00.000Z"
+    },
+    "chargeback": null,
+    "actions": {
+      "reply": true,
+      "escalate": false,
+      "accept": true,
+      "respondToChargeback": false
+    },
+    "openedAt": "2026-11-12T10:20:00.000Z",
+    "lastActivityAt": "2026-11-14T17:02:00.000Z",
+    "lastMessageAt": "2026-11-14T17:02:00.000Z",
+    "closedAt": null,
+    "messageCount": 2,
+    "messages": [
+      {
+        "id": "6735a1b2c3d4e5f6a7b8c9d1",
+        "author": { "type": "payer", "name": null },
+        "source": "dhmad",
+        "body": "I paid on 11 November and the credits never reached my account.",
+        "event": null,
+        "attachments": [
+          {
+            "filename": "bank-statement.pdf",
+            "size": 184320,
+            "mimeType": "application/pdf",
+            "url": "https://cdn.dhmad.tn/support/6735a1b2c3d4e5f6a7b8c9d0/bank-statement.pdf?exp=1795111200&sig=3f1c…",
+            "urlExpiresAt": "2026-11-19T18:00:00.000Z"
+          }
+        ],
+        "createdAt": "2026-11-12T10:20:00.000Z",
+        "edited": false,
+        "editedAt": null
+      },
+      {
+        "id": "6737c0d1e2f3a4b5c6d7e8f9",
+        "author": { "type": "system", "name": null },
+        "source": "dhmad",
+        "body": "The payer asked DHMAD to decide this dispute.",
+        "event": "dispute.escalated",
+        "attachments": [],
+        "createdAt": "2026-11-14T16:30:00.000Z",
+        "edited": false,
+        "editedAt": null
+      },
+      {
+        "id": "6737c8a0b1c2d3e4f5a6b7c8",
+        "author": { "type": "dhmad", "name": "DHMAD" },
+        "source": "dhmad",
+        "body": "Hello, we are looking into this. Could you send us the delivery log for this order?",
+        "event": null,
+        "attachments": [],
+        "createdAt": "2026-11-14T17:02:00.000Z",
+        "edited": false,
+        "editedAt": null
+      }
+    ]
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The dispute `id`, or its ticket number (for example `DH-2026-00042`).
+</ParamField>
+
+## The dispute object
+
+The same object is returned by [List Disputes](/api-reference/disputes/list-disputes) (without `messages`), by [Create Message](/api-reference/disputes/create-message), [Escalate Dispute](/api-reference/disputes/escalate-dispute) and [Chargeback Response](/api-reference/disputes/chargeback-response) (without `messages`), and in the [`dispute.*` webhooks](/guides/webhooks#disputeopened). Dates are ISO 8601.
+
+<ParamField response="id" type="string">
+  The dispute's id. Use it, or `ticketNumber`, as `:id` in the other endpoints.
+</ParamField>
+
+<ParamField response="ticketNumber" type="string">
+  The DHMAD support ticket of the dispute (for example `DH-2026-00042`), the number you see on dhmad.tn → Support.
+</ParamField>
+
+<ParamField response="kind" type="string">
+  `charge_dispute`, `chargeback` or `escrow_dispute`. See [Kinds of dispute](/api-reference/disputes/overview#kinds-of-dispute).
+</ParamField>
+
+<ParamField response="status" type="string">
+  `open`, `under_review` or `closed`. See [Status and outcome](/api-reference/disputes/overview#status-and-outcome).
+</ParamField>
+
+<ParamField response="stage" type="string | null">
+  Charge disputes only: `open` (you and the payer talk it out until `deadlines.closesAt`) or `review` (DHMAD decides). `null` once settled, and on other kinds.
+</ParamField>
+
+<ParamField response="outcome" type="string | null">
+  Charge disputes: `released` or `refunded`. Chargebacks: `won` or `lost`. `null` until settled, and always on escrow disputes.
+</ParamField>
+
+<ParamField response="charge" type="object | null">
+  The [charge](/api-reference/charges/overview) the dispute is on, or `null` when it is on an escrow. `id`, `merchantReference`, `title`, `amountTnd`, `currency`, and `status` (`pending`, `completed`, `disputed` or `cancelled`, as on [Get Charge](/api-reference/charges/get-charge)).
+</ParamField>
+
+<ParamField response="escrow" type="object | null">
+  The escrow the dispute is on, or `null` when it is on a charge. `id`, `title`, `amountTnd`, `status` (the escrow's status), and `releaseRequestId`: the payout request the buyer rejected on a [progressive-release](/guides/progressive-release) escrow, or `null` for a dispute on the whole escrow.
+</ParamField>
+
+<ParamField response="reason" type="string | null">
+  Chargebacks: PayPal's reason code (for example `UNAUTHORISED` or `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`). Other kinds: the payer's first message on the thread (up to 4,000 characters).
+</ParamField>
+
+<ParamField response="reasonCode" type="string | null">
+  The reason the payer chose when opening a charge dispute: `not_received`, `not_as_described`, `refund_not_received`, `wrong_amount`, `unauthorized` or `other`. `null` on disputes opened before 15 November 2026 and on chargebacks.
+</ParamField>
+
+<ParamField response="merchantContact" type="string | null">
+  What the payer said about contacting you before opening it: `no_reply` (you did not answer), `not_resolved` (you talked but did not sort it out), `not_contacted` (only allowed for a payment they say they did not make, or when DHMAD cannot reach you) or `unrecognized` (they do not recognise the payment). `null` when `reasonCode` is.
+</ParamField>
+
+<ParamField response="reportedBy" type="object | null">
+  Who opened the dispute: `email` (their DHMAD account email, or the email a guest payer gave) and `name` (`null` for a guest payer). `null` on chargebacks: the card issuer opened those.
+</ParamField>
+
+<ParamField response="messagesBeforeDispute" type="array">
+  The messages the payer sent you through DHMAD before opening the dispute, oldest first: `sentAt` and `body`. Empty when there were none, and on older disputes.
+</ParamField>
+
+<ParamField response="deadlines.closesAt" type="string | null">
+  Open charge dispute: unless you or the payer ask DHMAD to decide by then, the dispute closes and the payment is released to you. `null` otherwise.
+</ParamField>
+
+<ParamField response="deadlines.merchantReplyBy" type="string | null">
+  Charge dispute in review: send DHMAD your side on the thread by then (any [message](/api-reference/disputes/create-message)), or the payer is refunded in full. `null` once your side is in, when DHMAD did not ask for it, and otherwise.
+</ParamField>
+
+<ParamField response="deadlines.merchantRepliedAt" type="string | null">
+  When your first message after DHMAD asked for your side arrived. That message stopped the automatic refund. `null` until then, and once the dispute is settled.
+</ParamField>
+
+<ParamField response="deadlines.escalatedBy" type="string | null">
+  Charge dispute in review: who asked DHMAD to decide, `merchant` (you), `payer`, or `support` (DHMAD took it). `null` while open and once settled.
+</ParamField>
+
+<ParamField response="deadlines.escalatedAt" type="string | null">
+  When that happened. `null` while open and once settled.
+</ParamField>
+
+<ParamField response="chargeback" type="object | null">
+  Chargebacks only, `null` otherwise. The case as in the [`charge.chargeback.opened` / `charge.chargeback.resolved` webhooks](/guides/webhooks): `caseId`, `provider` (`paypal`), `reason`, `status` (`open`: waiting for your answer or evidence; `evidence_submitted`: DHMAD sent it to PayPal; `won`; `lost`), `amountTnd`, `disputedAmount` (the payer's claim in PayPal's currency, or `null`), `merchantDueAt` (send your evidence by then), `fundsAction` (`release_blocked` or `balance_reserved`), `reservedTnd`, `shortfallTnd`, `openedAt`, and once decided `outcome`, `recoveredTnd`, `unrecoveredTnd`, `feeTnd` and `resolvedAt`. Plus your answer: `merchantDecision` (`contest`, `accept` or `null`) and `merchantDecidedAt`.
+</ParamField>
+
+<ParamField response="actions" type="object">
+  What you can do now: `reply`, `escalate`, `accept` and `respondToChargeback` (booleans). See [Actions](/api-reference/disputes/overview#actions).
+</ParamField>
+
+<ParamField response="openedAt" type="string">
+  When the dispute was opened.
+</ParamField>
+
+<ParamField response="lastActivityAt" type="string">
+  The last activity on the dispute: a message, or a change DHMAD recorded on the thread. Lists are sorted by it. `updatedSince` also finds disputes whose charge, escrow or chargeback changed without a new line on the thread (an admin decision, for example).
+</ParamField>
+
+<ParamField response="lastMessageAt" type="string | null">
+  When the last message or thread line was added.
+</ParamField>
+
+<ParamField response="closedAt" type="string | null">
+  For a `closed` dispute, when its thread was resolved or closed. `null` otherwise.
+</ParamField>
+
+<ParamField response="messageCount" type="number">
+  The number of messages on the thread, not counting the lines DHMAD adds when something happens.
+</ParamField>
+
+<ParamField response="messages" type="array">
+  The thread, oldest first: messages and the lines DHMAD adds when something happens. Only on Get Dispute and in `dispute.opened`.
+</ParamField>
+
+## The message object
+
+Each item of `messages`, and `message` in [Create Message](/api-reference/disputes/create-message) and the [`dispute.message.created`](/guides/webhooks#disputemessagecreated) webhook.
+
+<ParamField response="id" type="string">
+  The message's id: key on it. DHMAD's team can correct a message it sent: the message keeps its `id`, with the new `body` and `edited: true`. No webhook is sent for a correction (`lastActivityAt` moves).
+</ParamField>
+
+<ParamField response="author.type" type="string">
+  `payer`; `merchant` (you: your staff on dhmad.tn, or your integration); `dhmad` (DHMAD's team); or `system` (a line DHMAD adds when something happens).
+</ParamField>
+
+<ParamField response="author.name" type="string | null">
+  The payer's name when they have a DHMAD account, the name of your staff member who wrote on dhmad.tn, or `DHMAD` for DHMAD's team. `null` for a guest payer, for messages sent through the API, and on system lines.
+</ParamField>
+
+<ParamField response="source" type="string">
+  `api` when the message was sent through the Disputes API (your integration's own replies); `dhmad` for everything else (the website, the DHMAD app, DHMAD's team, system lines).
+</ParamField>
+
+<ParamField response="body" type="string">
+  The text. Can be empty when the message only has files. On a system line, an English description of what happened.
+</ParamField>
+
+<ParamField response="event" type="string | null">
+  On a system line, what happened, so you can map it in your helpdesk: for example `dispute.escalated` (someone asked DHMAD to decide), `dispute.closed_unescalated` (nobody asked and the payment was released to you), `dispute.merchant_no_reply` (your side did not arrive in time and the payer was refunded), `dispute.merchant_refunded` (you accepted the dispute), `dispute.resolved` (DHMAD decided the dispute), `ticket.resolved` or `ticket.closed`. `null` on messages, and on system lines with no code.
+</ParamField>
+
+<ParamField response="attachments" type="array">
+  The files on the message: `filename`, `size` (bytes), `mimeType`, `url` and `urlExpiresAt`.
+</ParamField>
+
+<ParamField response="createdAt" type="string">
+  When the message was posted.
+</ParamField>
+
+<ParamField response="edited" type="boolean">
+  `true` when DHMAD's team corrected the message after sending it. Update the `body` you stored.
+</ParamField>
+
+<ParamField response="editedAt" type="string | null">
+  When it was last corrected; `null` when it was never edited.
+</ParamField>
+
+### Attachment links
+
+`url` is a signed link that stops working at `urlExpiresAt`. Links in API responses last one to two hours; links in webhooks last 7 days. Download the file when you import the message, or fetch the dispute again for fresh links.
+
+## Errors
+
+Errors carry the code in `error` and `code`, with a readable `message`:
+
+```json
+{
+  "error": "DISPUTE_NOT_FOUND",
+  "code": "DISPUTE_NOT_FOUND",
+  "message": "No dispute with this id or ticket number on your business's sales."
+}
+```
+
+| Status | Code | Meaning |
+|---|---|---|
+| 403 | `API_KEY_PERMISSION_REQUIRED` | The key has no Disputes access. See [Permissions](/guides/api-keys#permissions) |
+| 404 | `DISPUTE_NOT_FOUND` | No dispute with this id or ticket number, or not one of [the disputes you see](/api-reference/disputes/overview#which-disputes-you-see) |

@@ -1,0 +1,124 @@
+---
+title: Escalate Dispute
+description: Ask DHMAD to decide a charge dispute
+---
+
+<Endpoint method="POST" path="/api/v1/disputes/:id/escalate" />
+
+While a charge dispute is `open` (its 20 days have not ended), either side can ask DHMAD to decide. This does the same as the "Ask DHMAD to decide" button on the dispute thread. The dispute moves to `under_review` (`stage: "review"`), DHMAD support gets it, and the payer is told.
+
+You then have **7 days** to send DHMAD your side on the thread (`deadlines.merchantReplyBy`): post it with [Create Message](/api-reference/disputes/create-message). Only a message sent after you escalate counts, even if you already wrote on the thread. If no message arrives in time, DHMAD refunds the payer in full (`reason: "dispute_unanswered"`). Once your side is in, DHMAD decides and either refunds the payer or releases the payment to you. See [Charge disputes](/api-reference/disputes/overview#charge-disputes).
+
+Charge disputes only, while `actions.escalate` is `true`. Chargebacks are answered with [Chargeback Response](/api-reference/disputes/chargeback-response), and DHMAD already decides escrow disputes. Needs an API key with Disputes access (Read & reply). See [Permissions](/guides/api-keys#permissions).
+
+There is no request body. A second call returns **409** `DISPUTE_IN_REVIEW`: treat it as done.
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/disputes/DH-2026-00047/escalate \
+  -H "Authorization: Bearer sk_live_your_api_key_here"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/disputes/DH-2026-00047/escalate',
+  {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer sk_live_your_api_key_here' }
+  }
+);
+
+const { dispute } = await response.json();
+// dispute.deadlines.merchantReplyBy: send your side by then
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://dhmad.tn/api/v1/disputes/DH-2026-00047/escalate',
+    headers={'Authorization': 'Bearer sk_live_your_api_key_here'},
+)
+
+reply_by = response.json()['dispute']['deadlines']['merchantReplyBy']
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "dispute": {
+    "id": "6738e4f5a6b7c8d9e0f1a2b3",
+    "ticketNumber": "DH-2026-00047",
+    "kind": "charge_dispute",
+    "status": "under_review",
+    "stage": "review",
+    "outcome": null,
+    "charge": {
+      "id": "6737a9b8c7d6e5f4a3b2c1d0",
+      "merchantReference": "order_10577",
+      "title": "Pro plan, 1 month",
+      "amountTnd": 45,
+      "currency": "TND",
+      "status": "completed"
+    },
+    "escrow": null,
+    "reason": "I cancelled before the renewal and was charged anyway.",
+    "reasonCode": "other",
+    "merchantContact": "not_resolved",
+    "reportedBy": { "email": "leila.trabelsi@example.com", "name": "Leila Trabelsi" },
+    "messagesBeforeDispute": [],
+    "deadlines": {
+      "closesAt": null,
+      "merchantReplyBy": "2026-11-24T10:00:00.000Z",
+      "merchantRepliedAt": null,
+      "escalatedBy": "merchant",
+      "escalatedAt": "2026-11-17T10:00:00.000Z"
+    },
+    "chargeback": null,
+    "actions": {
+      "reply": true,
+      "escalate": false,
+      "accept": true,
+      "respondToChargeback": false
+    },
+    "openedAt": "2026-11-16T08:15:00.000Z",
+    "lastActivityAt": "2026-11-17T10:00:00.000Z",
+    "lastMessageAt": "2026-11-17T10:00:00.000Z",
+    "closedAt": null,
+    "messageCount": 3
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The dispute `id`, or its ticket number (for example `DH-2026-00047`).
+</ParamField>
+
+## Response
+
+**200** with `dispute`: the [dispute object](/api-reference/disputes/get-dispute#the-dispute-object) now in review, without `messages`. The thread gets a line with `event: "dispute.escalated"`, and the [`dispute.updated`](/guides/webhooks#disputeupdated) webhook follows within about a minute.
+
+## Errors
+
+Errors carry the code in `error` and `code`, with a readable `message`:
+
+```json
+{
+  "error": "DISPUTE_IN_REVIEW",
+  "code": "DISPUTE_IN_REVIEW",
+  "message": "DHMAD has already been asked to decide this dispute."
+}
+```
+
+| Status | Code | Meaning |
+|---|---|---|
+| 403 | `API_KEY_PERMISSION_REQUIRED` | The key cannot act on disputes (`permission: "disputes:write"`). Set its Disputes access to Read & reply |
+| 404 | `DISPUTE_NOT_FOUND` | No dispute with this id or ticket number on your sales |
+| 409 | `DISPUTE_IN_REVIEW` | DHMAD has already been asked to decide (by you, the payer, or DHMAD itself) |
+| 409 | `DISPUTE_CLOSED` | The 20 days have ended: the dispute can no longer be sent to DHMAD |
+| 409 | `DISPUTE_NOT_OPEN` | The charge has no open dispute any more (it was settled), or this is an older dispute on the charge |
+| 409 | `ACTION_NOT_AVAILABLE` | Not a charge dispute. Answer a chargeback with [Chargeback Response](/api-reference/disputes/chargeback-response) |

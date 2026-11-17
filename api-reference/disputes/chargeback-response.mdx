@@ -1,0 +1,165 @@
+---
+title: Chargeback Response
+description: Contest or accept a card chargeback
+---
+
+<Endpoint method="POST" path="/api/v1/disputes/:id/chargeback-response" />
+
+When a payer disputes a card or PayPal payment with PayPal or their bank (a [chargeback](/api-reference/charges/overview#chargebacks)), DHMAD holds back the disputed amount and asks you what to do before `chargeback.merchantDueAt`. This endpoint gives DHMAD your answer, the same as answering on the chargeback's thread on dhmad.tn.
+
+- **`contest`**: you want to fight the claim. Send your evidence as [messages](/api-reference/disputes/create-message) on the thread before `chargeback.merchantDueAt`: proof of delivery, your conversation with the payer, the terms they accepted. DHMAD sends it to PayPal (`chargeback.status` becomes `evidence_submitted` and the dispute `under_review`), and the card issuer decides.
+- **`accept`**: you agree with the payer. DHMAD accepts the claim with PayPal, and the payer keeps the money.
+
+Either way, you hear the end of the case through `dispute.updated` (`outcome` is `won` or `lost`), and through `charge.chargeback.resolved` for payments you created through the API (see [Webhooks](/guides/webhooks)). If the case is lost, the amount is taken back and PayPal's chargeback fee is passed on to you.
+
+You can change your answer while `actions.respondToChargeback` is `true` (`chargeback.status` is `open`). Your answer is in `chargeback.merchantDecision` and `chargeback.merchantDecidedAt`, and the thread gets a line saying it ("The merchant is contesting the chargeback." or "The merchant accepted the chargeback.").
+
+Chargebacks only. Needs an API key with Disputes access (Read & reply). See [Permissions](/guides/api-keys#permissions).
+
+## Request body
+
+<ParamField body="decision" type="string" required>
+  `contest` or `accept`.
+</ParamField>
+
+<ParamField body="note" type="string">
+  A message for DHMAD, posted on the thread after your answer as your message (up to 5,000 characters), for example which evidence follows. It is only posted while the thread takes messages, and it is posted again on every call: retry without it.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://dhmad.tn/api/v1/disputes/DH-2026-00045/chargeback-response \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "decision": "contest",
+    "note": "We delivered the annual plan on 2 November. The access log and the invoice follow."
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://dhmad.tn/api/v1/disputes/DH-2026-00045/chargeback-response',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer sk_live_your_api_key_here',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      decision: 'contest',
+      note: 'We delivered the annual plan on 2 November. The access log and the invoice follow.'
+    })
+  }
+);
+
+const { dispute } = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://dhmad.tn/api/v1/disputes/DH-2026-00045/chargeback-response',
+    headers={'Authorization': 'Bearer sk_live_your_api_key_here'},
+    json={
+        'decision': 'contest',
+        'note': 'We delivered the annual plan on 2 November. The access log and the invoice follow.',
+    },
+)
+
+dispute = response.json()['dispute']
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "dispute": {
+    "id": "6735b7c8d9e0f1a2b3c4d5e6",
+    "ticketNumber": "DH-2026-00045",
+    "kind": "chargeback",
+    "status": "open",
+    "stage": null,
+    "outcome": null,
+    "charge": {
+      "id": "672f9e1d2c3b4a5968778695",
+      "merchantReference": "order_10391",
+      "title": "Annual plan",
+      "amountTnd": 300,
+      "currency": "TND",
+      "status": "completed"
+    },
+    "escrow": null,
+    "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+    "reasonCode": null,
+    "merchantContact": null,
+    "reportedBy": null,
+    "messagesBeforeDispute": [],
+    "deadlines": {
+      "closesAt": null,
+      "merchantReplyBy": null,
+      "merchantRepliedAt": null,
+      "escalatedBy": null,
+      "escalatedAt": null
+    },
+    "chargeback": {
+      "caseId": "PP-R-NKX-102938475",
+      "provider": "paypal",
+      "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+      "status": "open",
+      "amountTnd": 300,
+      "disputedAmount": { "value": 96.5, "currency": "USD" },
+      "merchantDueAt": "2026-11-20T23:59:59.000Z",
+      "fundsAction": "balance_reserved",
+      "reservedTnd": 300,
+      "shortfallTnd": 0,
+      "openedAt": "2026-11-15T08:00:01.000Z",
+      "merchantDecision": "contest",
+      "merchantDecidedAt": "2026-11-16T09:30:00.000Z"
+    },
+    "actions": {
+      "reply": true,
+      "escalate": false,
+      "accept": false,
+      "respondToChargeback": true
+    },
+    "openedAt": "2026-11-15T08:00:02.000Z",
+    "lastActivityAt": "2026-11-16T09:30:00.000Z",
+    "lastMessageAt": "2026-11-16T09:30:00.000Z",
+    "closedAt": null,
+    "messageCount": 2
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The dispute `id`, or its ticket number (for example `DH-2026-00045`).
+</ParamField>
+
+## Response
+
+**200** with `dispute`: the [dispute object](/api-reference/disputes/get-dispute#the-dispute-object) with your answer in `chargeback.merchantDecision`, without `messages`.
+
+## Errors
+
+Errors carry the code in `error` and `code`, with a readable `message`:
+
+```json
+{
+  "error": "CHARGEBACK_NOT_OPEN",
+  "code": "CHARGEBACK_NOT_OPEN",
+  "message": "This chargeback no longer takes an answer: DHMAD already sent the evidence or the card issuer decided."
+}
+```
+
+| Status | Code | Meaning |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | `decision` is missing or not `contest` / `accept`, or `note` is longer than 5,000 characters |
+| 403 | `API_KEY_PERMISSION_REQUIRED` | The key cannot act on disputes (`permission: "disputes:write"`). Set its Disputes access to Read & reply |
+| 404 | `DISPUTE_NOT_FOUND` | No dispute with this id or ticket number on your sales |
+| 409 | `CHARGEBACK_NOT_OPEN` | DHMAD already sent the evidence to PayPal, or the card issuer decided |
+| 409 | `ACTION_NOT_AVAILABLE` | Not a chargeback. Reply on it with [Create Message](/api-reference/disputes/create-message) |

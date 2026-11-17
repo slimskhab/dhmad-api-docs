@@ -95,6 +95,17 @@
           ]
         },
         {
+          "group": "Disputes",
+          "pages": [
+            "api-reference/disputes/overview",
+            "api-reference/disputes/list-disputes",
+            "api-reference/disputes/get-dispute",
+            "api-reference/disputes/create-message",
+            "api-reference/disputes/escalate-dispute",
+            "api-reference/disputes/chargeback-response"
+          ]
+        },
+        {
           "group": "Checkout Sessions",
           "pages": [
             "api-reference/checkout-sessions/overview",

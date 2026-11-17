@@ -1,0 +1,201 @@
+---
+title: Create Message
+description: Reply on a dispute, with files as evidence
+---
+
+<Endpoint method="POST" path="/api/v1/disputes/:id/messages" />
+
+Posts a message on the dispute thread as the merchant, with up to 5 files. It appears on dhmad.tn → Support like a reply from your team, and the payer is told: a payer with a DHMAD account gets a notification, a guest payer gets an email with a link to the payment's protect page. DHMAD sees it too.
+
+`:id` is the dispute `id` or its ticket number. Needs an API key with Disputes access (Read & reply). See [Permissions](/guides/api-keys#permissions).
+
+## What a message changes
+
+- **When DHMAD asked for your side** (`deadlines.merchantReplyBy` is set), your first message, text or files, is your side: it stops the automatic refund, and `deadlines.merchantRepliedAt` records when it arrived. DHMAD then decides.
+- **Otherwise a message moves no deadline.** The 20 days of a charge dispute keep running (`deadlines.closesAt`).
+- **A resolved thread opens again** when you write on it. Once DHMAD has closed the thread, messages are refused with **409** `DISPUTE_CLOSED`. `actions.reply` tells you which.
+
+## Request body
+
+Send JSON with `message`, or `multipart/form-data` with `message` and one `files` field per file. A message needs text, files, or both.
+
+<ParamField body="message" type="string">
+  The text, up to 5,000 characters.
+</ParamField>
+
+<ParamField body="files" type="file[]">
+  Multipart only. Up to 5 files, 20 MB each: images (PNG, JPEG, GIF, WebP, HEIC), PDF, Word (`.doc`, `.docx`), Excel (`.xls`, `.xlsx`), text (`.txt`) or zip. DHMAD checks that each file's content matches its type.
+</ParamField>
+
+## Idempotency
+
+Send an `Idempotency-Key` header (up to 255 characters), for example your helpdesk's reply id. A retry with the same key on the same dispute returns the message it created with **200** and `"idempotentReplay": true`: nothing is posted twice and the files are not stored again. A JSON retry with the same key but a different `message` answers **409** `IDEMPOTENCY_KEY_REUSED`. A multipart retry is answered before its files are read, so its body is not compared: use a new key for each new message.
+
+<RequestExample>
+```bash cURL (JSON)
+curl -X POST https://dhmad.tn/api/v1/disputes/DH-2026-00042/messages \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: helpdesk-reply-88213" \
+  -d '{ "message": "Hello, the credits were added to your account on 11 November at 09:03. You will find them under Wallet." }'
+```
+
+```bash cURL (files)
+curl -X POST https://dhmad.tn/api/v1/disputes/DH-2026-00042/messages \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -H "Idempotency-Key: helpdesk-reply-88214" \
+  -F "message=Here is the delivery log for this order." \
+  -F "files=@delivery-log.pdf" \
+  -F "files=@account-screenshot.png"
+```
+
+```javascript JavaScript
+import { readFile } from 'node:fs/promises';
+
+const form = new FormData();
+form.append('message', 'Here is the delivery log for this order.');
+form.append(
+  'files',
+  new Blob([await readFile('delivery-log.pdf')], { type: 'application/pdf' }),
+  'delivery-log.pdf'
+);
+
+const response = await fetch(
+  'https://dhmad.tn/api/v1/disputes/DH-2026-00042/messages',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer sk_live_your_api_key_here',
+      'Idempotency-Key': 'helpdesk-reply-88214'
+    },
+    body: form
+  }
+);
+
+const { message, dispute } = await response.json();
+```
+
+```python Python
+import requests
+
+with open('delivery-log.pdf', 'rb') as log:
+    response = requests.post(
+        'https://dhmad.tn/api/v1/disputes/DH-2026-00042/messages',
+        headers={
+            'Authorization': 'Bearer sk_live_your_api_key_here',
+            'Idempotency-Key': 'helpdesk-reply-88214',
+        },
+        data={'message': 'Here is the delivery log for this order.'},
+        files=[('files', ('delivery-log.pdf', log, 'application/pdf'))],
+    )
+
+message = response.json()['message']
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": {
+    "id": "6738d2e3f4a5b6c7d8e9f0a1",
+    "author": { "type": "merchant", "name": null },
+    "source": "api",
+    "body": "Here is the delivery log for this order.",
+    "event": null,
+    "attachments": [
+      {
+        "filename": "delivery-log.pdf",
+        "size": 52310,
+        "mimeType": "application/pdf",
+        "url": "https://cdn.dhmad.tn/support/6735a1b2c3d4e5f6a7b8c9d0/delivery-log.pdf?exp=1794740400&sig=8b2e…",
+        "urlExpiresAt": "2026-11-15T11:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-11-15T09:41:00.000Z",
+    "edited": false,
+    "editedAt": null
+  },
+  "dispute": {
+    "id": "6735a1b2c3d4e5f6a7b8c9d0",
+    "ticketNumber": "DH-2026-00042",
+    "kind": "charge_dispute",
+    "status": "under_review",
+    "stage": "review",
+    "outcome": null,
+    "charge": {
+      "id": "6731f0a2b4c5d6e7f8a9b0c1",
+      "merchantReference": "order_10482",
+      "title": "500 credits",
+      "amountTnd": 120,
+      "currency": "TND",
+      "status": "completed"
+    },
+    "escrow": null,
+    "reason": "I paid on 11 November and the credits never reached my account.",
+    "reasonCode": "not_received",
+    "merchantContact": "no_reply",
+    "reportedBy": { "email": "payer@example.com", "name": null },
+    "messagesBeforeDispute": [],
+    "deadlines": {
+      "closesAt": null,
+      "merchantReplyBy": null,
+      "merchantRepliedAt": "2026-11-15T09:41:00.000Z",
+      "escalatedBy": "payer",
+      "escalatedAt": "2026-11-14T16:30:00.000Z"
+    },
+    "chargeback": null,
+    "actions": {
+      "reply": true,
+      "escalate": false,
+      "accept": true,
+      "respondToChargeback": false
+    },
+    "openedAt": "2026-11-12T10:20:00.000Z",
+    "lastActivityAt": "2026-11-15T09:41:00.000Z",
+    "lastMessageAt": "2026-11-15T09:41:00.000Z",
+    "closedAt": null,
+    "messageCount": 3
+  }
+}
+```
+</ResponseExample>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The dispute `id`, or its ticket number (for example `DH-2026-00042`).
+</ParamField>
+
+## Response
+
+**201** with `message` (the [message object](/api-reference/disputes/get-dispute#the-message-object); `author.type` is `merchant` and `source` is `api`) and `dispute` (the [dispute object](/api-reference/disputes/get-dispute#the-dispute-object) without `messages`). An idempotent replay returns **200** with the same fields and `"idempotentReplay": true`.
+
+Your message also comes back in the [`dispute.message.created`](/guides/webhooks#disputemessagecreated) webhook, with `source: "api"`.
+
+## Errors
+
+Errors carry the code in `error` and `code`, with a readable `message`:
+
+```json
+{
+  "error": "MESSAGE_EMPTY",
+  "code": "MESSAGE_EMPTY",
+  "message": "Send a message, files (multipart field `files`), or both."
+}
+```
+
+| Status | Code | Meaning |
+|---|---|---|
+| 400 | `MESSAGE_EMPTY` | No text and no files |
+| 400 | `VALIDATION_ERROR` | `message` is longer than 5,000 characters |
+| 400 | `FILE_TOO_LARGE` | A file is over 20 MB |
+| 400 | `TOO_MANY_FILES` | More than 5 files |
+| 400 | `INVALID_FILE_TYPE` | A file is not one of the accepted types (images, PDF, Word, Excel, text or zip) |
+| 400 | `UNEXPECTED_FILE` | A file was sent under another field name than `files` |
+| 400 | `UPLOAD_ERROR` | A file could not be stored. Send the request again |
+| 403 | `API_KEY_PERMISSION_REQUIRED` | The key cannot reply (`permission: "disputes:write"`). Set its Disputes access to Read & reply. See [Permissions](/guides/api-keys#permissions) |
+| 404 | `DISPUTE_NOT_FOUND` | No dispute with this id or ticket number on your sales |
+| 409 | `DISPUTE_CLOSED` | DHMAD closed the thread; it no longer takes messages |
+| 409 | `IDEMPOTENCY_KEY_REUSED` | This `Idempotency-Key` was already used for a different message. Use a new key |
+
+Other upload problems return **400** `UPLOAD_INCOMPLETE` (the upload was cut off), **400** `FILE_VALIDATION_FAILED` (a file's content does not match its type) or **503** `FILE_STORAGE_UNAVAILABLE`. Send the request again with the same `Idempotency-Key`.

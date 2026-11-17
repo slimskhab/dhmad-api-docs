@@ -1,0 +1,141 @@
+---
+title: Disputes
+description: Read and answer every dispute on your sales from your own tools
+---
+
+The Disputes API gathers every dispute on your sales in one place, so you can handle them where you already work, for example in your helpdesk. You read the same thread you see on dhmad.tn → Support, and what you post through the API appears there too: the payer sees it, and so does DHMAD.
+
+| Endpoint | What it does |
+|---|---|
+| [`GET /v1/disputes`](/api-reference/disputes/list-disputes) | List your disputes, newest activity first |
+| [`GET /v1/disputes/:id`](/api-reference/disputes/get-dispute) | One dispute with its whole thread |
+| [`POST /v1/disputes/:id/messages`](/api-reference/disputes/create-message) | Reply, with files as evidence |
+| [`POST /v1/disputes/:id/escalate`](/api-reference/disputes/escalate-dispute) | Ask DHMAD to decide a charge dispute |
+| [`POST /v1/disputes/:id/chargeback-response`](/api-reference/disputes/chargeback-response) | Contest or accept a card chargeback |
+| [`POST /v1/charges/:id/dispute/accept`](/api-reference/charges/accept-dispute) | Accept a charge dispute and refund the payer |
+
+Every `/v1/disputes` endpoint needs an API key with **Disputes access**, which keys do not have by default. See [Permissions](#permissions).
+
+## Which disputes you see
+
+You see the disputes on sales made by your developer account's business:
+
+- disputes on your [charges](/api-reference/charges/overview);
+- disputes on escrows where your business is the seller;
+- chargebacks held against your business.
+
+You do not see disputes on escrows you created through the API for another seller (that seller answers them), or disputes where your business is the buyer. Asking for one of those returns **404** `DISPUTE_NOT_FOUND`, the same as an id that does not exist.
+
+## Kinds of dispute
+
+`kind` says what the dispute is and who decides it.
+
+| `kind` | What happened | Who decides |
+|---|---|---|
+| `charge_dispute` | The payer opened a dispute with DHMAD on a charge, during the 72-hour hold | You and the payer, for 20 days. Then DHMAD, if one of you asks |
+| `chargeback` | The payer disputed a card or PayPal payment with PayPal or their bank | The card issuer, through PayPal. You contest or accept |
+| `escrow_dispute` | A dispute on an escrow you sold, or the buyer rejected one period of a [progressive-release](/guides/progressive-release) escrow | DHMAD |
+
+### Charge disputes
+
+Charge disputes work like PayPal's: the payment stays held, you and the payer talk it out, and DHMAD decides only if one of you asks.
+
+1. When the payer opens a dispute, the two of you have **20 days** to settle it on the dispute thread. Messages on the thread never move or reset this deadline (`deadlines.closesAt`). You can [accept the dispute](/api-reference/charges/accept-dispute), which refunds the payer in full, at any time.
+2. Before the 20 days end, either side can **ask DHMAD to decide** ([Escalate Dispute](/api-reference/disputes/escalate-dispute), or a button on the dispute thread and on the payer's protect page). You then have **7 days** to send DHMAD your side on the thread (`deadlines.merchantReplyBy`). If you don't, DHMAD refunds the payer in full. Once your side is in, DHMAD decides and either refunds the payer or releases the payment to you.
+3. If nobody asks DHMAD to decide within the 20 days, the dispute closes and the payment is released to your wallet.
+
+DHMAD can also take a dispute for review at any time (`deadlines.escalatedBy: "support"`). See also [Dispute deadline](/api-reference/charges/accept-dispute#dispute-deadline).
+
+### Chargebacks
+
+DHMAD holds back the disputed amount and asks for your evidence before `chargeback.merchantDueAt`. Tell DHMAD what to do with [Chargeback Response](/api-reference/disputes/chargeback-response):
+
+- **Contest**: send your evidence as [messages](/api-reference/disputes/create-message) (proof of delivery, your conversation with the payer, the terms they accepted). DHMAD sends it to PayPal, and the card issuer decides.
+- **Accept**: DHMAD accepts the claim with PayPal, and the payer keeps the money.
+
+What is held, what is taken back and PayPal's fee work as described in [Chargebacks](/api-reference/charges/overview#chargebacks); the `charge.chargeback.opened` and `charge.chargeback.resolved` [webhooks](/guides/webhooks) still fire as before.
+
+### Escrow disputes
+
+DHMAD reviews the dispute and decides what happens to the escrow money. Reply on the thread with your side and your evidence. You cannot escalate an escrow dispute: DHMAD already has it.
+
+## Status and outcome
+
+<ParamField response="status" type="string">
+  `open`: waiting on you and the other side. `under_review`: DHMAD is deciding (for a chargeback: DHMAD sent your evidence and PayPal is deciding). `closed`: settled.
+</ParamField>
+
+<ParamField response="stage" type="string | null">
+  Charge disputes only. `open` while you and the payer talk it out, `review` once someone asked DHMAD to decide. `null` once settled, and on other kinds.
+</ParamField>
+
+<ParamField response="outcome" type="string | null">
+  How a closed dispute ended. Charge disputes: `released` (the payment went to you) or `refunded` (the payer got their money back). Chargebacks: `won` or `lost`. Escrow disputes: always `null`; the escrow's `status` shows the result. `null` while the dispute is not settled, and on older charge disputes with no recorded result.
+</ParamField>
+
+## Actions
+
+`actions` says what you can do now. Check it instead of working it out from `status`.
+
+| Field | `true` when | What to call |
+|---|---|---|
+| `actions.reply` | The thread takes messages. A `closed` dispute can still take them until DHMAD closes the thread | [Create Message](/api-reference/disputes/create-message) |
+| `actions.escalate` | A charge dispute is in its 20 days and nobody has asked DHMAD yet | [Escalate Dispute](/api-reference/disputes/escalate-dispute) |
+| `actions.accept` | A charge dispute is open or in review | [Accept Dispute](/api-reference/charges/accept-dispute) with `charge.id` |
+| `actions.respondToChargeback` | A chargeback still waits for your answer | [Chargeback Response](/api-reference/disputes/chargeback-response) |
+
+## Permissions
+
+The disputes endpoints return your payers' names, emails, messages and documents, so a key needs **Disputes access** to reach them. Keys have none by default: a key pasted into a WooCommerce or PrestaShop plugin cannot read disputes unless you turn it on.
+
+| Disputes access | Permission | What the key can do |
+|---|---|---|
+| No access (default) | none | Nothing on `/v1/disputes` |
+| Read | `disputes:read` | List disputes, read their messages and documents, subscribe to the `dispute.*` webhooks |
+| Read & reply | `disputes:write` (includes `disputes:read`) | Also reply, send evidence, ask DHMAD to decide and answer chargebacks |
+
+Set it per key in the [Developer Dashboard](https://developer.dhmad.tn/dashboard) → API Keys. A key without the access it needs gets **403** `API_KEY_PERMISSION_REQUIRED`. See [API key permissions](/guides/api-keys#permissions).
+
+## What is never included
+
+The API shows the thread as you see it on dhmad.tn. It never includes DHMAD's internal notes or how DHMAD organises its work (who is assigned, queues, priorities). Messages from DHMAD's team are signed `DHMAD`, never with an agent's name. A payer who has no DHMAD account appears by email only, with no name.
+
+## Sync to your helpdesk
+
+<Steps>
+  <Step title="Give a key Disputes access">
+    Read is enough to import disputes. Choose Read & reply if your helpdesk answers them too.
+  </Step>
+  <Step title="Hear about changes">
+    Subscribe to [`dispute.opened`, `dispute.message.created` and `dispute.updated`](/guides/webhooks#disputeopened). Or poll `GET /v1/disputes?updatedSince=` with the time of your last sync (take a few minutes off it; duplicates are harmless when you key on `id`).
+  </Step>
+  <Step title="Import the thread">
+    For each new or changed dispute, fetch [`GET /v1/disputes/:id`](/api-reference/disputes/get-dispute). Store each message by its `id`, and update its `body` when `edited` is `true`: DHMAD's team can correct a message it sent, which sends no webhook but moves `lastActivityAt`.
+  </Step>
+  <Step title="Reply from your helpdesk">
+    Post your agents' replies with [`POST /v1/disputes/:id/messages`](/api-reference/disputes/create-message) and an `Idempotency-Key` (your helpdesk's reply id works well), so a retry never posts twice. Your own replies come back in `dispute.message.created` with `message.source: "api"`: skip those.
+  </Step>
+</Steps>
+
+Run one full sync with `GET /v1/disputes` when you start: disputes opened before the dispute webhooks were switched on never send `dispute.opened` (their later messages and changes are sent as usual).
+
+Attachment links are signed and expire (`urlExpiresAt`): download the files when you import a message, or fetch the dispute again for fresh links.
+
+## Test in the sandbox
+
+On the [sandbox](/guides/sandbox), make a payer act on a charge you created with `POST /api/v1/sandbox/charges/:id/simulate`:
+
+| `event` | What it does |
+|---|---|
+| `dispute_opened` | A guest payer opens a dispute on the charge. Send `message` for their reason. Needs a paid charge still on hold: run `proof_approved` first |
+| `dispute_payer_message` | The payer writes on the open dispute (`message`) |
+| `dispute_payer_escalated` | The payer asks DHMAD to decide: you have 7 days to send your side |
+
+```bash
+curl -X POST https://sandbox.dhmad.tn/api/v1/sandbox/charges/order_10482/simulate \
+  -H "Authorization: Bearer sk_sandbox_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{ "event": "dispute_opened", "message": "The credits never reached my account." }'
+```
+
+They send the same webhooks as a real payer's actions. Chargebacks cannot be simulated. See [Simulate charge events](/guides/sandbox#simulate-charge-events).

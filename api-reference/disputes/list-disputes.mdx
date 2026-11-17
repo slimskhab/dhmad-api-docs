@@ -1,0 +1,201 @@
+---
+title: List Disputes
+description: List the disputes on your sales, newest activity first
+---
+
+<Endpoint method="GET" path="/api/v1/disputes" />
+
+Returns the [disputes you see](/api-reference/disputes/overview#which-disputes-you-see) (charge disputes, chargebacks and escrow disputes on your sales), the one with the most recent activity first. Each dispute has the fields of [Get Dispute](/api-reference/disputes/get-dispute) except `messages`: fetch a dispute to read its thread.
+
+Needs an API key with Disputes access (Read). See [Permissions](/guides/api-keys#permissions).
+
+To keep your own copy in sync, call it with `updatedSince` set to the time of your last sync, or subscribe to the [`dispute.*` webhooks](/guides/webhooks#disputeopened).
+
+<RequestExample>
+```bash cURL
+curl "https://dhmad.tn/api/v1/disputes?status=open&updatedSince=2026-11-14T00:00:00Z&limit=50" \
+  -H "Authorization: Bearer sk_live_your_api_key_here"
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  status: 'open',
+  updatedSince: '2026-11-14T00:00:00Z',
+  limit: '50'
+});
+
+const response = await fetch(`https://dhmad.tn/api/v1/disputes?${params}`, {
+  headers: { 'Authorization': 'Bearer sk_live_your_api_key_here' }
+});
+
+const { disputes, pagination } = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://dhmad.tn/api/v1/disputes',
+    headers={'Authorization': 'Bearer sk_live_your_api_key_here'},
+    params={'status': 'open', 'updatedSince': '2026-11-14T00:00:00Z', 'limit': 50},
+)
+
+disputes = response.json()['disputes']
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "disputes": [
+    {
+      "id": "6735b7c8d9e0f1a2b3c4d5e6",
+      "ticketNumber": "DH-2026-00045",
+      "kind": "chargeback",
+      "status": "open",
+      "stage": null,
+      "outcome": null,
+      "charge": {
+        "id": "672f9e1d2c3b4a5968778695",
+        "merchantReference": "order_10391",
+        "title": "Annual plan",
+        "amountTnd": 300,
+        "currency": "TND",
+        "status": "completed"
+      },
+      "escrow": null,
+      "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+      "reasonCode": null,
+      "merchantContact": null,
+      "reportedBy": null,
+      "messagesBeforeDispute": [],
+      "deadlines": {
+        "closesAt": null,
+        "merchantReplyBy": null,
+        "merchantRepliedAt": null,
+        "escalatedBy": null,
+        "escalatedAt": null
+      },
+      "chargeback": {
+        "caseId": "PP-R-NKX-102938475",
+        "provider": "paypal",
+        "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+        "status": "open",
+        "amountTnd": 300,
+        "disputedAmount": { "value": 96.5, "currency": "USD" },
+        "merchantDueAt": "2026-11-20T23:59:59.000Z",
+        "fundsAction": "balance_reserved",
+        "reservedTnd": 300,
+        "shortfallTnd": 0,
+        "openedAt": "2026-11-15T08:00:01.000Z",
+        "merchantDecision": null,
+        "merchantDecidedAt": null
+      },
+      "actions": {
+        "reply": true,
+        "escalate": false,
+        "accept": false,
+        "respondToChargeback": true
+      },
+      "openedAt": "2026-11-15T08:00:02.000Z",
+      "lastActivityAt": "2026-11-15T08:00:02.000Z",
+      "lastMessageAt": "2026-11-15T08:00:02.000Z",
+      "closedAt": null,
+      "messageCount": 1
+    },
+    {
+      "id": "6735a1b2c3d4e5f6a7b8c9d0",
+      "ticketNumber": "DH-2026-00042",
+      "kind": "charge_dispute",
+      "status": "under_review",
+      "stage": "review",
+      "outcome": null,
+      "charge": {
+        "id": "6731f0a2b4c5d6e7f8a9b0c1",
+        "merchantReference": "order_10482",
+        "title": "500 credits",
+        "amountTnd": 120,
+        "currency": "TND",
+        "status": "completed"
+      },
+      "escrow": null,
+      "reason": "I paid on 11 November and the credits never reached my account.",
+      "reasonCode": "not_received",
+      "merchantContact": "no_reply",
+      "reportedBy": { "email": "payer@example.com", "name": null },
+      "messagesBeforeDispute": [
+        {
+          "sentAt": "2026-11-11T09:12:00.000Z",
+          "body": "Hello, I paid for 500 credits this morning and I still don't have them."
+        }
+      ],
+      "deadlines": {
+        "closesAt": null,
+        "merchantReplyBy": "2026-11-21T16:30:00.000Z",
+        "merchantRepliedAt": null,
+        "escalatedBy": "payer",
+        "escalatedAt": "2026-11-14T16:30:00.000Z"
+      },
+      "chargeback": null,
+      "actions": {
+        "reply": true,
+        "escalate": false,
+        "accept": true,
+        "respondToChargeback": false
+      },
+      "openedAt": "2026-11-12T10:20:00.000Z",
+      "lastActivityAt": "2026-11-14T17:02:00.000Z",
+      "lastMessageAt": "2026-11-14T17:02:00.000Z",
+      "closedAt": null,
+      "messageCount": 2
+    }
+  ],
+  "pagination": { "page": 1, "limit": 50, "total": 2, "pages": 1 }
+}
+```
+</ResponseExample>
+
+## Query Parameters
+
+<ParamField query="kind" type="string">
+  Only one kind: `charge_dispute`, `chargeback` or `escrow_dispute`.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Only one status: `open`, `under_review` or `closed`.
+</ParamField>
+
+<ParamField query="chargeId" type="string">
+  Only the disputes on one charge: its DHMAD id or your `merchantReference`. An unknown charge returns an empty list, not a 404.
+</ParamField>
+
+<ParamField query="updatedSince" type="string">
+  Only disputes that changed at or after this time (ISO 8601 with a time zone, for example `2026-11-14T00:00:00Z`): a new message or line on the thread, or a change to the dispute's charge, escrow or chargeback (a deadline, an outcome). A dispute whose charge changed for another reason can come back too: compare it with what you stored.
+</ParamField>
+
+<ParamField query="page" type="number" default="1">
+  Page number.
+</ParamField>
+
+<ParamField query="limit" type="number" default="20">
+  Disputes per page, up to 100.
+</ParamField>
+
+## Response Fields
+
+<ParamField response="disputes" type="array">
+  The disputes, newest activity (`lastActivityAt`) first, without `messages`. See [the dispute object](/api-reference/disputes/get-dispute#the-dispute-object).
+</ParamField>
+
+<ParamField response="pagination" type="object">
+  `page`, `limit`, `total` (disputes matching the filters) and `pages`.
+</ParamField>
+
+## Errors
+
+Errors carry the code in `error` and `code`, with a readable `message`.
+
+| Status | Code | Meaning |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | A query parameter is not valid (for example `updatedSince` without a time zone); `details` names it |
+| 403 | `API_KEY_PERMISSION_REQUIRED` | The key has no Disputes access. See [Permissions](/guides/api-keys#permissions) |

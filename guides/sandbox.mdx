@@ -98,6 +98,68 @@ curl -X GET "https://sandbox.dhmad.tn/api/v1/balance" \
 - **Same features** — Escrow creation, payments, contracts, webhooks, and the rest of the API behave the same. Use the sandbox to validate your integration end-to-end.
 - **Test data** — Use test users, test emails, and test payment methods. No real money or production credentials.
 
+## Simulate charge events
+
+On the sandbox, `POST /api/v1/sandbox/charges/:id/simulate` plays what a payer would do on a [charge](/api-reference/charges/overview) you created, so you can test your webhooks and the [Disputes API](/api-reference/disputes/overview) without going through checkout. `:id` is the charge id or your `merchantReference`. The production API answers **404**.
+
+<Endpoint method="POST" path="/api/v1/sandbox/charges/:id/simulate" />
+
+<ParamField body="event" type="string" required>
+  What happens:
+
+  - `proof_submitted`: the payer submits a bank-transfer proof. The charge stays `pending`.
+  - `proof_approved`: the proof is approved. The charge is paid and completed as after a real payment (`charge.status.updated`), and its 72-hour hold starts.
+  - `proof_rejected`: the pending proof is rejected (`escrow.deposit_proof.rejected`).
+  - `dispute_opened`: a guest payer opens a dispute on the charge, as from the payment's protect page (`charge.dispute.opened`, then `dispute.opened`). Needs a paid charge still on hold: run `proof_approved` first. The dispute's `reasonCode` is `not_received` and its `merchantContact` is `no_reply`.
+  - `dispute_payer_message`: the payer writes on the open dispute (`dispute.message.created`).
+  - `dispute_payer_escalated`: the payer asks DHMAD to decide. You then have 7 days to send your side (`dispute.updated`).
+</ParamField>
+
+<ParamField body="message" type="string">
+  The payer's words, for `dispute_opened` (their reason) and `dispute_payer_message`. Up to 2,000 characters. Without it, a sample sentence is used.
+</ParamField>
+
+A proof event answers with `status: "success"`, `event`, `depositProof` (`id`, `status`) and `charge` (`id`, `status`). A dispute event answers with `status: "success"`, `event` and `dispute.id`: use it with [Get Dispute](/api-reference/disputes/get-dispute).
+
+### Test a dispute from start to end
+
+```bash
+# 1. Pay the charge you created with POST /api/v1/charges
+curl -X POST https://sandbox.dhmad.tn/api/v1/sandbox/charges/order_10482/simulate \
+  -H "Authorization: Bearer sk_sandbox_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{ "event": "proof_approved" }'
+
+# 2. The payer opens a dispute
+curl -X POST https://sandbox.dhmad.tn/api/v1/sandbox/charges/order_10482/simulate \
+  -H "Authorization: Bearer sk_sandbox_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{ "event": "dispute_opened", "message": "The credits never reached my account." }'
+
+# 3. Read it and answer it with the Disputes API (the key needs Disputes access)
+curl "https://sandbox.dhmad.tn/api/v1/disputes?chargeId=order_10482" \
+  -H "Authorization: Bearer sk_sandbox_your_api_key_here"
+
+# 4. The payer writes again, then asks DHMAD to decide
+curl -X POST https://sandbox.dhmad.tn/api/v1/sandbox/charges/order_10482/simulate \
+  -H "Authorization: Bearer sk_sandbox_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{ "event": "dispute_payer_message", "message": "Any news?" }'
+
+curl -X POST https://sandbox.dhmad.tn/api/v1/sandbox/charges/order_10482/simulate \
+  -H "Authorization: Bearer sk_sandbox_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{ "event": "dispute_payer_escalated" }'
+```
+
+Chargebacks cannot be simulated.
+
+| Status | Meaning |
+|---|---|
+| 400 | `event` is missing or unknown, `message` is too long, or the id is not a charge |
+| 404 | Production API; no charge with this id or reference created by your developer account; or `proof_rejected` with no pending proof |
+| 409 | The charge is not in the state the event needs: `proof_submitted` and `proof_approved` need a `pending` charge; `dispute_opened` a paid charge still on hold (`code`: `CHARGE_NOT_HELD`) with no dispute (`DISPUTE_NOT_OPENABLE`); `dispute_payer_message` and `dispute_payer_escalated` an open dispute (`DISPUTE_NOT_OPEN`). `dispute_payer_escalated` also answers `DISPUTE_IN_REVIEW` or `DISPUTE_CLOSED` |
+
 ## Sandbox Banner (Frontend)
 
 On [sandbox.dhmad.tn](https://sandbox.dhmad.tn), a sticky banner at the top of the page indicates:

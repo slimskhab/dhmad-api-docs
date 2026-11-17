@@ -68,6 +68,10 @@ Refund a charge in full or in part with [Refund Charge](/api-reference/charges/c
 
 During the 72-hour hold the payer can open a dispute with DHMAD. The release then waits (`fundsStatus: "disputed"`), you receive the `charge.dispute.opened` webhook, and [Get Charge](/api-reference/charges/get-charge) shows who opened it and why in `dispute`. Refunds return **409** `CHARGE_DISPUTED` while it is open. Settle it yourself with [Accept Dispute](/api-reference/charges/accept-dispute), which refunds the payer in full, or let DHMAD support review it and either refund the payer or release the payment to you.
 
+To read the dispute thread and answer it from your own tools (your helpdesk, for example), use the [Disputes API](/api-reference/disputes/overview): it lists your disputes, returns each thread with its deadlines, lets you reply with evidence or ask DHMAD to decide, and sends `dispute.*` webhooks.
+
 ## Chargebacks
 
 When a payer disputes a PayPal or card payment with PayPal or their bank, DHMAD holds back the disputed amount — by blocking the release during the hold, or from your available balance after it — and opens an urgent support ticket asking for your evidence. If your balance does not cover it, money that reaches your balance later is held too, until the disputed amount is covered or the case is decided; all of it comes back if you win. If PayPal sides with the payer, the amount is taken back and PayPal's chargeback fee is passed on to you. Follow cases with the `charge.chargeback.opened` and `charge.chargeback.resolved` [webhooks](/guides/webhooks).
+
+Read the case's thread, send your evidence and tell DHMAD whether to contest or accept it through the [Disputes API](/api-reference/disputes/overview) ([Chargeback Response](/api-reference/disputes/chargeback-response)).

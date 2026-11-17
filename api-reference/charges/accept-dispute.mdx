@@ -13,8 +13,8 @@ Accept the dispute to settle it yourself: DHMAD refunds the payer everything sti
 
 Disputes work like PayPal's: the payment stays held, you and the payer talk it out, and DHMAD decides only if one of you asks.
 
-1. When the payer opens a dispute, the two of you have **20 days** to settle it on the dispute thread (dhmad.tn → Support, or the DHMAD app). Messages on the thread never move or reset this deadline. You can accept the dispute, or refund, at any time. Your business's owner and admins get an email and a notification with the closing date; the payer gets reminders 3 days and 1 day before it.
-2. Before the 20 days end, either side can **ask DHMAD to decide** (a button on the dispute thread and on the payer's protect page). You then have **7 days** to send DHMAD your side on the thread. If you don't, DHMAD refunds the payer in full: the refund has `reason: "dispute_unanswered"` and `initiatedBy: "dispute_timeout"`, and you receive `charge.refunded`. Once your side is in, DHMAD decides and either refunds the payer or releases the payment to you.
+1. When the payer opens a dispute, the two of you have **20 days** to settle it on the dispute thread (dhmad.tn → Support, the DHMAD app, or the [Disputes API](/api-reference/disputes/overview)). Messages on the thread never move or reset this deadline. You can accept the dispute, or refund, at any time. Your business's owner and admins get an email and a notification with the closing date; the payer gets reminders 3 days and 1 day before it.
+2. Before the 20 days end, either side can **ask DHMAD to decide** (a button on the dispute thread and on the payer's protect page, or [Escalate Dispute](/api-reference/disputes/escalate-dispute)). You then have **7 days** to send DHMAD your side on the thread. If you don't, DHMAD refunds the payer in full: the refund has `reason: "dispute_unanswered"` and `initiatedBy: "dispute_timeout"`, and you receive `charge.refunded`. Once your side is in, DHMAD decides and either refunds the payer or releases the payment to you.
 3. If nobody asks DHMAD to decide within the 20 days, the dispute closes and the payment is released to your wallet: you receive `charge.funds.released`.
 
 DHMAD can also take a dispute for review at any time. `charge.dispute.stage`, `closesAt`, `escalatedBy` and `merchantReplyBy` say where the dispute stands.
@@ -22,6 +22,8 @@ DHMAD can also take a dispute for review at any time. `charge.dispute.stage`, `c
 `:id` accepts the DHMAD charge id or your `merchantReference`. Accepting from the dashboard does the same thing.
 
 The refund comes out of the held payment, so DHMAD's fee on it is waived, and the payer gets the money back the same way as any refund (see [How the payer gets the money back](/api-reference/charges/create-refund#how-the-payer-gets-the-money-back)). You receive the **`charge.refunded`** webhook, then **`charge.refund.updated`** as the refund completes.
+
+To read the thread and reply to the payer from your own tools, use the [Disputes API](/api-reference/disputes/overview). A dispute there with `actions.accept: true` is accepted with this endpoint, using its `charge.id`.
 
 <Note>
   This is the dispute the payer opens with DHMAD. A dispute the payer opens with PayPal or their bank is a **chargeback**, which PayPal decides — see [Chargebacks](/api-reference/charges/overview#chargebacks).
@@ -41,6 +43,14 @@ The refund comes out of the held payment, so DHMAD's fee on it is waived, and th
 
 <ParamField response="charge.dispute.reason" type="string | null">
   The payer's first message on the dispute.
+</ParamField>
+
+<ParamField response="charge.dispute.reasonCode" type="string | null">
+  The reason the payer chose when opening the dispute: `not_received`, `not_as_described`, `refund_not_received`, `wrong_amount`, `unauthorized` or `other`. `null` on disputes opened before 15 November 2026.
+</ParamField>
+
+<ParamField response="charge.dispute.merchantContact" type="string | null">
+  What the payer said about contacting you first: `no_reply` (you did not answer), `not_resolved` (you talked but did not sort it out), `not_contacted` (only allowed for a payment they say they did not make, or when DHMAD cannot reach you) or `unrecognized` (they do not recognise the payment). `null` on disputes opened before 15 November 2026.
 </ParamField>
 
 <ParamField response="charge.dispute.openedAt" type="string">

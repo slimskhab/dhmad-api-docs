@@ -41,7 +41,7 @@ All error responses follow this format:
     Resource not found
   </Card>
   <Card title="409 Conflict" icon="ban">
-    Wrong product for this id — e.g. a [charge](/api-reference/charges/overview) on an escrow endpoint (`CHARGE_NOT_AN_ESCROW`)
+    The request conflicts with the resource's state — e.g. a [charge](/api-reference/charges/overview) on an escrow endpoint (`CHARGE_NOT_AN_ESCROW`), or a message on a closed dispute (`DISPUTE_CLOSED`)
   </Card>
   <Card title="429 Too Many Requests" icon="clock">
     Rate limit exceeded
@@ -104,6 +104,20 @@ All error responses follow this format:
 
 **Solution**: Associate your developer account with a user account in the dashboard.
 
+**API Key Permission Required**
+
+```json
+{
+  "error": "API_KEY_PERMISSION_REQUIRED",
+  "code": "API_KEY_PERMISSION_REQUIRED",
+  "permission": "disputes:read",
+  "message": "This API key cannot read disputes. In the DHMAD developer portal, open API keys, edit this key and set Disputes access to Read (or Read & reply).",
+  "docs": "https://docs.dhmad.tn/guides/api-keys#permissions"
+}
+```
+
+**Solution**: The key has not been given the access this endpoint needs (`permission`). Turn it on for the key in the dashboard, then retry. See [API key permissions](/guides/api-keys#permissions).
+
 ### 404 Not Found
 
 **Resource Not Found**
@@ -130,6 +144,35 @@ All error responses follow this format:
 ```
 
 **Solution**: Wait for the rate limit to reset or contact support for higher limits.
+
+## Disputes API errors
+
+The [Disputes API](/api-reference/disputes/overview) answers with the code in `error` and `code`, and a readable `message`:
+
+```json
+{
+  "error": "DISPUTE_CLOSED",
+  "code": "DISPUTE_CLOSED",
+  "message": "This dispute's thread is closed and no longer takes messages."
+}
+```
+
+| Status | Code | Meaning |
+|---|---|---|
+| 400 | `MESSAGE_EMPTY` | [Create Message](/api-reference/disputes/create-message) got no text and no files |
+| 400 | `FILE_TOO_LARGE` | A file is over 20 MB |
+| 400 | `TOO_MANY_FILES` | More than 5 files on one message |
+| 400 | `UPLOAD_ERROR` | A file could not be stored. Send the request again |
+| 403 | `API_KEY_PERMISSION_REQUIRED` | The key lacks Disputes access (`permission` says which). See [Permissions](/guides/api-keys#permissions) |
+| 404 | `DISPUTE_NOT_FOUND` | No dispute with this id or ticket number on your business's sales |
+| 409 | `DISPUTE_CLOSED` | The thread is closed and takes no messages; or, on [Escalate Dispute](/api-reference/disputes/escalate-dispute), the 20 days have ended |
+| 409 | `DISPUTE_IN_REVIEW` | DHMAD has already been asked to decide this dispute |
+| 409 | `DISPUTE_NOT_OPEN` | The charge has no open dispute (it was settled) |
+| 409 | `ACTION_NOT_AVAILABLE` | This action is for another kind of dispute: escalate only charge disputes, answer only chargebacks with Chargeback Response |
+| 409 | `CHARGEBACK_NOT_OPEN` | The chargeback no longer takes an answer: DHMAD sent the evidence, or the card issuer decided |
+| 409 | `IDEMPOTENCY_KEY_REUSED` | On [Create Message](/api-reference/disputes/create-message), the `Idempotency-Key` was already used for a different message |
+
+**Solution**: For a 409, fetch the dispute with [Get Dispute](/api-reference/disputes/get-dispute) and check `actions`: it says what you can still do.
 
 ## Error Handling Best Practices
 
