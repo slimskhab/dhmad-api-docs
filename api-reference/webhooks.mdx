@@ -13,8 +13,9 @@ The Webhooks API allows you to create and manage webhooks that receive real-time
 <Note>
   On the live API, adding a webhook, changing its URL and regenerating its secret
   need a fresh confirmation by the DHMAD account that owns your developer
-  account: a 6-digit code sent to its email, or the code from its authenticator
-  app when that is on. The [developer portal](https://developer.dhmad.tn/dashboard/webhooks) asks
+  account: its dhmad.tn passkey (Face ID, fingerprint or device PIN) when it has
+  one, otherwise a 6-digit code sent to its email, or the code from its
+  authenticator app when that is on. The [developer portal](https://developer.dhmad.tn/dashboard/webhooks) asks
   for it. Once a change is confirmed, the same portal session is not asked again
   for 2 hours while it keeps working. Changing only `events` or `isActive` does
   not need it, and the sandbox never does. See [Confirming a change](#confirming-a-change).
@@ -332,16 +333,21 @@ curl -X POST https://dhmad.tn/api/developer/step-up/request \
 ```
 
 `operation` is `webhook_create` (with `url`), `webhook_url` (with `resourceId` and
-the new `url`) or `webhook_secret` (with `resourceId`). The answer carries
-`challengeId`, `challengeToken` and `method` (`email` or `totp`), or
+the new `url`) or `webhook_secret` (with `resourceId`). When the owning account
+has a dhmad.tn passkey, the answer is `"method": "passkey"` with
+`passkeyOptions` (WebAuthn request options for the browser) and no code is sent;
+add `"method": "code"` to the request to get a code instead. Otherwise the
+answer carries `challengeId`, `challengeToken` and `method` (`email` or `totp`), or
 `"required": false` when no check applies: the sandbox, an edit that keeps the
 `url`, or a developer session that confirmed a change in the last 2 hours (the
 answer then also carries `windowEndsAt`); send the change without the step-up
 fields. Otherwise send the change itself with `stepUpChallengeId`,
 `stepUpChallengeToken` and `stepUpCode` (the code from the email or the
-authenticator app) in its body. A code confirms only the change it was asked for
-and works once; asking again after 60 seconds sends a new one. After a confirmed
-code, the same session (the one your developer token belongs to, kept across
+authenticator app) in its body, or, after a passkey check, the browser's
+WebAuthn answer as `stepUpPasskey`. A code or passkey answer confirms only the
+change it was asked for and works once; asking again after 60 seconds sends a
+new code. Passkeys are checked in the developer portal itself (they only work
+on its address). After a confirmed code or passkey, the same session (the one your developer token belongs to, kept across
 token refreshes) needs no new code for 2 hours after its last confirmed change,
 and never more than 8 hours after the code; another session or a new sign-in
 needs its own.
