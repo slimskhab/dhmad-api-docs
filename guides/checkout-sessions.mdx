@@ -88,7 +88,7 @@ On a public checkout URL — including [charges](/api-reference/charges/overview
 
 When the user is on dhmad.tn/checkout and completes **Accept and pay** under the **standard** path (e.g. **standard** escrow mode, or the buyer is signed in and uses the wallet flow), DHMAD may require them to complete additional steps before the action succeeds:
 
-- **Email or phone verification:** If the buyer has not verified their email or phone, they see an inline **popup** on the same page to enter the verification code (OTP). We send the code when the popup opens; after they enter it and verify, they can click **Confirm & Pay** again. No redirect to profile.
+- **Email verification:** If the buyer has not verified their email, they see an inline **popup** on the same page to enter the verification code (OTP). We send the code when the popup opens; after they enter it and verify, they can click **Confirm & Pay** again. No redirect to profile.
 - **KYC (identity verification):** If the buyer has not completed KYC, they see an inline **Verify identity (KYC)** block on the same page. They can start verification (opens in a new tab); after completing it, they return to the checkout page and can click **Confirm & Pay** again. No redirect away from checkout.
 - **Insufficient balance:** If the buyer's balance is too low, they see an inline top-up option on the same page. After topping up, they click **Confirm & Pay** again.
 
